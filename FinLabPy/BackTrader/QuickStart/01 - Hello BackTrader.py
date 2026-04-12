@@ -1,3 +1,4 @@
+
 import backtrader as bt  # Библиотека BackTrader
 
 

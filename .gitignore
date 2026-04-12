@@ -1,0 +1,24 @@
+﻿# Виртуальное окружение
+venv/
+
+# Токены (НЕ КОММИТИТЬ!)
+moex_token.txt
+*.token
+
+# Логи
+*.log
+
+# Временные файлы
+download_data.py
+
+# VS Code
+.vscode/
+.env
+
+# Кэш Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Egg-info
+*.egg-info/
