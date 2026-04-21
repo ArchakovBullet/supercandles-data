@@ -37,7 +37,6 @@ df = pd.DataFrame(data)
 
 print(f'\n✅ Получено {len(df)} свечей SBER (TQBR, D1)')
 print(f'   Период: {df["Дата"].iloc[0]} → {df["Дата"].iloc[-1]}')
-print(f'   Бесплатный тариф, задержка 15 минут\n')
 
 # Выводим таблицу
 print('📊 СВЕЧИ SBER:')
