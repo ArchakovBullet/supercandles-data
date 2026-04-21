@@ -22,3 +22,9 @@ __pycache__/
 
 # Egg-info
 *.egg-info/
+
+# Токены и внешние библиотеки
+MOEXPy/
+alor_token.txt
+tinvest_token.txt
+moex_token.txt
