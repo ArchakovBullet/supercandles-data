@@ -1,5 +1,5 @@
 ﻿"""
-Тестовая стратегия FutOI v2.3 - индикатор открытых позиций физ/юр лиц
+Тестовая стратегия FutOI v2.4 - с автоотключением графика на сервере
 """
 
 import backtrader as bt
@@ -16,10 +16,12 @@ from FinLabPy.My_Indicators import FutOIIndicator, FutOISignal
 import pandas as pd
 
 # Настройки
-TIMEFRAME = 'D1'   # M1, M10, D1, W1, MN1
+TIMEFRAME = 'D1'
 TICKER = 'GLDRUBF'
 DAYS = 50
-PLOT = True
+
+# Автоопределение: на сервере график не показываем
+PLOT = 'DISPLAY' in os.environ or os.name == 'nt'
 
 def load_data():
     token = os.getenv('MOEX_TOKEN')
@@ -50,18 +52,13 @@ def load_data():
 
 class FutOIStrategy(bt.Strategy):
     params = (
-        ('stop_loss', 0.008),    # 0.8%
-        ('take_profit', 0.015),  # 1.5%
+        ('stop_loss', 0.008),
+        ('take_profit', 0.015),
     )
     
     def __init__(self):
         is_intraday = TIMEFRAME in ('M1', 'M10')
-        
-        # Автоматический порог
-        if is_intraday:
-            threshold = 2
-        else:
-            threshold = 10
+        threshold = 2 if is_intraday else 10
         
         self.futoi = FutOIIndicator(self.data, ticker=TICKER, lookback=5, update_intraday=is_intraday)
         self.signal = FutOISignal(self.data, threshold=threshold)
@@ -80,22 +77,32 @@ class FutOIStrategy(bt.Strategy):
                 size = self.broker.get_cash() * 0.95 / self.data.close[0]
                 self.order = self.buy(size=int(size))
                 self.entry_price = self.data.close[0]
+                print(f"🟢 BUY  {self.data.datetime.date()} @ {self.data.close[0]:.2f}")
                 
             elif self.signal.signal[0] == -1 and self.data.close[0] < self.sma[0]:
                 size = self.broker.get_cash() * 0.95 / self.data.close[0]
                 self.order = self.sell(size=int(size))
                 self.entry_price = self.data.close[0]
+                print(f"🔴 SELL {self.data.datetime.date()} @ {self.data.close[0]:.2f}")
         else:
             if self.position.size > 0:
                 sl = self.entry_price * (1 - self.p.stop_loss)
                 tp = self.entry_price * (1 + self.p.take_profit)
-                if self.data.close[0] < sl or self.data.close[0] > tp:
+                if self.data.close[0] < sl:
                     self.order = self.close()
+                    print(f"🛑 SL {self.data.datetime.date()} @ {self.data.close[0]:.2f}")
+                elif self.data.close[0] > tp:
+                    self.order = self.close()
+                    print(f"🎯 TP {self.data.datetime.date()} @ {self.data.close[0]:.2f}")
             elif self.position.size < 0:
                 sl = self.entry_price * (1 + self.p.stop_loss)
                 tp = self.entry_price * (1 - self.p.take_profit)
-                if self.data.close[0] > sl or self.data.close[0] < tp:
+                if self.data.close[0] > sl:
                     self.order = self.close()
+                    print(f"🛑 SL {self.data.datetime.date()} @ {self.data.close[0]:.2f}")
+                elif self.data.close[0] < tp:
+                    self.order = self.close()
+                    print(f"🎯 TP {self.data.datetime.date()} @ {self.data.close[0]:.2f}")
 
 if __name__ == '__main__':
     cerebro = bt.Cerebro()
@@ -104,8 +111,9 @@ if __name__ == '__main__':
     cerebro.broker.set_cash(100000.0)
     cerebro.broker.setcommission(commission=0.0005)
     
-    print(f"\n🚀 FutOI v2.3 | {TICKER} | {TIMEFRAME}")
+    print(f"\n🚀 FutOI v2.4 | {TICKER} | {TIMEFRAME}")
     print(f"   Капитал: {cerebro.broker.getvalue():,.0f} ₽")
+    print(f"   PLOT: {PLOT}")
     print("=" * 60)
     
     results = cerebro.run()
@@ -115,3 +123,5 @@ if __name__ == '__main__':
     
     if PLOT:
         cerebro.plot(style='candlestick', barup='green', bardown='red', volume=False)
+    else:
+        print("   (график отключен — сервер)")
