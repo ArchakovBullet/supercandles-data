@@ -1,5 +1,5 @@
 ﻿"""
-Стратегия FutOI v4.1 | CNYRUBF | M10 | XGBoost | Оптимальные пороги
+Стратегия FutOI v4.4 | CNYRUBF | M10 | порог 0.001M | без дублей
 """
 
 import backtrader as bt
@@ -15,10 +15,9 @@ from MOEXPy.MOEXPy import MOEXPy
 from FinLabPy.My_Indicators import FutOIIndicator, FutOISignal
 from FinLabPy.My_Indicators.futoi_ml_filter import FutOIMLFilter
 
-# Настройки
 TIMEFRAME = 'M10'
 TICKER = 'CNYRUBF'
-DAYS = 10
+DAYS = 50
 PLOT = 'DISPLAY' in os.environ or os.name == 'nt'
 
 def load_data():
@@ -46,21 +45,22 @@ def load_data():
 
 class FutOIStrategyML(bt.Strategy):
     params = (
-        ('stop_loss', 0.005),       # 0.5% стоп-лосс
-        ('take_profit', 0.01),      # 1% тейк-профит
-        ('min_probability', 0.63),  # Оптимальный порог: 63%
+        ('stop_loss', 0.005),
+        ('take_profit', 0.01),
+        ('min_probability', 0.55),
         ('forward_days', 1),
     )
     
     def __init__(self):
         is_intraday = True
-        threshold = 0.001  # Снижен для большего количества сигналов
+        threshold = 0.001  # Снижен до 0.001M для CNYRUBF
         
+        # Только ОДИН индикатор FutOI (не создаем второй в FutOISignal!)
         self.futoi = FutOIIndicator(self.data, ticker=TICKER, lookback=5, update_intraday=is_intraday)
-        self.signal = FutOISignal(self.data, ticker=TICKER, threshold=threshold)
         self.sma = bt.indicators.SMA(self.data.close, period=50)
-        
         self.ml_filter = FutOIMLFilter()
+        
+        # Сигнал создаем вручную (без дублирования FutOI)
         self.entry_price = None
         self.entry_time = None
         self.entry_signal = None
@@ -83,12 +83,21 @@ class FutOIStrategyML(bt.Strategy):
             'jur_net': self.futoi.jur_net.array,
         })
     
+    def _get_signal(self):
+        """Ручной расчет сигнала (без создания второго FutOI)"""
+        change = self.futoi.phys_change[0]
+        if change > 0.001:
+            return 1
+        elif change < -0.001:
+            return -1
+        return 0
+    
     def next(self):
         current_time = self.data.datetime.datetime()
         bar_num = len(self.data)
         
-        # Обучаем ML на 200-м баре
-        if not self.ml_ready and bar_num >= 200:
+        # Обучаем ML на 1500 барах
+        if not self.ml_ready and bar_num >= 1500:
             df = self._get_ml_features()
             valid_data = df.iloc[:bar_num]
             print(f"\n   🔧 Обучение ML на {len(valid_data)} строках...")
@@ -103,7 +112,7 @@ class FutOIStrategyML(bt.Strategy):
             return
         
         if not self.position:
-            raw_signal = self.signal.signal[0]
+            raw_signal = self._get_signal()
             
             if raw_signal != 0:
                 self.signal_count += 1
@@ -124,7 +133,7 @@ class FutOIStrategyML(bt.Strategy):
                             self.entry_time = current_time
                             self.entry_signal = 'BUY'
                             self.entry_probability = proba
-                            print(f"🟢 BUY  {current_time.strftime('%d.%m %H:%M')} @ {self.data.close[0]:.4f} | уверенность ML: {proba:.0%}")
+                            print(f"🟢 BUY  {current_time.strftime('%d.%m %H:%M')} @ {self.data.close[0]:.4f} | ML: {proba:.0%}")
                             
                         elif raw_signal == -1 and self.data.close[0] < self.sma[0]:
                             size = self.broker.get_cash() * 0.95 / self.data.close[0]
@@ -133,7 +142,7 @@ class FutOIStrategyML(bt.Strategy):
                             self.entry_time = current_time
                             self.entry_signal = 'SELL'
                             self.entry_probability = proba
-                            print(f"🔴 SELL {current_time.strftime('%d.%m %H:%M')} @ {self.data.close[0]:.4f} | уверенность ML: {proba:.0%}")
+                            print(f"🔴 SELL {current_time.strftime('%d.%m %H:%M')} @ {self.data.close[0]:.4f} | ML: {proba:.0%}")
                     else:
                         self.skip_count += 1
         else:
@@ -210,9 +219,9 @@ if __name__ == '__main__':
     cerebro.broker.set_cash(100000.0)
     cerebro.broker.setcommission(commission=0.0005)
     
-    print(f"\n🚀 FutOI v4.1 XGBoost | {TICKER} | {TIMEFRAME} | {DAYS} дней")
+    print(f"\n🚀 FutOI v4.4 | {TICKER} | {TIMEFRAME} | {DAYS} дней")
     print(f"   Капитал: {cerebro.broker.getvalue():,.0f} ₽")
-    print(f"   Параметры: мин. уверенность={0.63:.0%} | порог сигнала=0.001M")
+    print(f"   Параметры: мин. уверенность=55% | порог=0.001M")
     print("=" * 60)
     
     results = cerebro.run()
