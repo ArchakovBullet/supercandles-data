@@ -1,8 +1,5 @@
 ﻿"""
-Индикатор FutOI - анализ открытых позиций физических и юридических лиц
-Поддерживает внутридневные обновления (каждые 5 минут)
-
-Версия 2.1 - исправлено: данные FutOI на все бары (forward-fill)
+Индикатор FutOI v2.8 - НОРМАЛИЗОВАННАЯ агрегация (среднее за срез)
 """
 
 import backtrader as bt
@@ -14,19 +11,14 @@ from MOEXPy.MOEXPy import MOEXPy
 
 class FutOIIndicator(bt.Indicator):
     """
-    Индикатор открытых позиций (FutOI) с разделением на физ/юр лиц
+    Индикатор FutOI v2.8
     
-    Линии:
-        phys_net: нетто-позиция физиков (млн)
-        jur_net: нетто-позиция юрлиц (млн)
-        phys_change: изменение позиции физиков за период (млн)
-        phys_long: длинные позиции физиков (млн)
-        phys_short: короткие позиции физиков (млн)
-        
-    Параметры:
-        ticker: тикер фьючерса (по умолчанию 'GLDRUBF')
-        lookback: дней истории
-        update_intraday: обновлять внутри дня (True для M1/M10)
+    Нормализация: показывает СРЕДНЮЮ позицию за срез (а не сумму за день).
+    Так изменения позиций между днями отражают реальное движение, 
+    а не разное количество срезов.
+    
+    Формула:
+        phys_net = (sum(FIZ_long) - sum(FIZ_short)) / n_snapshots / 1_000_000
     """
     
     lines = ('phys_net', 'jur_net', 'phys_change', 'phys_long', 'phys_short')
@@ -52,14 +44,10 @@ class FutOIIndicator(bt.Indicator):
     
     def __init__(self):
         self.api = None
-        self._futoi_data = {}       # Дневные агрегированные данные
-        self._intraday_data = {}    # Внутридневные данные
-        
-        # Загружаем данные
+        self._daily_data = {}
         self._load_futoi_data()
     
     def _init_api(self):
-        """Инициализация API MOEX"""
         if self.api is None:
             token = os.getenv('MOEX_TOKEN')
             if token:
@@ -71,13 +59,13 @@ class FutOIIndicator(bt.Indicator):
         return self.api is not None
     
     def _load_futoi_data(self):
-        """Загрузка данных FutOI с MOEX"""
+        """Загрузка с НОРМАЛИЗАЦИЕЙ — делим сумму на количество срезов"""
         if not self._init_api():
             return
         
         try:
             dt_till = datetime.now()
-            dt_from = dt_till - timedelta(days=self.p.lookback + 3)
+            dt_from = dt_till - timedelta(days=self.p.lookback + 5)
             
             data = self.api.get_futoi(self.p.ticker, dt_from, dt_till)
             
@@ -86,96 +74,56 @@ class FutOIIndicator(bt.Indicator):
                 rows = data['futoi']['data']
                 idx = {c: i for i, c in enumerate(cols)}
                 
-                # Собираем внутридневные данные
+                # Суммируем все срезы за день
+                daily_sum = defaultdict(lambda: {'FIZ_long': 0, 'FIZ_short': 0, 'YUR_long': 0, 'YUR_short': 0})
+                daily_count = defaultdict(int)  # Количество срезов за день
+                
                 for row in rows:
                     date = str(row[idx['tradedate']])[:10]
-                    time = str(row[idx['tradetime']])
                     clgroup = row[idx['clgroup']]
                     pos_long = int(row[idx['pos_long']]) if row[idx['pos_long']] else 0
                     pos_short = abs(int(row[idx['pos_short']])) if row[idx['pos_short']] else 0
                     
-                    key = f"{date}T{time}"
-                    
-                    if key not in self._intraday_data:
-                        self._intraday_data[key] = {'FIZ_long': 0, 'FIZ_short': 0, 'YUR_long': 0, 'YUR_short': 0}
-                    
-                    self._intraday_data[key][f'{clgroup}_long'] += pos_long
-                    self._intraday_data[key][f'{clgroup}_short'] += pos_short
+                    daily_sum[date][f'{clgroup}_long'] += pos_long
+                    daily_sum[date][f'{clgroup}_short'] += pos_short
+                    daily_count[date] += 1
                 
-                # Группируем по дням (берем ПОСЛЕДНЕЕ значение за день)
-                day_last = {}
-                for key in sorted(self._intraday_data.keys()):
-                    date = key[:10]
-                    day_last[date] = self._intraday_data[key]
-                
-                for date, d in day_last.items():
-                    self._futoi_data[date] = {
-                        'phys_net': (d['FIZ_long'] - d['FIZ_short']) / 1_000_000,
-                        'jur_net': (d['YUR_long'] - d['YUR_short']) / 1_000_000,
-                        'phys_long': d['FIZ_long'] / 1_000_000,
-                        'phys_short': d['FIZ_short'] / 1_000_000,
+                # НОРМАЛИЗУЕМ: делим на количество срезов
+                for date, d in daily_sum.items():
+                    n = daily_count[date] / 2 if daily_count[date] > 0 else 1  # /2 т.к. FIZ+YUR
+                    
+                    self._daily_data[date] = {
+                        'phys_net': (d['FIZ_long'] - d['FIZ_short']) / n / 1_000_000,
+                        'jur_net': (d['YUR_long'] - d['YUR_short']) / n / 1_000_000,
+                        'phys_long': d['FIZ_long'] / n / 1_000_000,
+                        'phys_short': d['FIZ_short'] / n / 1_000_000,
                     }
                 
+                print(f"   FutOI v2.8: {len(daily_sum)} дней (нормализовано)")
+                for date in sorted(daily_sum.keys())[-3:]:
+                    d = self._daily_data[date]
+                    print(f"   {date}: phys_net={d['phys_net']:.3f}M (срезов: {daily_count[date]//2})")
+                
         except Exception as e:
-            print(f"⚠️ FutOI: ошибка загрузки - {e}")
-    
-    def _get_intraday_value(self, bar_datetime):
-        """Получить ближайшее внутридневное значение"""
-        bar_str = bar_datetime.strftime('%Y-%m-%dT%H:%M:00')
-        
-        if bar_str in self._intraday_data:
-            d = self._intraday_data[bar_str]
-            return {
-                'phys_net': (d['FIZ_long'] - d['FIZ_short']) / 1_000_000,
-                'jur_net': (d['YUR_long'] - d['YUR_short']) / 1_000_000,
-                'phys_long': d['FIZ_long'] / 1_000_000,
-                'phys_short': d['FIZ_short'] / 1_000_000,
-            }
-        
-        sorted_keys = sorted(self._intraday_data.keys())
-        for key in reversed(sorted_keys):
-            if key <= bar_str:
-                d = self._intraday_data[key]
-                return {
-                    'phys_net': (d['FIZ_long'] - d['FIZ_short']) / 1_000_000,
-                    'jur_net': (d['YUR_long'] - d['YUR_short']) / 1_000_000,
-                    'phys_long': d['FIZ_long'] / 1_000_000,
-                    'phys_short': d['FIZ_short'] / 1_000_000,
-                }
-        
-        if sorted_keys:
-            d = self._intraday_data[sorted_keys[0]]
-            return {
-                'phys_net': (d['FIZ_long'] - d['FIZ_short']) / 1_000_000,
-                'jur_net': (d['YUR_long'] - d['YUR_short']) / 1_000_000,
-                'phys_long': d['FIZ_long'] / 1_000_000,
-                'phys_short': d['FIZ_short'] / 1_000_000,
-            }
-        
-        return None
+            print(f"   ⚠️ FutOI: ошибка - {e}")
     
     def _get_daily_value(self, bar_date):
-        """Получить дневное значение (forward-fill если нет данных)"""
         date_str = bar_date.strftime('%Y-%m-%d')
+        if date_str in self._daily_data:
+            return self._daily_data[date_str]
         
-        # Точное совпадение
-        if date_str in self._futoi_data:
-            return self._futoi_data[date_str]
-        
-        # Ближайшая предыдущая дата
-        sorted_dates = sorted(self._futoi_data.keys())
+        sorted_dates = sorted(self._daily_data.keys())
         for d in reversed(sorted_dates):
             if d <= date_str:
-                return self._futoi_data[d]
-        
-        # Нет предыдущих — берем первую доступную (будущие данные для старых баров)
+                return self._daily_data[d]
         if sorted_dates:
-            return self._futoi_data[sorted_dates[0]]
-        
+            return self._daily_data[sorted_dates[0]]
         return None
     
+    def _get_intraday_value(self, bar_datetime):
+        return self._get_daily_value(bar_datetime)
+    
     def next(self):
-        """Вызывается на каждом баре"""
         bar_dt = self.data.datetime.datetime()
         
         if self.p.update_intraday:
@@ -183,36 +131,37 @@ class FutOIIndicator(bt.Indicator):
         else:
             futoi = self._get_daily_value(bar_dt)
         
-        # Если данных нет совсем — заполняем нулями
         if futoi is None:
             futoi = {'phys_net': 0, 'jur_net': 0, 'phys_long': 0, 'phys_short': 0}
         
-        # Изменение позиции физиков
         prev_net = self.lines.phys_net[-1] if len(self.lines.phys_net) > 1 else 0
         
         self.lines.phys_net[0] = futoi['phys_net']
         self.lines.jur_net[0] = futoi['jur_net']
         self.lines.phys_long[0] = futoi['phys_long']
         self.lines.phys_short[0] = futoi['phys_short']
+        
+        # Изменение СРЕДНЕЙ позиции
         self.lines.phys_change[0] = futoi['phys_net'] - prev_net if prev_net != 0 else 0
 
 
 class FutOISignal(bt.Indicator):
-    """Торговый сигнал на основе FutOI"""
+    """
+    Сигнал на основе ИЗМЕНЕНИЯ средней позиции физиков
     
+    Порог для дневного графика: 0.01M (10 тысяч на срез)
+    Порог для внутридневного: 0.005M (5 тысяч на срез)
+    """
     lines = ('signal',)
-    
     params = (
-        ('threshold', 5),
+        ('threshold', 0.01),  # 0.01M = 10 тысяч — порог для дневного графика
     )
     
     plotinfo = dict(
         plot=True,
         subplot=True,
         plotname='FutOI Signal',
-        plotlines=dict(
-            signal=dict(_method='bar', color='blue', alpha=0.5),
-        )
+        plotlines=dict(signal=dict(_method='bar', color='blue', alpha=0.5))
     )
     
     def __init__(self):

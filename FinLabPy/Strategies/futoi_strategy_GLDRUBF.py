@@ -1,5 +1,5 @@
 ﻿"""
-Тестовая стратегия FutOI v2.4 - с автоотключением графика на сервере
+Тестовая стратегия FutOI v2.8 - нормализованные данные
 """
 
 import backtrader as bt
@@ -15,12 +15,9 @@ from MOEXPy.MOEXPy import MOEXPy
 from FinLabPy.My_Indicators import FutOIIndicator, FutOISignal
 import pandas as pd
 
-# Настройки
 TIMEFRAME = 'D1'
 TICKER = 'GLDRUBF'
 DAYS = 50
-
-# Автоопределение: на сервере график не показываем
 PLOT = 'DISPLAY' in os.environ or os.name == 'nt'
 
 def load_data():
@@ -58,7 +55,7 @@ class FutOIStrategy(bt.Strategy):
     
     def __init__(self):
         is_intraday = TIMEFRAME in ('M1', 'M10')
-        threshold = 2 if is_intraday else 10
+        threshold = 0.005 if is_intraday else 0.01  # 0.01M для D1, 0.005M для M10
         
         self.futoi = FutOIIndicator(self.data, ticker=TICKER, lookback=5, update_intraday=is_intraday)
         self.signal = FutOISignal(self.data, threshold=threshold)
@@ -77,13 +74,13 @@ class FutOIStrategy(bt.Strategy):
                 size = self.broker.get_cash() * 0.95 / self.data.close[0]
                 self.order = self.buy(size=int(size))
                 self.entry_price = self.data.close[0]
-                print(f"🟢 BUY  {self.data.datetime.date()} @ {self.data.close[0]:.2f}")
+                print(f"🟢 BUY  {self.data.datetime.date()} @ {self.data.close[0]:.2f} | phys_net={self.futoi.phys_net[0]:.3f}M")
                 
             elif self.signal.signal[0] == -1 and self.data.close[0] < self.sma[0]:
                 size = self.broker.get_cash() * 0.95 / self.data.close[0]
                 self.order = self.sell(size=int(size))
                 self.entry_price = self.data.close[0]
-                print(f"🔴 SELL {self.data.datetime.date()} @ {self.data.close[0]:.2f}")
+                print(f"🔴 SELL {self.data.datetime.date()} @ {self.data.close[0]:.2f} | phys_net={self.futoi.phys_net[0]:.3f}M")
         else:
             if self.position.size > 0:
                 sl = self.entry_price * (1 - self.p.stop_loss)
@@ -111,9 +108,8 @@ if __name__ == '__main__':
     cerebro.broker.set_cash(100000.0)
     cerebro.broker.setcommission(commission=0.0005)
     
-    print(f"\n🚀 FutOI v2.4 | {TICKER} | {TIMEFRAME}")
+    print(f"\n🚀 FutOI v2.8 | {TICKER} | {TIMEFRAME}")
     print(f"   Капитал: {cerebro.broker.getvalue():,.0f} ₽")
-    print(f"   PLOT: {PLOT}")
     print("=" * 60)
     
     results = cerebro.run()
