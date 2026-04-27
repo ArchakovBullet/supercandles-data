@@ -1,5 +1,5 @@
 ﻿"""
-Индикатор FutOI v2.9 - исправлен FutOISignal (передача тикера)
+Индикатор FutOI v3.0 — СУММА за день (без деления на срезы!)
 """
 
 import backtrader as bt
@@ -11,8 +11,7 @@ from MOEXPy.MOEXPy import MOEXPy
 
 class FutOIIndicator(bt.Indicator):
     """
-    Индикатор открытых позиций (FutOI) с разделением на физ/юр лиц
-    v2.9: нормализованная агрегация (среднее за срез)
+    Индикатор FutOI v3.0 — показывает СУММУ позиций за день (млн)
     """
     
     lines = ('phys_net', 'jur_net', 'phys_change', 'phys_long', 'phys_short')
@@ -67,8 +66,8 @@ class FutOIIndicator(bt.Indicator):
                 rows = data['futoi']['data']
                 idx = {c: i for i, c in enumerate(cols)}
                 
+                # СУММИРУЕМ все срезы за день (без деления!)
                 daily_sum = defaultdict(lambda: {'FIZ_long': 0, 'FIZ_short': 0, 'YUR_long': 0, 'YUR_short': 0})
-                daily_count = defaultdict(int)
                 
                 for row in rows:
                     date = str(row[idx['tradedate']])[:10]
@@ -78,22 +77,19 @@ class FutOIIndicator(bt.Indicator):
                     
                     daily_sum[date][f'{clgroup}_long'] += pos_long
                     daily_sum[date][f'{clgroup}_short'] += pos_short
-                    daily_count[date] += 1
                 
                 for date, d in daily_sum.items():
-                    n = daily_count[date] / 2 if daily_count[date] > 0 else 1
-                    
                     self._daily_data[date] = {
-                        'phys_net': (d['FIZ_long'] - d['FIZ_short']) / n / 1_000_000,
-                        'jur_net': (d['YUR_long'] - d['YUR_short']) / n / 1_000_000,
-                        'phys_long': d['FIZ_long'] / n / 1_000_000,
-                        'phys_short': d['FIZ_short'] / n / 1_000_000,
+                        'phys_net': (d['FIZ_long'] - d['FIZ_short']) / 1_000_000,
+                        'jur_net': (d['YUR_long'] - d['YUR_short']) / 1_000_000,
+                        'phys_long': d['FIZ_long'] / 1_000_000,
+                        'phys_short': d['FIZ_short'] / 1_000_000,
                     }
                 
                 print(f"   FutOI {self.p.ticker}: {len(daily_sum)} дней")
                 for date in sorted(daily_sum.keys())[-3:]:
                     d = self._daily_data[date]
-                    print(f"   {date}: phys_net={d['phys_net']:.3f}M (срезов: {daily_count[date]//2})")
+                    print(f"   {date}: phys_net={d['phys_net']:.1f}M")
                 
         except Exception as e:
             print(f"   ⚠️ FutOI {self.p.ticker}: ошибка - {e}")
@@ -135,34 +131,15 @@ class FutOIIndicator(bt.Indicator):
 
 
 class FutOISignal(bt.Indicator):
-    """
-    Торговый сигнал на основе FutOI
-    
-    Параметры:
-        ticker: тикер фьючерса
-        threshold: порог изменения позиции
-    """
+    """Торговый сигнал (используется редко, в основном ручной расчет)"""
     lines = ('signal',)
-    params = (
-        ('ticker', 'GLDRUBF'),
-        ('threshold', 0.01),
-    )
+    params = (('ticker', 'GLDRUBF'), ('threshold', 0.01))
     
-    plotinfo = dict(
-        plot=True,
-        subplot=True,
-        plotname='FutOI Signal',
-        plotlines=dict(signal=dict(_method='bar', color='blue', alpha=0.5))
-    )
+    plotinfo = dict(plot=True, subplot=True, plotname='FutOI Signal',
+                    plotlines=dict(signal=dict(_method='bar', color='blue', alpha=0.5)))
     
     def __init__(self):
-        # Передаем тикер в FutOIIndicator
-        self.futoi = FutOIIndicator(
-            self.data, 
-            ticker=self.p.ticker,
-            lookback=5,
-            update_intraday=self.p.ticker != 'GLDRUBF'  # Автоопределение
-        )
+        self.futoi = FutOIIndicator(self.data, ticker=self.p.ticker)
     
     def next(self):
         if self.futoi.phys_change[0] > self.p.threshold:

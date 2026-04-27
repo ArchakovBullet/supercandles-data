@@ -1,5 +1,5 @@
 ﻿"""
-ML-фильтр v2.1 — XGBoost + лаги + русские метрики
+ML-фильтр v2.2 — XGBoost + лаги + проценты
 """
 
 import numpy as np
@@ -15,15 +15,7 @@ warnings.filterwarnings('ignore')
 
 
 class FutOIMLFilter:
-    """
-    ML-фильтр v2.1: XGBoost + лаговые признаки
-    
-    Признаки (15 шт):
-        Базовые: phys_net, phys_change, jur_net
-        Технические: price_vs_sma, rsi, atr_pct, volume_ratio, trend_strength
-        Лаговые: phys_net_lag1, phys_net_lag2, phys_net_lag3
-        Производные: futoi_divergence, phys_net_ma3, phys_acceleration, volatility_10
-    """
+    """ML-фильтр v2.2: XGBoost + лаговые признаки + проценты"""
     
     def __init__(self, model_path=None):
         self.model = None
@@ -41,15 +33,12 @@ class FutOIMLFilter:
             print(f"   ML: модель XGBoost загружена")
     
     def prepare_features(self, df):
-        """Подготовка расширенных признаков"""
         features = pd.DataFrame(index=df.index)
         
-        # Базовые признаки FutOI
         features['phys_net'] = df['phys_net']
         features['phys_change'] = df['phys_change']
         features['jur_net'] = df['jur_net']
         
-        # Технические индикаторы (TA-Lib)
         close = df['close'].values.astype(np.float64)
         high = df['high'].values.astype(np.float64)
         low = df['low'].values.astype(np.float64)
@@ -68,7 +57,6 @@ class FutOIMLFilter:
         features['futoi_divergence'] = df['phys_net'] - df['jur_net'].abs()
         features['volatility_10'] = df['close'].pct_change().rolling(10).std() * 100
         
-        # Лаговые признаки
         features['phys_net_lag1'] = df['phys_net'].shift(1)
         features['phys_net_lag2'] = df['phys_net'].shift(2)
         features['phys_net_lag3'] = df['phys_net'].shift(3)
@@ -79,7 +67,6 @@ class FutOIMLFilter:
         return features
     
     def prepare_target(self, df, forward_days=1):
-        """Целевая переменная: движение цены через forward_days баров"""
         close = df['close'].values
         future = np.roll(close, -forward_days)
         future[-forward_days:] = np.nan
@@ -87,7 +74,6 @@ class FutOIMLFilter:
         return pd.Series(target, index=df.index)
     
     def train(self, df, forward_days=1):
-        """Обучение XGBoost модели"""
         print(f"\n   ML XGBoost: обучение...")
         
         X = self.prepare_features(df)
@@ -120,7 +106,6 @@ class FutOIMLFilter:
         self.model.fit(X_train, y_train)
         y_pred = self.model.predict(X_test)
         
-        # === РУССКИЕ МЕТРИКИ ===
         accuracy = accuracy_score(y_test, y_pred)
         precision_buy = precision_score(y_test, y_pred, pos_label=1, zero_division=0)
         precision_sell = precision_score(y_test, y_pred, pos_label=0, zero_division=0)
@@ -129,13 +114,15 @@ class FutOIMLFilter:
         print(f"   ML: точность BUY = {precision_buy:.1%} | точность SELL = {precision_sell:.1%}")
         print(f"   ML: обучающая выборка = {len(X_train)} | тестовая = {len(X_test)}")
         
-        # Топ-5 важных признаков
+        # Топ-5 признаков (в %%)
         importances = self.model.feature_importances_
+        total_imp = importances.sum()
         top5 = sorted(zip(self.feature_names, importances), key=lambda x: x[1], reverse=True)[:5]
         print(f"   ML: топ-5 признаков:")
         for name, imp in top5:
-            bar = '█' * int(imp * 100)
-            print(f"      {name:<20} {imp:.3f} {bar}")
+            pct = imp / total_imp * 100
+            bar = '█' * int(pct)
+            print(f"      {name:<22} {pct:5.1f}% {bar}")
         
         joblib.dump(self.model, self.model_path)
         print(f"   ML: модель XGBoost сохранена")
@@ -143,7 +130,6 @@ class FutOIMLFilter:
         return accuracy
     
     def predict_proba(self, features_df):
-        """Предсказать вероятность роста цены"""
         if self.model is None:
             return 0.5
         
@@ -152,13 +138,7 @@ class FutOIMLFilter:
         proba = self.model.predict_proba(last)[0]
         return proba[1] if len(proba) > 1 else proba[0]
     
-    def should_enter(self, features_df, min_probability=0.63):
-        """
-        Проверить сигнал на вход
-        
-        Returns:
-            (входить: bool, вероятность: float, направление: str)
-        """
+    def should_enter(self, features_df, min_probability=0.55):
         proba = self.predict_proba(features_df)
         
         if proba >= min_probability:
