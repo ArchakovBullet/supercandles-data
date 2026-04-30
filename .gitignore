@@ -28,3 +28,14 @@ MOEXPy/
 alor_token.txt
 tinvest_token.txt
 moex_token.txt
+
+# Данные FutOI (локальное хранение)
+data/
+*.parquet
+
+# Логи
+logs/
+*.log
+
+# Скрипты сервера (не пушить)
+scripts/
