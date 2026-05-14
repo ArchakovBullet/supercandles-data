@@ -160,62 +160,93 @@ def prepare_futoi_analytics(df_ticker):
 def calculate_signals(df):
     """Расчёт торговых сигналов"""
     if len(df) < 3:
-        return "NEUTRAL", "Недостаточно данных", "⚪"
+        return "NEUTRAL", "Недостаточно данных", "⚪", []
     
-    latest = df.iloc[-1]
-    prev = df.iloc[-2]
-    prev3 = df.iloc[-3]
+    # Рассчитываем сигналы для последних 10 точек
+    history = []
     
-    signals = []
-    strength = 0
+    for i in range(max(0, len(df) - 10), len(df)):
+        if i < 3:
+            continue
+        
+        window = df.iloc[:i+1]
+        latest = window.iloc[-1]
+        prev = window.iloc[-2]
+        
+        signals = []
+        strength = 0
+        
+        # 1. Тренд по чистой позиции физиков
+        if latest['phys_net'] > prev['phys_net']:
+            strength += 1
+        elif latest['phys_net'] < prev['phys_net']:
+            strength -= 1
+        
+        # 2. % покупателей среди физиков
+        if latest['fiz_buy_ratio'] > 60:
+            strength += 1
+        elif latest['fiz_buy_ratio'] < 40:
+            strength -= 1
+        
+        # 3. Соотношение физ/юр
+        if latest['fiz_yur_ratio'] > 0.5 and latest['phys_net'] > 0:
+            strength += 1
+        elif latest['fiz_yur_ratio'] < -0.5 and latest['phys_net'] < 0:
+            strength -= 1
+        
+        # Определяем сигнал
+        if strength >= 2:
+            signal_type = "LONG"
+            signal_emoji = "🟢"
+        elif strength <= -2:
+            signal_type = "SHORT"
+            signal_emoji = "🔴"
+        else:
+            signal_type = "NEUTRAL"
+            signal_emoji = "⚪"
+        
+        # Проверка дивергенции
+        divergence = "Нет"
+        if i >= 5:
+            pos_change = latest['phys_net'] - df.iloc[i-3]['phys_net']
+            vol_change = latest['fiz_volume'] - df.iloc[i-3]['fiz_volume']
+            if (pos_change > 0 and vol_change < 0) or (pos_change < 0 and vol_change > 0):
+                divergence = "⚠️ Дивергенция"
+        
+        history.append({
+            'datetime': latest['datetime'],
+            'signal': signal_type,
+            'strength': strength,
+            'divergence': divergence,
+            'fiz_buy_ratio': latest['fiz_buy_ratio']
+        })
     
-    # 1. Тренд по чистой позиции физиков
-    if latest['phys_net'] > prev['phys_net']:
-        strength += 1
-    elif latest['phys_net'] < prev['phys_net']:
-        strength -= 1
-    
-    # 2. % покупателей среди физиков
-    if latest['fiz_buy_ratio'] > 60:
-        strength += 1
-    elif latest['fiz_buy_ratio'] < 40:
-        strength -= 1
-    
-    # 3. Соотношение физ/юр
-    if latest['fiz_yur_ratio'] > 0.5 and latest['phys_net'] > 0:
-        strength += 1
-    elif latest['fiz_yur_ratio'] < -0.5 and latest['phys_net'] < 0:
-        strength -= 1
-    
-    # Определяем сигнал
-    if strength >= 2:
-        signal_type = "LONG"
-        signal_emoji = "🟢"
-    elif strength <= -2:
-        signal_type = "SHORT"
-        signal_emoji = "🔴"
+    # Текущий сигнал
+    if history:
+        current = history[-1]
+        signal_type = current['signal']
+        
+        if abs(current['strength']) == 3:
+            signal_strength = "СИЛЬНЫЙ"
+        elif abs(current['strength']) == 2:
+            signal_strength = "СРЕДНИЙ"
+        else:
+            signal_strength = "СЛАБЫЙ"
+        
+        signal_info = f"{signal_strength} | {current['divergence']}"
+        signal_emoji = "🟢" if signal_type == "LONG" else "🔴" if signal_type == "SHORT" else "⚪"
+        
+        # Анализ истории
+        if len(history) >= 3:
+            last_signals = [h['signal'] for h in history[-3:]]
+            if last_signals[-1] != last_signals[-2]:
+                signal_info += " | 🔄 СМЕНА СИГНАЛА"
     else:
         signal_type = "NEUTRAL"
+        signal_info = "Недостаточно данных"
         signal_emoji = "⚪"
     
-    # Сила сигнала
-    if abs(strength) == 3:
-        signal_strength = "СИЛЬНЫЙ"
-    elif abs(strength) == 2:
-        signal_strength = "СРЕДНИЙ"
-    else:
-        signal_strength = "СЛАБЫЙ"
-    
-    # Проверка дивергенции
-    divergence = "Нет"
-    if len(df) >= 5:
-        # Упрощённая проверка: рост позиции при падении объёмов или наоборот
-        pos_change = latest['phys_net'] - prev3['phys_net']
-        vol_change = latest['fiz_volume'] - prev3['fiz_volume']
-        if (pos_change > 0 and vol_change < 0) or (pos_change < 0 and vol_change > 0):
-            divergence = "⚠️ Дивергенция"
-    
-    return signal_type, f"{signal_strength} | {divergence}", signal_emoji
+    return signal_type, signal_info, signal_emoji, history
 
 # ========== СБОР ДАННЫХ ДЛЯ ДАШБОРДА ==========
 collectors_info = {}
@@ -376,7 +407,7 @@ elif page == "FutOI":
             st.warning(f"Нет данных для {selected_ticker}")
         else:
             # Сигналы
-            signal_type, signal_info, signal_emoji = calculate_signals(df_analytics)
+            signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_analytics)
             
             # Последние значения
             latest = df_analytics.iloc[-1]
@@ -418,72 +449,140 @@ elif page == "FutOI":
             
             st.markdown("---")
             
-            # Графики
-            st.subheader(f"Аналитика позиций — {selected_ticker}")
+            # График 1: Цена + Чистая позиция физиков
+            st.subheader(f"📊 Цена vs Чистая позиция физиков — {selected_ticker}")
             
-            # График 1: Чистые позиции
-            fig1 = go.Figure()
+            # Загружаем данные Super Candles для этого тикера (если есть)
+            sc_file = DATA_ROOT / "supercandles" / f"{selected_ticker}_supercandles.parquet"
             
-            fig1.add_trace(go.Scatter(
-                x=df_analytics['datetime'],
-                y=df_analytics['phys_net'],
-                mode='lines',
-                name='Физики (net)',
-                line=dict(color='#00BFFF', width=2)
-            ))
+            if sc_file.exists():
+                df_price = pd.read_parquet(sc_file)
+                df_price['datetime'] = pd.to_datetime(
+                    df_price['tradedate'].astype(str) + ' ' + df_price['tradetime'].astype(str)
+                )
+                
+                fig1 = make_subplots(specs=[[{"secondary_y": True}]])
+                
+                # Цена
+                fig1.add_trace(
+                    go.Scatter(
+                        x=df_price['datetime'],
+                        y=df_price['pr_close'],
+                        mode='lines',
+                        name='Цена закрытия',
+                        line=dict(color='#FFD700', width=2)
+                    ),
+                    secondary_y=False
+                )
+                
+                # Чистая позиция физиков
+                fig1.add_trace(
+                    go.Scatter(
+                        x=df_analytics['datetime'],
+                        y=df_analytics['phys_net'],
+                        mode='lines',
+                        name='Чистая позиция физ.',
+                        line=dict(color='#00BFFF', width=2)
+                    ),
+                    secondary_y=True
+                )
+                
+                fig1.update_layout(
+                    title="Цена vs Чистая позиция физиков (дивергенция = расхождение линий)",
+                    hovermode='x unified',
+                    height=500,
+                    template='plotly_dark'
+                )
+                
+                fig1.update_yaxes(title_text="Цена", secondary_y=False)
+                fig1.update_yaxes(title_text="Позиция", secondary_y=True)
+                
+                st.plotly_chart(fig1, use_container_width=True)
+            else:
+                st.warning(f"Нет данных Super Candles для {selected_ticker}")
             
-            fig1.add_trace(go.Scatter(
-                x=df_analytics['datetime'],
-                y=df_analytics['corp_net'],
-                mode='lines',
-                name='Юрики (net)',
-                line=dict(color='#FF6B6B', width=2)
-            ))
+            # Индикатор перекупленности/перепроданности
+            st.subheader("🎯 Индикатор настроения физиков")
             
-            fig1.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+            col1, col2 = st.columns([1, 3])
             
-            fig1.update_layout(
-                title="Чистая позиция: Физики vs Юрики",
-                xaxis_title="Дата",
-                yaxis_title="Позиция (контрактов)",
-                hovermode='x unified',
-                height=400,
-                template='plotly_dark'
-            )
+            with col1:
+                current_ratio = latest['fiz_buy_ratio']
+                
+                if current_ratio > 80:
+                    st.error(f"🔴 ПЕРЕКУПЛЕННОСТЬ ({current_ratio:.1f}%)")
+                    st.caption("Физики агрессивно покупают.\nИсторически — предвестник коррекции.")
+                elif current_ratio < 20:
+                    st.success(f"🟢 ПЕРЕПРОДАННОСТЬ ({current_ratio:.1f}%)")
+                    st.caption("Физики агрессивно продают.\nИсторически — предвестник разворота вверх.")
+                elif current_ratio > 60:
+                    st.warning(f"🟡 Выше нормы ({current_ratio:.1f}%)")
+                elif current_ratio < 40:
+                    st.info(f"🔵 Ниже нормы ({current_ratio:.1f}%)")
+                else:
+                    st.success(f"⚪ Нейтрально ({current_ratio:.1f}%)")
             
-            st.plotly_chart(fig1, use_container_width=True)
+            with col2:
+                # График % покупателей с зонами
+                fig2 = go.Figure()
+                
+                fig2.add_trace(go.Scatter(
+                    x=df_analytics['datetime'],
+                    y=df_analytics['fiz_buy_ratio'],
+                    mode='lines',
+                    name='% покупателей (Физ)',
+                    line=dict(color='#00BFFF', width=2)
+                ))
+                
+                # Зоны перекупленности/перепроданности
+                fig2.add_hrect(y0=80, y1=100, fillcolor="red", opacity=0.1, line_width=0)
+                fig2.add_hrect(y0=0, y1=20, fillcolor="green", opacity=0.1, line_width=0)
+                
+                fig2.add_hline(y=80, line_dash="dash", line_color="red", opacity=0.5, annotation_text="Перекупленность")
+                fig2.add_hline(y=20, line_dash="dash", line_color="green", opacity=0.5, annotation_text="Перепроданность")
+                fig2.add_hline(y=50, line_dash="dot", line_color="gray", opacity=0.3)
+                
+                fig2.update_layout(
+                    title="% покупателей среди физиков с зонами экстремумов",
+                    xaxis_title="Дата",
+                    yaxis_title="% покупателей",
+                    hovermode='x unified',
+                    height=400,
+                    template='plotly_dark'
+                )
+                
+                st.plotly_chart(fig2, use_container_width=True)
             
-            # График 2: % покупателей
-            fig2 = go.Figure()
+            # История сигналов
+            st.subheader("📜 История сигналов (последние 5)")
             
-            fig2.add_trace(go.Scatter(
-                x=df_analytics['datetime'],
-                y=df_analytics['fiz_buy_ratio'],
-                mode='lines',
-                name='% покупателей (Физ)',
-                line=dict(color='#00BFFF', width=2)
-            ))
-            
-            fig2.add_trace(go.Scatter(
-                x=df_analytics['datetime'],
-                y=df_analytics['yur_buy_ratio'],
-                mode='lines',
-                name='% покупателей (Юр)',
-                line=dict(color='#FF6B6B', width=2)
-            ))
-            
-            fig2.add_hline(y=50, line_dash="dash", line_color="gray", opacity=0.5, annotation_text="50%")
-            
-            fig2.update_layout(
-                title="% покупателей: Физики vs Юрики",
-                xaxis_title="Дата",
-                yaxis_title="% покупателей",
-                hovermode='x unified',
-                height=400,
-                template='plotly_dark'
-            )
-            
-            st.plotly_chart(fig2, use_container_width=True)
+            if signal_history:
+                history_df = pd.DataFrame(signal_history[-5:])
+                history_df = history_df.rename(columns={
+                    'datetime': 'Время',
+                    'signal': 'Сигнал',
+                    'fiz_buy_ratio': '% покуп. физ',
+                    'divergence': 'Дивергенция'
+                })
+                
+                # Добавляем эмодзи к сигналам
+                history_df['Сигнал'] = history_df['Сигнал'].map({
+                    'LONG': '🟢 LONG',
+                    'SHORT': '🔴 SHORT',
+                    'NEUTRAL': '⚪ NEUTRAL'
+                })
+                
+                st.dataframe(
+                    history_df[['Время', 'Сигнал', '% покуп. физ', 'Дивергенция']],
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # Анализ последовательности
+                if len(signal_history) >= 3:
+                    last_signals = [h['signal'] for h in signal_history[-3:]]
+                    if last_signals[-1] != last_signals[-2]:
+                        st.info("🔄 Последний сигнал изменился! Проверьте графики для подтверждения.")
             
             # Таблица последних значений
             st.subheader("Последние 10 наблюдений")
