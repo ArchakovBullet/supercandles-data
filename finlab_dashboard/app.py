@@ -158,7 +158,7 @@ def prepare_futoi_analytics(df_ticker):
     return df_merged
 
 def calculate_signals(df):
-    """Расчёт торговых сигналов"""
+    """Расчёт торговых сигналов с контекстным выводом"""
     if len(df) < 3:
         return "NEUTRAL", "Недостаточно данных", "⚪", []
     
@@ -173,7 +173,6 @@ def calculate_signals(df):
         latest = window.iloc[-1]
         prev = window.iloc[-2]
         
-        signals = []
         strength = 0
         
         # 1. Тренд по чистой позиции физиков
@@ -197,28 +196,29 @@ def calculate_signals(df):
         # Определяем сигнал
         if strength >= 2:
             signal_type = "LONG"
-            signal_emoji = "🟢"
         elif strength <= -2:
             signal_type = "SHORT"
-            signal_emoji = "🔴"
         else:
             signal_type = "NEUTRAL"
-            signal_emoji = "⚪"
         
         # Проверка дивергенции
-        divergence = "Нет"
+        divergence = False
         if i >= 5:
             pos_change = latest['phys_net'] - df.iloc[i-3]['phys_net']
             vol_change = latest['fiz_volume'] - df.iloc[i-3]['fiz_volume']
             if (pos_change > 0 and vol_change < 0) or (pos_change < 0 and vol_change > 0):
-                divergence = "⚠️ Дивергенция"
+                divergence = True
         
         history.append({
             'datetime': latest['datetime'],
             'signal': signal_type,
             'strength': strength,
             'divergence': divergence,
-            'fiz_buy_ratio': latest['fiz_buy_ratio']
+            'fiz_buy_ratio': latest['fiz_buy_ratio'],
+            'yur_buy_ratio': latest['yur_buy_ratio'],
+            'phys_net': latest['phys_net'],
+            'corp_net': latest['corp_net'],
+            'fiz_yur_ratio': latest['fiz_yur_ratio']
         })
     
     # Текущий сигнал
@@ -233,14 +233,95 @@ def calculate_signals(df):
         else:
             signal_strength = "СЛАБЫЙ"
         
-        signal_info = f"{signal_strength} | {current['divergence']}"
         signal_emoji = "🟢" if signal_type == "LONG" else "🔴" if signal_type == "SHORT" else "⚪"
         
-        # Анализ истории
+        # === ФОРМИРОВАНИЕ КОНТЕКСТНОГО ВЫВОДА ===
+        lines = []
+        
+        # Заголовок
+        if signal_type == "LONG":
+            lines.append(f"**{signal_emoji} Сигнал: ОТКРЫТИЕ ЛОНГА ({signal_strength})**")
+        elif signal_type == "SHORT":
+            lines.append(f"**{signal_emoji} Сигнал: ОТКРЫТИЕ ШОРТА ({signal_strength})**")
+        else:
+            lines.append(f"**{signal_emoji} Сигнал: НЕЙТРАЛЬНО ({signal_strength})**")
+        
+        lines.append("")
+        lines.append("**📊 Ситуация:**")
+        lines.append(f"- Физики: чистая позиция {current['phys_net']:+,.0f} контрактов".replace(",", " "))
+        lines.append(f"- Юрики: чистая позиция {current['corp_net']:+,.0f} контрактов".replace(",", " "))
+        lines.append(f"- % покупателей среди физиков: **{current['fiz_buy_ratio']:.1f}%**")
+        lines.append(f"- % покупателей среди юриков: **{current['yur_buy_ratio']:.1f}%**")
+        
+        # Кто давит
+        if current['phys_net'] > 0 and current['corp_net'] < 0:
+            lines.append(f"- ⚡ Физики покупают, юрики продают — **противоборство**.")
+        elif current['phys_net'] > 0 and current['corp_net'] > 0:
+            lines.append(f"- ✅ Обе группы в лонге — **единство**.")
+        elif current['phys_net'] < 0 and current['corp_net'] > 0:
+            lines.append(f"- ⚡ Физики продают, юрики покупают — **противоборство**.")
+        elif current['phys_net'] < 0 and current['corp_net'] < 0:
+            lines.append(f"- ✅ Обе группы в шорте — **единство**.")
+        
+        # Давление
+        if current['fiz_buy_ratio'] > 60:
+            lines.append(f"- 📈 Давление физиков: **покупатели доминируют** ({current['fiz_buy_ratio']:.1f}%)")
+        elif current['fiz_buy_ratio'] < 40:
+            lines.append(f"- 📉 Давление физиков: **продавцы доминируют** ({current['fiz_buy_ratio']:.1f}%)")
+        
+        if current['yur_buy_ratio'] > 60:
+            lines.append(f"- 📈 Давление юриков: **покупатели доминируют** ({current['yur_buy_ratio']:.1f}%)")
+        elif current['yur_buy_ratio'] < 40:
+            lines.append(f"- 📉 Давление юриков: **продавцы доминируют** ({current['yur_buy_ratio']:.1f}%)")
+        
+        lines.append("")
+        
+        # Риск
+        risk = []
+        if current['fiz_buy_ratio'] > 80:
+            risk.append("🔴 Перекупленность у физиков")
+        elif current['fiz_buy_ratio'] < 20:
+            risk.append("🟢 Перепроданность у физиков")
+        
+        if current['yur_buy_ratio'] > 80:
+            risk.append("🔴 Перекупленность у юриков")
+        elif current['yur_buy_ratio'] < 20:
+            risk.append("🟢 Перепроданность у юриков")
+        
+        if current['divergence']:
+            risk.append("⚠️ Дивергенция (объём и позиция расходятся)")
+        
+        if risk:
+            lines.append(f"**⚠️ Риск:** {', '.join(risk)}")
+        else:
+            lines.append("**✅ Риск:** Низкий. Картина чистая.")
+        
+        lines.append("")
+        
+        # Рекомендация
+        if signal_type == "LONG":
+            if "Перекупленность" in str(risk):
+                lines.append("**💡 Рекомендация:** Лонг с уменьшенным объёмом (перекупленность). Ждать отката для входа.")
+            else:
+                lines.append("**💡 Рекомендация:** Входить в лонг. Физики и юрики поддерживают рост.")
+        elif signal_type == "SHORT":
+            if "Перепроданность" in str(risk):
+                lines.append("**💡 Рекомендация:** Шорт с уменьшенным объёмом (перепроданность). Ждать отскока для входа.")
+            else:
+                lines.append("**💡 Рекомендация:** Входить в шорт. Физики и юрики поддерживают падение.")
+        else:
+            lines.append("**💡 Рекомендация:** Ждать. Сигнал не сформирован. Наблюдать за изменением позиций.")
+        
+        # Смена сигнала
         if len(history) >= 3:
             last_signals = [h['signal'] for h in history[-3:]]
-            if last_signals[-1] != last_signals[-2]:
-                signal_info += " | 🔄 СМЕНА СИГНАЛА"
+            prev_signal = last_signals[-2]
+            if last_signals[-1] != prev_signal:
+                lines.append("")
+                prev_emoji = "🟢" if prev_signal == "LONG" else "🔴" if prev_signal == "SHORT" else "⚪"
+                lines.append(f"🔄 **Смена сигнала:** предыдущий был {prev_emoji} {prev_signal}")
+        
+        signal_info = "\n".join(lines)
     else:
         signal_type = "NEUTRAL"
         signal_info = "Недостаточно данных"
@@ -413,8 +494,9 @@ elif page == "FutOI":
             latest = df_analytics.iloc[-1]
             prev = df_analytics.iloc[-2] if len(df_analytics) > 1 else latest
             
-            # Блок сигнала
-            st.markdown(f"## {signal_emoji} Текущий сигнал: {signal_type} ({signal_info})")
+            # Блок сигнала с контекстом
+            st.markdown(f"## {signal_emoji} Текущий сигнал: {signal_type}")
+            st.markdown(signal_info)
             
             # Основные метрики
             col1, col2, col3, col4 = st.columns(4)
@@ -696,3 +778,4 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
