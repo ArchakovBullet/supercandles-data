@@ -157,12 +157,11 @@ def prepare_futoi_analytics(df_ticker):
     
     return df_merged
 
-def calculate_signals(df):
-    """Расчёт торговых сигналов с контекстным выводом (v2.1)"""
+def calculate_signals(df, df_d1=None):
+    """Расчёт торговых сигналов с единым вердиктом (v3.0)"""
     if len(df) < 3:
         return "NEUTRAL", "Недостаточно данных", "⚪", []
     
-    # Рассчитываем сигналы для последних 10 точек
     history = []
     
     for i in range(max(0, len(df) - 10), len(df)):
@@ -175,25 +174,21 @@ def calculate_signals(df):
         
         strength = 0
         
-        # 1. Тренд по чистой позиции физиков
         if latest['phys_net'] > prev['phys_net']:
             strength += 1
         elif latest['phys_net'] < prev['phys_net']:
             strength -= 1
         
-        # 2. % покупателей среди физиков
         if latest['fiz_buy_ratio'] > 60:
             strength += 1
         elif latest['fiz_buy_ratio'] < 40:
             strength -= 1
         
-        # 3. Соотношение физ/юр
         if latest['fiz_yur_ratio'] > 0.5 and latest['phys_net'] > 0:
             strength += 1
         elif latest['fiz_yur_ratio'] < -0.5 and latest['phys_net'] < 0:
             strength -= 1
         
-        # Определяем сигнал
         if strength >= 2:
             signal_type = "LONG"
         elif strength <= -2:
@@ -201,7 +196,6 @@ def calculate_signals(df):
         else:
             signal_type = "NEUTRAL"
         
-        # Проверка дивергенции
         divergence = False
         if i >= 5:
             pos_change = latest['phys_net'] - df.iloc[i-3]['phys_net']
@@ -223,254 +217,166 @@ def calculate_signals(df):
             'yur_volume': latest['yur_volume']
         })
     
-    # Текущий сигнал
-    if history:
-        current = history[-1]
-        signal_type = current['signal']
-        
-        if abs(current['strength']) == 3:
-            signal_strength = "СИЛЬНЫЙ"
-        elif abs(current['strength']) == 2:
-            signal_strength = "СРЕДНИЙ"
-        else:
-            signal_strength = "СЛАБЫЙ"
-        
-        signal_emoji = "🟢" if signal_type == "LONG" else "🔴" if signal_type == "SHORT" else "⚪"
-        
-        # === ФОРМИРОВАНИЕ КОНТЕКСТНОГО ВЫВОДА (v2.1) ===
-        lines = []
-        
-        # Заголовок
-        if signal_type == "LONG":
-            lines.append(f"**{signal_emoji} Сигнал: ОТКРЫТИЕ ЛОНГА ({signal_strength})**")
-        elif signal_type == "SHORT":
-            lines.append(f"**{signal_emoji} Сигнал: ОТКРЫТИЕ ШОРТА ({signal_strength})**")
-        else:
-            lines.append(f"**{signal_emoji} Сигнал: НЕЙТРАЛЬНО ({signal_strength})**")
-        
-        lines.append("")
-        lines.append("**📊 Ситуация:**")
-        
-        # Открытый интерес с процентами
-        oi = abs(current['phys_net'])
-        # Берём последние значения из df для расчёта процентов
-        latest_row = df.iloc[-1]
-        fiz_long_pct = latest_row['pos_long_fiz'] / (latest_row['pos_long_fiz'] + latest_row['pos_short_fiz'] + 1) * 100
-        yur_short_pct = latest_row['pos_short_yur'] / (latest_row['pos_long_yur'] + latest_row['pos_short_yur'] + 1) * 100
-        diff_pct = fiz_long_pct - yur_short_pct
-        
-        if current['phys_net'] > 0:
-            lines.append(f"- Открытый интерес: {oi:,.0f} контрактов".replace(",", " "))
-            lines.append(f"- Физики в лонге: **{fiz_long_pct:.1f}%** | Юрики в шорте: **{yur_short_pct:.1f}%** | Разница: **{diff_pct:+.1f}%**")
-        else:
-            lines.append(f"- Открытый интерес: {oi:,.0f} контрактов".replace(",", " "))
-            lines.append(f"- Физики в шорте: **{fiz_long_pct:.1f}%** | Юрики в лонге: **{yur_short_pct:.1f}%** | Разница: **{diff_pct:+.1f}%**")
-        
-        # Противоборство / Единство
-        if current['phys_net'] > 0 and current['corp_net'] < 0:
-            lines.append(f"- ⚡ **Медвежий сигнал:** юрики (крупные деньги) продают толпе. Возможен разворот вниз.")
-        elif current['phys_net'] < 0 and current['corp_net'] > 0:
-            lines.append(f"- ⚡ **Бычий сигнал:** юрики набирают позицию у толпы. Возможен разворот вверх.")
-        elif current['phys_net'] > 0 and current['corp_net'] > 0:
-            lines.append(f"- ✅ **Бычий сигнал:** единство. Тренд поддерживается всеми.")
-        elif current['phys_net'] < 0 and current['corp_net'] < 0:
-            lines.append(f"- ✅ **Медвежий сигнал:** единство. Падение поддерживается всеми.")
-        
-        # % покупателей
-        lines.append(f"- % покупателей среди физиков: **{current['fiz_buy_ratio']:.1f}%**")
-        lines.append(f"- % покупателей среди юриков: **{current['yur_buy_ratio']:.1f}%**")
-        
-        lines.append("")
-        
-        # Доминирование
-        lines.append("**👑 Доминирование:**")
-        if current['fiz_buy_ratio'] > 80:
-            lines.append(f"- Физики ДОМИНИРУЮТ ({current['fiz_buy_ratio']:.1f}% покупателей). Толпа агрессивно скупает.")
-        elif current['fiz_buy_ratio'] > 65:
-            lines.append(f"- Физики имеют ПРЕИМУЩЕСТВО ({current['fiz_buy_ratio']:.1f}% покупателей).")
-        elif current['yur_buy_ratio'] > 80:
-            lines.append(f"- Юрики ДОМИНИРУЮТ ({current['yur_buy_ratio']:.1f}% покупателей). Крупные деньги контролируют рынок.")
-        elif current['yur_buy_ratio'] > 65:
-            lines.append(f"- Юрики имеют ПРЕИМУЩЕСТВО ({current['yur_buy_ratio']:.1f}% покупателей).")
-        else:
-            lines.append(f"- Равновесие (физ: {current['fiz_buy_ratio']:.1f}%, юр: {current['yur_buy_ratio']:.1f}%). Явного лидера нет.")
-        
-        lines.append("")
-        
-        # Динамика открытого интереса (в виде таблицы)
-        lines.append("**📈 Динамика открытого интереса:**")
-        lines.append("")
-        lines.append("| Период | Изменение OI | % | Физики | Юрики | Кто правит |")
-        lines.append("| :--- | :--- | :--- | :--- | :--- | :--- |")
-        
-        # За 5 минут
-        if len(df) >= 2:
-            prev_5min = df.iloc[-2]
-            oi_change_5min = current['phys_net'] - prev_5min['phys_net']
-            oi_pct_5min = abs(oi_change_5min) / (abs(prev_5min['phys_net']) + 1) * 100
-            
-            fiz_change_5min = current['phys_net'] - prev_5min['phys_net']
-            yur_change_5min = current['corp_net'] - prev_5min['corp_net']
-            total_change_5min = abs(fiz_change_5min) + abs(yur_change_5min)
-            
-            if oi_pct_5min >= 5:
-                direction = "▲" if oi_change_5min > 0 else "▼"
-                fiz_share = abs(fiz_change_5min) / total_change_5min * 100 if total_change_5min > 0 else 50
-                if fiz_share > 60:
-                    ruler = "Физики"
-                elif fiz_share < 40:
-                    ruler = "Юрики"
-                else:
-                    ruler = "Равновесие"
-                lines.append(f"| 5 минут | {direction} {abs(oi_change_5min):,.0f} | {oi_pct_5min:.1f}% | {fiz_change_5min:+,.0f} | {yur_change_5min:+,.0f} | {ruler} |".replace(",", " "))
-            else:
-                lines.append(f"| 5 минут | — | — | — | — | без изменений |")
-        else:
-            lines.append(f"| 5 минут | — | — | — | — | нет данных |")
-        
-        # За сутки
-        if len(df) >= 3:
-            target_time = current['datetime'] - pd.Timedelta(hours=24)
-            df_before = df[df['datetime'] <= target_time]
-            
-            if len(df_before) > 0:
-                prev_day = df_before.iloc[-1]
-                oi_change_day = current['phys_net'] - prev_day['phys_net']
-                oi_pct_day = abs(oi_change_day) / (abs(prev_day['phys_net']) + 1) * 100
-                
-                fiz_change_day = current['phys_net'] - prev_day['phys_net']
-                yur_change_day = current['corp_net'] - prev_day['corp_net']
-                total_change_day = abs(fiz_change_day) + abs(yur_change_day)
-                
-                if oi_pct_day >= 5:
-                    direction = "▲" if oi_change_day > 0 else "▼"
-                    fiz_share = abs(fiz_change_day) / total_change_day * 100 if total_change_day > 0 else 50
-                    if fiz_share > 60:
-                        ruler = "Физики"
-                    elif fiz_share < 40:
-                        ruler = "Юрики"
-                    else:
-                        ruler = "Равновесие"
-                    lines.append(f"| Сутки | {direction} {abs(oi_change_day):,.0f} | {oi_pct_day:.1f}% | {fiz_change_day:+,.0f} | {yur_change_day:+,.0f} | {ruler} |".replace(",", " "))
-                else:
-                    lines.append(f"| Сутки | — | — | — | — | без изменений |")
-            else:
-                lines.append(f"| Сутки | — | — | — | — | нет данных |")
-        else:
-            lines.append(f"| Сутки | — | — | — | — | нет данных |")
-        
-        # За 5 дней
-        if len(df) >= 5:
-            target_time_5d = current['datetime'] - pd.Timedelta(days=5)
-            df_5d = df[df['datetime'] <= target_time_5d]
-            
-            if len(df_5d) > 0:
-                prev_5d = df_5d.iloc[-1]
-                oi_change_5d = current['phys_net'] - prev_5d['phys_net']
-                oi_pct_5d = abs(oi_change_5d) / (abs(prev_5d['phys_net']) + 1) * 100
-                
-                fiz_change_5d = current['phys_net'] - prev_5d['phys_net']
-                yur_change_5d = current['corp_net'] - prev_5d['corp_net']
-                total_change_5d = abs(fiz_change_5d) + abs(yur_change_5d)
-                
-                if oi_pct_5d >= 5:
-                    direction = "▲" if oi_change_5d > 0 else "▼"
-                    fiz_share = abs(fiz_change_5d) / total_change_5d * 100 if total_change_5d > 0 else 50
-                    if fiz_share > 60:
-                        ruler = "Физики"
-                    elif fiz_share < 40:
-                        ruler = "Юрики"
-                    else:
-                        ruler = "Равновесие"
-                    lines.append(f"| 5 дней | {direction} {abs(oi_change_5d):,.0f} | {oi_pct_5d:.1f}% | {fiz_change_5d:+,.0f} | {yur_change_5d:+,.0f} | {ruler} |".replace(",", " "))
-                else:
-                    lines.append(f"| 5 дней | — | — | — | — | без изменений |")
-            else:
-                lines.append(f"| 5 дней | — | — | — | — | нет данных |")
-        else:
-            lines.append(f"| 5 дней | — | — | — | — | нет данных |")
-        
-        lines.append("")
-        
-        # Риск
-        risk = []
-        if current['fiz_buy_ratio'] > 80:
-            risk.append(("🔴 Перекупленность у физиков", "цена корректируется вниз на 2-5% в течение 1-3 дней"))
-        elif current['fiz_buy_ratio'] < 20:
-            risk.append(("🟢 Перепроданность у физиков", "цена отскакивает вверх на 2-5% в течение 1-3 дней"))
-        
-        if current['yur_buy_ratio'] > 80:
-            risk.append(("🔴 Перекупленность у юриков", "цена корректируется вниз на 2-5% в течение 1-3 дней"))
-        elif current['yur_buy_ratio'] < 20:
-            risk.append(("🟢 Перепроданность у юриков", "цена отскакивает вверх на 2-5% в течение 1-3 дней"))
-        
-        if current['divergence']:
-            risk.append(("⚠️ Дивергенция (объём и позиция расходятся)", "сигнал расходится с реальным движением"))
-        
-        if risk:
-            lines.append("**⚠️ Риск:**")
-            for r in risk:
-                lines.append(f"- {r[0]}: {r[1]}")
-            lines.append("")
-            lines.append("**Для вас:**")
-            if signal_type == "LONG" and any("Перекупленность" in r[0] for r in risk):
-                lines.append("- Если вы в лонге — рассмотрите частичную фиксацию прибыли.")
-                lines.append("- Если вне рынка — ждите отката для входа.")
-            elif signal_type == "SHORT" and any("Перепроданность" in r[0] for r in risk):
-                lines.append("- Если вы в шорте — рассмотрите частичную фиксацию прибыли.")
-                lines.append("- Если вне рынка — ждите отскока для входа.")
-            elif signal_type == "LONG":
-                lines.append("- Риск для входа в лонг повышен. Рекомендуется уменьшенный объём.")
-            elif signal_type == "SHORT":
-                lines.append("- Риск для входа в шорт повышен. Рекомендуется уменьшенный объём.")
-        else:
-            lines.append("**✅ Риск:** Низкий. Картина чистая.")
-        
-        lines.append("")
-        
-        # Прогноз
-        lines.append("**🔮 Прогноз:**")
-        if signal_type == "LONG" and any("Перекупленность" in r[0] for r in risk):
-            lines.append("В ближайшие 1-2 дня цена может скорректироваться вниз (перекупленность). Долгосрочно — лонг поддерживается, но точка входа неоптимальна.")
-        elif signal_type == "SHORT" and any("Перепроданность" in r[0] for r in risk):
-            lines.append("В ближайшие 1-2 дня цена может отскочить вверх (перепроданность). Долгосрочно — шорт поддерживается, но точка входа неоптимальна.")
-        elif signal_type == "LONG":
-            lines.append("Тренд вверх. Физики и юрики поддерживают рост. Благоприятное время для входа в лонг.")
-        elif signal_type == "SHORT":
-            lines.append("Тренд вниз. Физики и юрики поддерживают падение. Благоприятное время для входа в шорт.")
-        else:
-            lines.append("Тренд не определён. Ждать формирования сигнала.")
-        
-        lines.append("")
-        
-        # Рекомендация
-        if signal_type == "LONG":
-            if any("Перекупленность" in r[0] for r in risk):
-                lines.append("**💡 Рекомендация:** Лонг с уменьшенным объёмом (перекупленность). Ждать отката для входа.")
-            else:
-                lines.append("**💡 Рекомендация:** Входить в лонг. Физики и юрики поддерживают рост.")
-        elif signal_type == "SHORT":
-            if any("Перепроданность" in r[0] for r in risk):
-                lines.append("**💡 Рекомендация:** Шорт с уменьшенным объёмом (перепроданность). Ждать отскока для входа.")
-            else:
-                lines.append("**💡 Рекомендация:** Входить в шорт. Физики и юрики поддерживают падение.")
-        else:
-            lines.append("**💡 Рекомендация:** Ждать. Сигнал не сформирован. Наблюдать за изменением позиций.")
-        
-        # Смена сигнала
-        if len(history) >= 3:
-            last_signals = [h['signal'] for h in history[-3:]]
-            prev_signal = last_signals[-2]
-            if last_signals[-1] != prev_signal:
-                lines.append("")
-                prev_emoji = "🟢" if prev_signal == "LONG" else "🔴" if prev_signal == "SHORT" else "⚪"
-                lines.append(f"🔄 **Смена сигнала:** предыдущий был {prev_emoji} {prev_signal}")
-        
-        signal_info = "\n".join(lines)
+    if not history:
+        return "NEUTRAL", "Недостаточно данных", "⚪", []
+    
+    current = history[-1]
+    signal_type = current['signal']
+    
+    # === ПРАВИЛО ПЕРЕГРЕВА (с учётом юриков) ===
+    fiz_overheated = current['fiz_buy_ratio'] > 80
+    fiz_oversold = current['fiz_buy_ratio'] < 20
+    yur_buying = current['yur_buy_ratio'] > 50
+    yur_selling = current['yur_buy_ratio'] < 50
+    
+    if signal_type == "LONG" and fiz_overheated and yur_selling:
+        signal_type = "WAIT_FOR_RETRACEMENT"
+    elif signal_type == "SHORT" and fiz_oversold and yur_buying:
+        signal_type = "WAIT_FOR_BOUNCE"
+    
+    # === ФОРМИРОВАНИЕ ЕДИНОГО ВЕРДИКТА ===
+    lines = []
+    
+    # Заголовок
+    if signal_type == "LONG":
+        lines.append(f"**🟢 Сигнал: ОТКРЫТИЕ ЛОНГА (подтверждён)**")
+    elif signal_type == "SHORT":
+        lines.append(f"**🔴 Сигнал: ОТКРЫТИЕ ШОРТА (подтверждён)**")
+    elif signal_type == "WAIT_FOR_RETRACEMENT":
+        lines.append(f"**🔴 КРИТИЧЕСКАЯ ПЕРЕГРЕТОСТЬ. ВХОД ТОЛЬКО НА ОТКАТЕ**")
+    elif signal_type == "WAIT_FOR_BOUNCE":
+        lines.append(f"**🟢 КРИТИЧЕСКАЯ ПЕРЕПРОДАННОСТЬ. ВХОД ТОЛЬКО НА ОТСКОКЕ**")
     else:
-        signal_type = "NEUTRAL"
-        signal_info = "Недостаточно данных"
-        signal_emoji = "⚪"
+        lines.append(f"**⚪ Сигнал: НЕЙТРАЛЬНО. Ждать формирования сигнала.**")
+    
+    lines.append("")
+    lines.append("**📊 Торговый вердикт:**")
+    lines.append("")
+    
+    # Тренд и уровни (если есть D1)
+    if df_d1 is not None and len(df_d1) >= 20:
+        df_d1['sma20'] = df_d1['close'].rolling(20).mean()
+        last_close = df_d1['close'].iloc[-1]
+        sma20 = df_d1['sma20'].iloc[-1]
+        high_20 = df_d1['high'].tail(20).max()
+        low_20 = df_d1['low'].tail(20).min()
+        
+        if last_close > sma20 * 1.02:
+            trend = "Восходящий ▲"
+        elif last_close < sma20 * 0.98:
+            trend = "Нисходящий ▼"
+        else:
+            trend = "Боковик ◼"
+        
+        lines.append(f"**Тренд:** {trend}. Цена {last_close:.2f} (SMA 20: {sma20:.2f}).")
+        lines.append(f"**Уровни:** Поддержка {low_20:.2f} | Сопротивление {high_20:.2f}.")
+        
+        dist_to_support = (last_close - low_20) / last_close * 100
+        dist_to_resist = (high_20 - last_close) / last_close * 100
+        lines.append(f"До поддержки: {dist_to_support:.1f}% | До сопротивления: {dist_to_resist:.1f}%")
+    else:
+        lines.append(f"**Тренд:** Данные D1 недоступны.")
+        lines.append(f"**Уровни:** Данные D1 недоступны.")
+    
+    lines.append("")
+    
+    # Участники
+    fiz_long_pct = df.iloc[-1]['pos_long_fiz'] / (df.iloc[-1]['pos_long_fiz'] + df.iloc[-1]['pos_short_fiz'] + 1) * 100
+    yur_short_pct = df.iloc[-1]['pos_short_yur'] / (df.iloc[-1]['pos_long_yur'] + df.iloc[-1]['pos_short_yur'] + 1) * 100
+    
+    lines.append(f"**Участники:**")
+    lines.append(f"- Физики: {current['fiz_buy_ratio']:.1f}% покупателей.")
+    
+    if current['yur_buy_ratio'] > 50:
+        lines.append(f"- Юрики: {current['yur_buy_ratio']:.1f}% покупателей.")
+    else:
+        lines.append(f"- Юрики: {100 - current['yur_buy_ratio']:.1f}% продавцов.")
+    
+    # Кто доминирует
+    if current['fiz_buy_ratio'] > 65:
+        lines.append(f"- Физики доминируют ({current['fiz_buy_ratio']:.1f}% покупателей).")
+    elif current['yur_buy_ratio'] > 65:
+        lines.append(f"- Юрики доминируют ({current['yur_buy_ratio']:.1f}% покупателей).")
+    elif current['fiz_buy_ratio'] < 35:
+        lines.append(f"- Физики доминируют ({100 - current['fiz_buy_ratio']:.1f}% продавцов).")
+    elif current['yur_buy_ratio'] < 35:
+        lines.append(f"- Юрики доминируют ({100 - current['yur_buy_ratio']:.1f}% продавцов).")
+    else:
+        lines.append(f"- Равновесие. Явного лидера нет.")
+    
+    # Противоборство или единство
+    if current['phys_net'] > 0 and current['corp_net'] < 0:
+        lines.append(f"- Физики покупают, юрики продают — ДИСТРИБУЦИЯ.")
+    elif current['phys_net'] < 0 and current['corp_net'] > 0:
+        lines.append(f"- Физики продают, юрики покупают — АККУМУЛЯЦИЯ.")
+    elif current['phys_net'] > 0 and current['corp_net'] > 0:
+        lines.append(f"- Обе группы в лонге — ЕДИНСТВО.")
+    elif current['phys_net'] < 0 and current['corp_net'] < 0:
+        lines.append(f"- Обе группы в шорте — ЕДИНСТВО.")
+    
+    lines.append("")
+    
+    # Риск
+    risk = []
+    if fiz_overheated:
+        risk.append("Перекупленность у физиков")
+    elif fiz_oversold:
+        risk.append("Перепроданность у физиков")
+    
+    if current['yur_buy_ratio'] > 80:
+        risk.append("Перекупленность у юриков")
+    elif current['yur_buy_ratio'] < 20:
+        risk.append("Перепроданность у юриков")
+    
+    if current['divergence']:
+        risk.append("Дивергенция")
+    
+    if risk:
+        lines.append(f"**Риск:** {', '.join(risk)}.")
+    else:
+        lines.append(f"**Риск:** Низкий.")
+    
+    lines.append("")
+    
+    # Прогноз
+    lines.append(f"**Прогноз:**")
+    if signal_type == "LONG":
+        lines.append(f"Высокая вероятность продолжения роста. Ближайшая цель — уровень сопротивления.")
+    elif signal_type == "SHORT":
+        lines.append(f"Высокая вероятность продолжения падения. Ближайшая цель — уровень поддержки.")
+    elif signal_type == "WAIT_FOR_RETRACEMENT":
+        lines.append(f"Ожидание коррекции вниз. После отката — вход в лонг от уровня поддержки.")
+    elif signal_type == "WAIT_FOR_BOUNCE":
+        lines.append(f"Ожидание отскока вверх. После отскока — вход в шорт от уровня сопротивления.")
+    else:
+        lines.append(f"Тренд не определён. Ждать формирования сигнала.")
+    
+    lines.append("")
+    
+    # Рекомендация
+    lines.append(f"**💡 Рекомендация:**")
+    if signal_type == "LONG":
+        lines.append(f"Входить в лонг от уровня поддержки. Стоп под минимум дня. Цель — сопротивление.")
+    elif signal_type == "SHORT":
+        lines.append(f"Входить в шорт от уровня сопротивления. Стоп над максимум дня. Цель — поддержка.")
+    elif signal_type == "WAIT_FOR_RETRACEMENT":
+        lines.append(f"Ждать отката к уровню поддержки. Входить в лонг только после подтверждения разворота.")
+    elif signal_type == "WAIT_FOR_BOUNCE":
+        lines.append(f"Ждать отскока к уровню сопротивления. Входить в шорт только после подтверждения разворота.")
+    else:
+        lines.append(f"Ждать. Сигнал не сформирован.")
+    
+    # Смена сигнала
+    if len(history) >= 3:
+        last_signals = [h['signal'] for h in history[-3:]]
+        prev_signal = last_signals[-2]
+        if last_signals[-1] != prev_signal:
+            lines.append("")
+            prev_emoji = "🟢" if prev_signal == "LONG" else "🔴" if prev_signal == "SHORT" else "⚪"
+            lines.append(f"🔄 **Смена сигнала:** предыдущий был {prev_emoji} {prev_signal}")
+    
+    signal_info = "\n".join(lines)
+    signal_emoji = "🟢" if signal_type == "LONG" else "🔴" if signal_type in ["SHORT", "WAIT_FOR_RETRACEMENT"] else "⚪"
     
     return signal_type, signal_info, signal_emoji, history
 
@@ -633,14 +539,16 @@ elif page == "FutOI":
             st.warning(f"Нет данных для {selected_ticker}")
         else:
             # Сигналы
-            signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_analytics)
+            # Загружаем D1 для вердикта
+candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
+df_d1 = pd.read_parquet(candle_file) if candle_file.exists() else None
+signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_analytics, df_d1)
             
             # Последние значения
             latest = df_analytics.iloc[-1]
             prev = df_analytics.iloc[-2] if len(df_analytics) > 1 else latest
             
-            # Блок сигнала с контекстом
-            st.markdown(f"## {signal_emoji} Текущий сигнал: {signal_type}")
+            # Единый торговый вердикт
             st.markdown(signal_info)
             
             # Основные метрики (3 колонки)
@@ -1015,6 +923,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
