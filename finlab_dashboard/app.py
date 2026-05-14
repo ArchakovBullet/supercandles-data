@@ -251,12 +251,20 @@ def calculate_signals(df):
         lines.append("")
         lines.append("**📊 Ситуация:**")
         
-        # Открытый интерес
+        # Открытый интерес с процентами
         oi = abs(current['phys_net'])
+        # Берём последние значения из df для расчёта процентов
+        latest_row = df.iloc[-1]
+        fiz_long_pct = latest_row['pos_long_fiz'] / (latest_row['pos_long_fiz'] + latest_row['pos_short_fiz'] + 1) * 100
+        yur_short_pct = latest_row['pos_short_yur'] / (latest_row['pos_long_yur'] + latest_row['pos_short_yur'] + 1) * 100
+        diff_pct = fiz_long_pct - yur_short_pct
+        
         if current['phys_net'] > 0:
-            lines.append(f"- Открытый интерес: {oi:,.0f} контрактов (физики в лонге, юрики в шорте)".replace(",", " "))
+            lines.append(f"- Открытый интерес: {oi:,.0f} контрактов".replace(",", " "))
+            lines.append(f"- Физики в лонге: **{fiz_long_pct:.1f}%** | Юрики в шорте: **{yur_short_pct:.1f}%** | Разница: **{diff_pct:+.1f}%**")
         else:
-            lines.append(f"- Открытый интерес: {oi:,.0f} контрактов (физики в шорте, юрики в лонге)".replace(",", " "))
+            lines.append(f"- Открытый интерес: {oi:,.0f} контрактов".replace(",", " "))
+            lines.append(f"- Физики в шорте: **{fiz_long_pct:.1f}%** | Юрики в лонге: **{yur_short_pct:.1f}%** | Разница: **{diff_pct:+.1f}%**")
         
         # Противоборство / Единство
         if current['phys_net'] > 0 and current['corp_net'] < 0:
@@ -289,8 +297,11 @@ def calculate_signals(df):
         
         lines.append("")
         
-        # Динамика открытого интереса
+        # Динамика открытого интереса (в виде таблицы)
         lines.append("**📈 Динамика открытого интереса:**")
+        lines.append("")
+        lines.append("| Период | Изменение OI | % | Физики | Юрики | Кто правит |")
+        lines.append("| :--- | :--- | :--- | :--- | :--- | :--- |")
         
         # За 5 минут
         if len(df) >= 2:
@@ -304,25 +315,21 @@ def calculate_signals(df):
             
             if oi_pct_5min >= 5:
                 direction = "▲" if oi_change_5min > 0 else "▼"
-                lines.append(f"**за 5 минут:** {direction} {abs(oi_change_5min):,.0f} контрактов ({oi_pct_5min:.1f}%)".replace(",", " "))
-                
-                if total_change_5min > 0:
-                    fiz_share = abs(fiz_change_5min) / total_change_5min * 100
-                    lines.append(f"  • Физики: {fiz_change_5min:+,.0f} | Юрики: {yur_change_5min:+,.0f}".replace(",", " "))
-                    if fiz_share > 60:
-                        lines.append(f"  → Правят физики (толпа создаёт импульс)")
-                    elif fiz_share < 40:
-                        lines.append(f"  → Правят юрики (крупные деньги двигают рынок)")
-                    else:
-                        lines.append(f"  → Равновесие")
+                fiz_share = abs(fiz_change_5min) / total_change_5min * 100 if total_change_5min > 0 else 50
+                if fiz_share > 60:
+                    ruler = "Физики"
+                elif fiz_share < 40:
+                    ruler = "Юрики"
+                else:
+                    ruler = "Равновесие"
+                lines.append(f"| 5 минут | {direction} {abs(oi_change_5min):,.0f} | {oi_pct_5min:.1f}% | {fiz_change_5min:+,.0f} | {yur_change_5min:+,.0f} | {ruler} |".replace(",", " "))
             else:
-                lines.append(f"**за 5 минут:** без существенных изменений")
+                lines.append(f"| 5 минут | — | — | — | — | без изменений |")
         else:
-            lines.append(f"**за 5 минут:** недостаточно данных")
+            lines.append(f"| 5 минут | — | — | — | — | нет данных |")
         
         # За сутки
         if len(df) >= 3:
-            # Ищем строку, ближайшую к 24 часам назад
             target_time = current['datetime'] - pd.Timedelta(hours=24)
             df_before = df[df['datetime'] <= target_time]
             
@@ -337,24 +344,20 @@ def calculate_signals(df):
                 
                 if oi_pct_day >= 5:
                     direction = "▲" if oi_change_day > 0 else "▼"
-                    if oi_pct_day >= 15:
-                        lines.append(f"**за сутки:** {direction} {abs(oi_change_day):,.0f} контрактов ({oi_pct_day:.1f}%) — **Сильный приток/отток капитала**".replace(",", " "))
+                    fiz_share = abs(fiz_change_day) / total_change_day * 100 if total_change_day > 0 else 50
+                    if fiz_share > 60:
+                        ruler = "Физики"
+                    elif fiz_share < 40:
+                        ruler = "Юрики"
                     else:
-                        lines.append(f"**за сутки:** {direction} {abs(oi_change_day):,.0f} контрактов ({oi_pct_day:.1f}%) — Умеренный приток/отток капитала".replace(",", " "))
-                    
-                    if total_change_day > 0:
-                        fiz_share = abs(fiz_change_day) / total_change_day * 100
-                        lines.append(f"  • Физики: {fiz_change_day:+,.0f} | Юрики: {yur_change_day:+,.0f}".replace(",", " "))
-                        if fiz_share > 60:
-                            lines.append(f"  → Правят физики")
-                        elif fiz_share < 40:
-                            lines.append(f"  → Правят юрики")
-                        else:
-                            lines.append(f"  → Равновесие")
+                        ruler = "Равновесие"
+                    lines.append(f"| Сутки | {direction} {abs(oi_change_day):,.0f} | {oi_pct_day:.1f}% | {fiz_change_day:+,.0f} | {yur_change_day:+,.0f} | {ruler} |".replace(",", " "))
                 else:
-                    lines.append(f"**за сутки:** без существенных изменений")
+                    lines.append(f"| Сутки | — | — | — | — | без изменений |")
             else:
-                lines.append(f"**за сутки:** недостаточно данных")
+                lines.append(f"| Сутки | — | — | — | — | нет данных |")
+        else:
+            lines.append(f"| Сутки | — | — | — | — | нет данных |")
         
         # За 5 дней
         if len(df) >= 5:
@@ -372,24 +375,20 @@ def calculate_signals(df):
                 
                 if oi_pct_5d >= 5:
                     direction = "▲" if oi_change_5d > 0 else "▼"
-                    if oi_pct_5d >= 15:
-                        lines.append(f"**за 5 дней:** {direction} {abs(oi_change_5d):,.0f} контрактов ({oi_pct_5d:.1f}%) — **Сильный приток/отток капитала**".replace(",", " "))
+                    fiz_share = abs(fiz_change_5d) / total_change_5d * 100 if total_change_5d > 0 else 50
+                    if fiz_share > 60:
+                        ruler = "Физики"
+                    elif fiz_share < 40:
+                        ruler = "Юрики"
                     else:
-                        lines.append(f"**за 5 дней:** {direction} {abs(oi_change_5d):,.0f} контрактов ({oi_pct_5d:.1f}%) — Умеренный приток/отток капитала".replace(",", " "))
-                    
-                    if total_change_5d > 0:
-                        fiz_share = abs(fiz_change_5d) / total_change_5d * 100
-                        lines.append(f"  • Физики: {fiz_change_5d:+,.0f} | Юрики: {yur_change_5d:+,.0f}".replace(",", " "))
-                        if fiz_share > 60:
-                            lines.append(f"  → Правят физики (тренд сформирован толпой)")
-                        elif fiz_share < 40:
-                            lines.append(f"  → Правят юрики (тренд сформирован крупными деньгами)")
-                        else:
-                            lines.append(f"  → Равновесие")
+                        ruler = "Равновесие"
+                    lines.append(f"| 5 дней | {direction} {abs(oi_change_5d):,.0f} | {oi_pct_5d:.1f}% | {fiz_change_5d:+,.0f} | {yur_change_5d:+,.0f} | {ruler} |".replace(",", " "))
                 else:
-                    lines.append(f"**за 5 дней:** без существенных изменений")
+                    lines.append(f"| 5 дней | — | — | — | — | без изменений |")
             else:
-                lines.append(f"**за 5 дней:** недостаточно данных")
+                lines.append(f"| 5 дней | — | — | — | — | нет данных |")
+        else:
+            lines.append(f"| 5 дней | — | — | — | — | нет данных |")
         
         lines.append("")
         
@@ -644,31 +643,29 @@ elif page == "FutOI":
             st.markdown(f"## {signal_emoji} Текущий сигнал: {signal_type}")
             st.markdown(signal_info)
             
-            # Основные метрики
-            col1, col2, col3, col4 = st.columns(4)
+            # Основные метрики (3 колонки)
+            col1, col2, col3 = st.columns(3)
+            
+            # Процент физиков в лонге и юриков в шорте
+            fiz_long_pct = latest['pos_long_fiz'] / (latest['pos_long_fiz'] + latest['pos_short_fiz'] + 1) * 100
+            yur_short_pct = latest['pos_short_yur'] / (latest['pos_long_yur'] + latest['pos_short_yur'] + 1) * 100
+            diff_pct = fiz_long_pct - yur_short_pct
             
             with col1:
                 st.metric(
                     "Открытый интерес",
                     f"{abs(latest['phys_net']):,.0f} контрактов".replace(",", " "),
-                    delta=f"{(abs(latest['phys_net']) - abs(prev['phys_net'])):+,.0f}".replace(",", " ")
+                    delta=f"Физ в лонге: {fiz_long_pct:.1f}% | Юр в шорте: {yur_short_pct:.1f}% | Δ: {diff_pct:+.1f}%"
                 )
             
             with col2:
-                st.metric(
-                    "Соотношение физ/юр",
-                    f"{latest['fiz_yur_ratio']:.2f}",
-                    delta=f"{(latest['fiz_yur_ratio'] - prev['fiz_yur_ratio']):+.2f}"
-                )
-            
-            with col3:
                 st.metric(
                     "% покупателей среди физиков",
                     f"{latest['fiz_buy_ratio']:.1f}%",
                     delta=f"{(latest['fiz_buy_ratio'] - prev['fiz_buy_ratio']):+.1f}%"
                 )
             
-            with col4:
+            with col3:
                 st.metric(
                     "% покупателей среди юриков",
                     f"{latest['yur_buy_ratio']:.1f}%",
@@ -924,6 +921,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
