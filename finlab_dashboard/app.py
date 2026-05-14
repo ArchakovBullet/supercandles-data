@@ -649,16 +649,16 @@ elif page == "FutOI":
             
             with col1:
                 st.metric(
-                    "Чистая позиция физиков",
-                    f"{latest['phys_net']:+,.0f}".replace(",", " "),
-                    delta=f"{(latest['phys_net'] - prev['phys_net']):+,.0f}".replace(",", " ")
+                    "Открытый интерес",
+                    f"{abs(latest['phys_net']):,.0f} контрактов".replace(",", " "),
+                    delta=f"{(abs(latest['phys_net']) - abs(prev['phys_net'])):+,.0f}".replace(",", " ")
                 )
             
             with col2:
                 st.metric(
-                    "Чистая позиция юриков",
-                    f"{latest['corp_net']:+,.0f}".replace(",", " "),
-                    delta=f"{(latest['corp_net'] - prev['corp_net']):+,.0f}".replace(",", " ")
+                    "Соотношение физ/юр",
+                    f"{latest['fiz_yur_ratio']:.2f}",
+                    delta=f"{(latest['fiz_yur_ratio'] - prev['fiz_yur_ratio']):+.2f}"
                 )
             
             with col3:
@@ -924,5 +924,6 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
