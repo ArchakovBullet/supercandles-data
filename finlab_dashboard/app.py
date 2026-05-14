@@ -449,13 +449,12 @@ elif page == "FutOI":
             
             st.markdown("---")
             
-            # График 1: Цена + Чистая позиция физиков
-            st.subheader(f"📊 Цена vs Чистая позиция физиков — {selected_ticker}")
-            
-            # Загружаем данные Super Candles для этого тикера (если есть)
+            # График Цена + Позиция (только для акций)
             sc_file = DATA_ROOT / "supercandles" / f"{selected_ticker}_supercandles.parquet"
             
             if sc_file.exists():
+                st.subheader(f"📊 Цена vs Чистая позиция физиков — {selected_ticker}")
+                
                 df_price = pd.read_parquet(sc_file)
                 df_price['datetime'] = pd.to_datetime(
                     df_price['tradedate'].astype(str) + ' ' + df_price['tradetime'].astype(str)
@@ -498,29 +497,8 @@ elif page == "FutOI":
                 fig1.update_yaxes(title_text="Позиция", secondary_y=True)
                 
                 st.plotly_chart(fig1, use_container_width=True)
-            else:
-                st.info(f"ℹ️ Для {selected_ticker} нет данных Super Candles (график цены недоступен). Показана только позиция.")
-                
-                # Показываем только позицию физиков
-                fig1 = go.Figure()
-                fig1.add_trace(go.Scatter(
-                    x=df_analytics['datetime'],
-                    y=df_analytics['phys_net'],
-                    mode='lines',
-                    name='Чистая позиция физ.',
-                    line=dict(color='#00BFFF', width=2)
-                ))
-                fig1.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
-                fig1.update_layout(
-                    title="Чистая позиция физиков",
-                    xaxis_title="Дата",
-                    yaxis_title="Позиция",
-                    height=400,
-                    template='plotly_dark'
-                )
-                st.plotly_chart(fig1, use_container_width=True)
             
-            # Индикаторы настроения
+            # Индикаторы настроения (для всех)
             st.subheader("🎯 Индикаторы настроения")
             
             col1, col2 = st.columns(2)
