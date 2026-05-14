@@ -723,6 +723,100 @@ elif page == "FutOI":
                 
                 st.plotly_chart(fig1, use_container_width=True)
             
+            # График D1 (контекст тренда)
+            candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
+            
+            if candle_file.exists():
+                st.subheader(f"📈 Дневной график — {selected_ticker}")
+                
+                df_d1 = pd.read_parquet(candle_file)
+                df_d1['begin'] = pd.to_datetime(df_d1['begin'])
+                df_d1 = df_d1.sort_values('begin')
+                
+                # Расчёт тренда
+                if len(df_d1) >= 20:
+                    df_d1['sma20'] = df_d1['close'].rolling(20).mean()
+                    last_close = df_d1['close'].iloc[-1]
+                    sma20 = df_d1['sma20'].iloc[-1]
+                    
+                    if last_close > sma20 * 1.02:
+                        trend = "Восходящий ▲"
+                        trend_color = "green"
+                    elif last_close < sma20 * 0.98:
+                        trend = "Нисходящий ▼"
+                        trend_color = "red"
+                    else:
+                        trend = "Боковик ◼"
+                        trend_color = "orange"
+                else:
+                    trend = "Недостаточно данных"
+                    trend_color = "gray"
+                
+                # Расчёт уровней поддержки/сопротивления
+                if len(df_d1) >= 20:
+                    high_20 = df_d1['high'].tail(20).max()
+                    low_20 = df_d1['low'].tail(20).min()
+                    close_current = df_d1['close'].iloc[-1]
+                else:
+                    high_20 = df_d1['high'].max()
+                    low_20 = df_d1['low'].min()
+                    close_current = df_d1['close'].iloc[-1]
+                
+                # Вывод тренда и уровней
+                col_trend, col_levels = st.columns([1, 2])
+                
+                with col_trend:
+                    st.markdown(f"**Тренд на D1:**")
+                    st.markdown(f"### :{trend_color}[{trend}]")
+                    st.markdown(f"Цена: **{close_current:.2f}**")
+                    st.markdown(f"SMA 20: **{sma20:.2f}**")
+                
+                with col_levels:
+                    st.markdown(f"**Уровни (20 дней):**")
+                    st.markdown(f"🔴 Сопротивление: **{high_20:.2f}**")
+                    st.markdown(f"🟢 Поддержка: **{low_20:.2f}**")
+                    distance_to_resist = ((high_20 - close_current) / close_current * 100)
+                    distance_to_support = ((close_current - low_20) / close_current * 100)
+                    st.markdown(f"До сопротивления: **{distance_to_resist:.1f}%** | До поддержки: **{distance_to_support:.1f}%**")
+                
+                # График D1
+                fig_d1 = go.Figure()
+                
+                fig_d1.add_trace(go.Candlestick(
+                    x=df_d1['begin'],
+                    open=df_d1['open'],
+                    high=df_d1['high'],
+                    low=df_d1['low'],
+                    close=df_d1['close'],
+                    name='D1'
+                ))
+                
+                if len(df_d1) >= 20:
+                    fig_d1.add_trace(go.Scatter(
+                        x=df_d1['begin'],
+                        y=df_d1['sma20'],
+                        mode='lines',
+                        name='SMA 20',
+                        line=dict(color='orange', width=2)
+                    ))
+                
+                # Уровни
+                fig_d1.add_hline(y=high_20, line_dash="dash", line_color="red", opacity=0.5)
+                fig_d1.add_hline(y=low_20, line_dash="dash", line_color="green", opacity=0.5)
+                
+                fig_d1.update_layout(
+                    title=f"Дневной график {selected_ticker}",
+                    xaxis_title="Дата",
+                    yaxis_title="Цена",
+                    hovermode='x unified',
+                    height=400,
+                    template='plotly_dark'
+                )
+                
+                st.plotly_chart(fig_d1, use_container_width=True)
+            else:
+                st.info(f"Нет данных свечей для {selected_ticker}. Запустите сборщик candles_collector.")
+            
             # Индикаторы настроения (для всех)
             st.subheader("🎯 Индикаторы настроения")
             
@@ -921,6 +1015,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
