@@ -499,59 +499,107 @@ elif page == "FutOI":
                 
                 st.plotly_chart(fig1, use_container_width=True)
             else:
-                st.warning(f"Нет данных Super Candles для {selected_ticker}")
+                st.info(f"ℹ️ Для {selected_ticker} нет данных Super Candles (график цены недоступен). Показана только позиция.")
+                
+                # Показываем только позицию физиков
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(
+                    x=df_analytics['datetime'],
+                    y=df_analytics['phys_net'],
+                    mode='lines',
+                    name='Чистая позиция физ.',
+                    line=dict(color='#00BFFF', width=2)
+                ))
+                fig1.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+                fig1.update_layout(
+                    title="Чистая позиция физиков",
+                    xaxis_title="Дата",
+                    yaxis_title="Позиция",
+                    height=400,
+                    template='plotly_dark'
+                )
+                st.plotly_chart(fig1, use_container_width=True)
             
-            # Индикатор перекупленности/перепроданности
-            st.subheader("🎯 Индикатор настроения физиков")
+            # Индикаторы настроения
+            st.subheader("🎯 Индикаторы настроения")
             
-            col1, col2 = st.columns([1, 3])
+            col1, col2 = st.columns(2)
             
             with col1:
-                current_ratio = latest['fiz_buy_ratio']
+                st.markdown("### Физики")
+                current_ratio_fiz = latest['fiz_buy_ratio']
                 
-                if current_ratio > 80:
-                    st.error(f"🔴 ПЕРЕКУПЛЕННОСТЬ ({current_ratio:.1f}%)")
-                    st.caption("Физики агрессивно покупают.\nИсторически — предвестник коррекции.")
-                elif current_ratio < 20:
-                    st.success(f"🟢 ПЕРЕПРОДАННОСТЬ ({current_ratio:.1f}%)")
-                    st.caption("Физики агрессивно продают.\nИсторически — предвестник разворота вверх.")
-                elif current_ratio > 60:
-                    st.warning(f"🟡 Выше нормы ({current_ratio:.1f}%)")
-                elif current_ratio < 40:
-                    st.info(f"🔵 Ниже нормы ({current_ratio:.1f}%)")
+                if current_ratio_fiz > 80:
+                    st.error(f"🔴 ПЕРЕКУПЛЕННОСТЬ ({current_ratio_fiz:.1f}%)")
+                elif current_ratio_fiz < 20:
+                    st.success(f"🟢 ПЕРЕПРОДАННОСТЬ ({current_ratio_fiz:.1f}%)")
+                elif current_ratio_fiz > 60:
+                    st.warning(f"🟡 Выше нормы ({current_ratio_fiz:.1f}%)")
+                elif current_ratio_fiz < 40:
+                    st.info(f"🔵 Ниже нормы ({current_ratio_fiz:.1f}%)")
                 else:
-                    st.success(f"⚪ Нейтрально ({current_ratio:.1f}%)")
-            
-            with col2:
-                # График % покупателей с зонами
-                fig2 = go.Figure()
+                    st.success(f"⚪ Нейтрально ({current_ratio_fiz:.1f}%)")
                 
-                fig2.add_trace(go.Scatter(
+                # График % покупателей физиков с зонами
+                fig_fiz = go.Figure()
+                fig_fiz.add_trace(go.Scatter(
                     x=df_analytics['datetime'],
                     y=df_analytics['fiz_buy_ratio'],
                     mode='lines',
                     name='% покупателей (Физ)',
                     line=dict(color='#00BFFF', width=2)
                 ))
-                
-                # Зоны перекупленности/перепроданности
-                fig2.add_hrect(y0=80, y1=100, fillcolor="red", opacity=0.1, line_width=0)
-                fig2.add_hrect(y0=0, y1=20, fillcolor="green", opacity=0.1, line_width=0)
-                
-                fig2.add_hline(y=80, line_dash="dash", line_color="red", opacity=0.5, annotation_text="Перекупленность")
-                fig2.add_hline(y=20, line_dash="dash", line_color="green", opacity=0.5, annotation_text="Перепроданность")
-                fig2.add_hline(y=50, line_dash="dot", line_color="gray", opacity=0.3)
-                
-                fig2.update_layout(
-                    title="% покупателей среди физиков с зонами экстремумов",
+                fig_fiz.add_hrect(y0=80, y1=100, fillcolor="red", opacity=0.1, line_width=0)
+                fig_fiz.add_hrect(y0=0, y1=20, fillcolor="green", opacity=0.1, line_width=0)
+                fig_fiz.add_hline(y=80, line_dash="dash", line_color="red", opacity=0.5)
+                fig_fiz.add_hline(y=20, line_dash="dash", line_color="green", opacity=0.5)
+                fig_fiz.add_hline(y=50, line_dash="dot", line_color="gray", opacity=0.3)
+                fig_fiz.update_layout(
+                    title="% покупателей среди физиков",
                     xaxis_title="Дата",
                     yaxis_title="% покупателей",
-                    hovermode='x unified',
-                    height=400,
+                    height=350,
                     template='plotly_dark'
                 )
+                st.plotly_chart(fig_fiz, use_container_width=True)
+            
+            with col2:
+                st.markdown("### Юрики")
+                current_ratio_yur = latest['yur_buy_ratio']
                 
-                st.plotly_chart(fig2, use_container_width=True)
+                if current_ratio_yur > 80:
+                    st.error(f"🔴 ПЕРЕКУПЛЕННОСТЬ ({current_ratio_yur:.1f}%)")
+                elif current_ratio_yur < 20:
+                    st.success(f"🟢 ПЕРЕПРОДАННОСТЬ ({current_ratio_yur:.1f}%)")
+                elif current_ratio_yur > 60:
+                    st.warning(f"🟡 Выше нормы ({current_ratio_yur:.1f}%)")
+                elif current_ratio_yur < 40:
+                    st.info(f"🔵 Ниже нормы ({current_ratio_yur:.1f}%)")
+                else:
+                    st.success(f"⚪ Нейтрально ({current_ratio_yur:.1f}%)")
+                
+                # График % покупателей юриков с зонами
+                fig_yur = go.Figure()
+                fig_yur.add_trace(go.Scatter(
+                    x=df_analytics['datetime'],
+                    y=df_analytics['yur_buy_ratio'],
+                    mode='lines',
+                    name='% покупателей (Юр)',
+                    line=dict(color='#FF6B6B', width=2)
+                ))
+                fig_yur.add_hrect(y0=80, y1=100, fillcolor="red", opacity=0.1, line_width=0)
+                fig_yur.add_hrect(y0=0, y1=20, fillcolor="green", opacity=0.1, line_width=0)
+                fig_yur.add_hline(y=80, line_dash="dash", line_color="red", opacity=0.5)
+                fig_yur.add_hline(y=20, line_dash="dash", line_color="green", opacity=0.5)
+                fig_yur.add_hline(y=50, line_dash="dot", line_color="gray", opacity=0.3)
+                fig_yur.update_layout(
+                    title="% покупателей среди юриков",
+                    xaxis_title="Дата",
+                    yaxis_title="% покупателей",
+                    height=350,
+                    template='plotly_dark'
+                )
+                st.plotly_chart(fig_yur, use_container_width=True)
             
             # История сигналов
             st.subheader("📜 История сигналов (последние 5)")
