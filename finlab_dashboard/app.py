@@ -725,6 +725,84 @@ signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_an
             else:
                 st.info(f"Нет данных свечей для {selected_ticker}. Запустите сборщик candles_collector.")
             
+            # Volume Profile (горизонтальная гистограмма объёмов)
+            tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
+            
+            if tradestats_file.exists():
+                st.subheader(f"📊 Volume Profile — {selected_ticker}")
+                
+                df_ts = pd.read_parquet(tradestats_file)
+                
+                # Агрегируем объёмы по ценовым уровням (используем pr_close)
+                # Округляем цену до 1 знака для группировки
+                df_ts['price_level'] = df_ts['pr_close'].round(1)
+                vol_profile = df_ts.groupby('price_level').agg(
+                    total_vol=('vol', 'sum'),
+                    buy_vol=('vol_b', 'sum'),
+                    sell_vol=('vol_s', 'sum')
+                ).reset_index()
+                
+                # Сортируем по цене
+                vol_profile = vol_profile.sort_values('price_level')
+                
+                # Определяем текущую цену (последнее pr_close)
+                current_price = df_ts['pr_close'].iloc[-1]
+                
+                # Строим горизонтальную гистограмму
+                fig_vp = go.Figure()
+                
+                # Покупки (зелёный)
+                fig_vp.add_trace(go.Bar(
+                    y=vol_profile['price_level'],
+                    x=vol_profile['buy_vol'],
+                    orientation='h',
+                    name='Покупки',
+                    marker_color='green',
+                    opacity=0.7
+                ))
+                
+                # Продажи (красный)
+                fig_vp.add_trace(go.Bar(
+                    y=vol_profile['price_level'],
+                    x=vol_profile['sell_vol'],
+                    orientation='h',
+                    name='Продажи',
+                    marker_color='red',
+                    opacity=0.7
+                ))
+                
+                # Линия текущей цены
+                fig_vp.add_hline(
+                    y=current_price,
+                    line_dash="solid",
+                    line_color="yellow",
+                    line_width=2,
+                    annotation_text=f"Цена: {current_price:.2f}"
+                )
+                
+                fig_vp.update_layout(
+                    title=f"Профиль объёма (D1) — {selected_ticker}",
+                    xaxis_title="Объём",
+                    yaxis_title="Цена",
+                    barmode='stack',
+                    height=500,
+                    template='plotly_dark',
+                    showlegend=True
+                )
+                
+                st.plotly_chart(fig_vp, use_container_width=True)
+                
+                # Таблица с детализацией по уровням
+                st.caption("Детализация по ценовым уровням (топ-10 по объёму)")
+                top_levels = vol_profile.nlargest(10, 'total_vol')
+                st.dataframe(
+                    top_levels[['price_level', 'total_vol', 'buy_vol', 'sell_vol']],
+                    use_container_width=True,
+                    hide_index=True
+                )
+            else:
+                st.info(f"Нет данных TradeStats для {selected_ticker}. Запустите сборщик tradestats_collector.")
+            
             # Индикаторы настроения (для всех)
             st.subheader("🎯 Индикаторы настроения")
             
@@ -923,6 +1001,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
