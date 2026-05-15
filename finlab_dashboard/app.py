@@ -7,7 +7,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # ========== КОНФИГ ==========
-# Путь к данным на сервере
 DATA_ROOT = Path("/root/finlab/data")
 LOGS_ROOT = Path("/root/finlab/logs")
 
@@ -22,14 +21,11 @@ def parse_log_date(filename: str) -> datetime:
 def get_folder_stats(folder_path: Path) -> dict:
     if not folder_path.exists():
         return {"status": "❌", "files": 0, "total_rows": 0, "last_modified": None}
-    
     parquet_files = list(folder_path.glob("*.parquet"))
     if not parquet_files:
         return {"status": "⚠️", "files": 0, "total_rows": 0, "last_modified": None}
-    
     total_rows = 0
     last_modified = None
-    
     for f in parquet_files:
         try:
             df = pd.read_parquet(f)
@@ -39,7 +35,6 @@ def get_folder_stats(folder_path: Path) -> dict:
                 last_modified = mtime
         except Exception as e:
             st.warning(f"Ошибка чтения {f.name}: {e}")
-    
     return {
         "status": "✅",
         "files": len(parquet_files),
@@ -50,7 +45,6 @@ def get_folder_stats(folder_path: Path) -> dict:
 def get_last_log_info(collector_name: str) -> tuple:
     if not LOGS_ROOT.exists():
         return None, "нет логов"
-    
     logs = sorted(LOGS_ROOT.glob(f"*{collector_name}*.log"), reverse=True)
     if logs:
         last_log = logs[0]
@@ -64,11 +58,9 @@ def load_futoi_data():
     futoi_path = DATA_ROOT / "futoi"
     if not futoi_path.exists():
         return None, []
-    
     files = list(futoi_path.glob("*_futoi.parquet"))
     if not files:
         return None, []
-    
     dfs = []
     for f in files:
         try:
@@ -76,10 +68,8 @@ def load_futoi_data():
             dfs.append(df)
         except:
             pass
-    
     if not dfs:
         return None, []
-    
     all_data = pd.concat(dfs, ignore_index=True)
     tickers = sorted(all_data['ticker'].unique())
     return all_data, tickers
@@ -89,11 +79,9 @@ def load_supercandles_data():
     sc_path = DATA_ROOT / "supercandles"
     if not sc_path.exists():
         return None, []
-    
     files = list(sc_path.glob("*_supercandles.parquet"))
     if not files:
         return None, []
-    
     dfs = []
     for f in files:
         try:
@@ -101,34 +89,23 @@ def load_supercandles_data():
             dfs.append(df)
         except:
             pass
-    
     if not dfs:
         return None, []
-    
     all_data = pd.concat(dfs, ignore_index=True)
     tickers = sorted(all_data['secid'].unique())
     return all_data, tickers
 
 # ========== ФУНКЦИИ АНАЛИТИКИ FUTOI ==========
 def prepare_futoi_analytics(df_ticker):
-    """Подготовка данных с аналитикой по физлицам и юрлицам"""
-    # Создаём datetime
     df_ticker['datetime'] = pd.to_datetime(
         df_ticker['tradedate'].astype(str) + ' ' + df_ticker['tradetime'].astype(str)
     )
-    
-    # Разделяем на физиков и юриков
     df_fiz = df_ticker[df_ticker['clgroup'] == 'FIZ'].copy()
     df_yur = df_ticker[df_ticker['clgroup'] == 'YUR'].copy()
-    
-    # Агрегируем по времени (последняя запись для каждого момента)
     df_fiz = df_fiz.sort_values(['datetime', 'seqnum'])
     df_yur = df_yur.sort_values(['datetime', 'seqnum'])
-    
     df_fiz_agg = df_fiz.groupby('datetime').last().reset_index()
     df_yur_agg = df_yur.groupby('datetime').last().reset_index()
-    
-    # Объединяем в один датафрейм
     df_merged = pd.merge(
         df_fiz_agg[['datetime', 'pos', 'pos_long', 'pos_short', 'pos_long_num', 'pos_short_num']],
         df_yur_agg[['datetime', 'pos', 'pos_long', 'pos_short', 'pos_long_num', 'pos_short_num']],
@@ -136,73 +113,52 @@ def prepare_futoi_analytics(df_ticker):
         suffixes=('_fiz', '_yur'),
         how='outer'
     ).sort_values('datetime')
-    
-    # Заполняем пропуски
     df_merged = df_merged.ffill().fillna(0)
-    
-    # Расчёт метрик
     df_merged['phys_net'] = df_merged['pos_fiz']
     df_merged['corp_net'] = df_merged['pos_yur']
-    
-    # % покупателей среди физиков и юриков
     df_merged['fiz_buy_ratio'] = df_merged['pos_long_num_fiz'] / (df_merged['pos_long_num_fiz'] + df_merged['pos_short_num_fiz'] + 1) * 100
     df_merged['yur_buy_ratio'] = df_merged['pos_long_num_yur'] / (df_merged['pos_long_num_yur'] + df_merged['pos_short_num_yur'] + 1) * 100
-    
-    # Соотношение позиций
     df_merged['fiz_yur_ratio'] = df_merged['phys_net'] / (abs(df_merged['corp_net']) + 1)
-    
-    # Объём позиций
     df_merged['fiz_volume'] = df_merged['pos_long_fiz'] + df_merged['pos_short_fiz']
     df_merged['yur_volume'] = df_merged['pos_long_yur'] + df_merged['pos_short_yur']
-    
     return df_merged
 
 def calculate_signals(df, df_d1=None, df_ts=None):
-    """Расчёт торговых сигналов с единым вердиктом (v3.0)"""
+    """Расчёт торговых сигналов с единым вердиктом (v3.1)"""
     if len(df) < 3:
         return "NEUTRAL", "Недостаточно данных", "⚪", []
-    
     history = []
-    
     for i in range(max(0, len(df) - 10), len(df)):
         if i < 3:
             continue
-        
         window = df.iloc[:i+1]
         latest = window.iloc[-1]
         prev = window.iloc[-2]
-        
         strength = 0
-        
         if latest['phys_net'] > prev['phys_net']:
             strength += 1
         elif latest['phys_net'] < prev['phys_net']:
             strength -= 1
-        
         if latest['fiz_buy_ratio'] > 60:
             strength += 1
         elif latest['fiz_buy_ratio'] < 40:
             strength -= 1
-        
         if latest['fiz_yur_ratio'] > 0.5 and latest['phys_net'] > 0:
             strength += 1
         elif latest['fiz_yur_ratio'] < -0.5 and latest['phys_net'] < 0:
             strength -= 1
-        
         if strength >= 2:
             signal_type = "LONG"
         elif strength <= -2:
             signal_type = "SHORT"
         else:
             signal_type = "NEUTRAL"
-        
         divergence = False
         if i >= 5:
             pos_change = latest['phys_net'] - df.iloc[i-3]['phys_net']
             vol_change = latest['fiz_volume'] - df.iloc[i-3]['fiz_volume']
             if (pos_change > 0 and vol_change < 0) or (pos_change < 0 and vol_change > 0):
                 divergence = True
-        
         history.append({
             'datetime': latest['datetime'],
             'signal': signal_type,
@@ -216,28 +172,21 @@ def calculate_signals(df, df_d1=None, df_ts=None):
             'fiz_volume': latest['fiz_volume'],
             'yur_volume': latest['yur_volume']
         })
-    
     if not history:
         return "NEUTRAL", "Недостаточно данных", "⚪", []
-    
     current = history[-1]
     signal_type = current['signal']
-    
-    # === ПРАВИЛО ПЕРЕГРЕВА (с учётом юриков) ===
     fiz_overheated = current['fiz_buy_ratio'] > 80
     fiz_oversold = current['fiz_buy_ratio'] < 20
     yur_buying = current['yur_buy_ratio'] > 50
     yur_selling = current['yur_buy_ratio'] < 50
-    
     if signal_type == "LONG" and fiz_overheated and yur_selling:
         signal_type = "WAIT_FOR_RETRACEMENT"
     elif signal_type == "SHORT" and fiz_oversold and yur_buying:
         signal_type = "WAIT_FOR_BOUNCE"
-    
-    # === ФОРМИРОВАНИЕ ЕДИНОГО ВЕРДИКТА ===
+
+    # === ЕДИНЫЙ ВЕРДИКТ ===
     lines = []
-    
-    # Заголовок
     if signal_type == "LONG":
         lines.append(f"**🟢 Сигнал: ОТКРЫТИЕ ЛОНГА (подтверждён)**")
     elif signal_type == "SHORT":
@@ -248,97 +197,111 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         lines.append(f"**🟢 КРИТИЧЕСКАЯ ПЕРЕПРОДАННОСТЬ. ВХОД ТОЛЬКО НА ОТСКОКЕ**")
     else:
         lines.append(f"**⚪ Сигнал: НЕЙТРАЛЬНО. Ждать формирования сигнала.**")
-    
     lines.append("")
     lines.append("**📊 Торговый вердикт:**")
     lines.append("")
-    
-    # Тренд и уровни (если есть D1)
+    lines.append("| Показатель | Значение |")
+    lines.append("| :--- | :--- |")
     if df_d1 is not None and len(df_d1) >= 20:
-        df_d1['sma20'] = df_d1['close'].rolling(20).mean()
+        if 'sma20' not in df_d1.columns:
+            df_d1['sma20'] = df_d1['close'].rolling(20).mean()
         last_close = df_d1['close'].iloc[-1]
         sma20 = df_d1['sma20'].iloc[-1]
         high_20 = df_d1['high'].tail(20).max()
         low_20 = df_d1['low'].tail(20).min()
-        
         if last_close > sma20 * 1.02:
             trend = "Восходящий ▲"
         elif last_close < sma20 * 0.98:
             trend = "Нисходящий ▼"
         else:
             trend = "Боковик ◼"
-        
-        lines.append(f"**Тренд:** {trend}. Цена {last_close:.2f} (SMA 20: {sma20:.2f}).")
-        lines.append(f"**Уровни:** Поддержка {low_20:.2f} | Сопротивление {high_20:.2f}.")
-        
         dist_to_support = (last_close - low_20) / last_close * 100
         dist_to_resist = (high_20 - last_close) / last_close * 100
-        lines.append(f"До поддержки: {dist_to_support:.1f}% | До сопротивления: {dist_to_resist:.1f}%")
+        lines.append(f"| Тренд | {trend} |")
+        lines.append(f"| Цена | {last_close:.2f} |")
+        lines.append(f"| SMA 20 | {sma20:.2f} |")
+        lines.append(f"| Поддержка | {low_20:.2f} (дист. {dist_to_support:.1f}%) |")
+        lines.append(f"| Сопротивление | {high_20:.2f} (дист. {dist_to_resist:.1f}%) |")
     else:
-        lines.append(f"**Тренд:** Данные D1 недоступны.")
-        lines.append(f"**Уровни:** Данные D1 недоступны.")
-    
+        lines.append(f"| Тренд | Данные D1 недоступны |")
+        lines.append(f"| Уровни | Данные D1 недоступны |")
+
+    # Volume Profile
+    if df_ts is not None and len(df_ts) > 0:
+        df_ts['price_level'] = df_ts['pr_close'].round(1)
+        vol_profile = df_ts.groupby('price_level')['vol'].sum().reset_index()
+        if len(vol_profile) > 0:
+            poc_row = vol_profile.loc[vol_profile['vol'].idxmax()]
+            poc_price = poc_row['price_level']
+            vol_profile_sorted = vol_profile.sort_values('vol', ascending=False)
+            vol_profile_sorted['cumsum'] = vol_profile_sorted['vol'].cumsum()
+            total_vol = vol_profile_sorted['vol'].sum()
+            value_area = vol_profile_sorted[vol_profile_sorted['cumsum'] <= total_vol * 0.7]
+            if len(value_area) > 0:
+                va_low = value_area['price_level'].min()
+                va_high = value_area['price_level'].max()
+            else:
+                va_low = poc_price
+                va_high = poc_price
+            lines.append(f"| POC (макс. объём) | {poc_price:.2f} |")
+            lines.append(f"| Value Area (70%) | {va_low:.2f} – {va_high:.2f} |")
+            if df_d1 is not None and len(df_d1) > 0:
+                last_close = df_d1['close'].iloc[-1]
+                if last_close > poc_price:
+                    lines.append(f"| Цена vs POC | Выше → поддержка |")
+                else:
+                    lines.append(f"| Цена vs POC | Ниже → сопротивление |")
+
     lines.append("")
-    
-    # Участники
-    fiz_long_pct = df.iloc[-1]['pos_long_fiz'] / (df.iloc[-1]['pos_long_fiz'] + df.iloc[-1]['pos_short_fiz'] + 1) * 100
-    yur_short_pct = df.iloc[-1]['pos_short_yur'] / (df.iloc[-1]['pos_long_yur'] + df.iloc[-1]['pos_short_yur'] + 1) * 100
-    
-    lines.append(f"**Участники:**")
-    lines.append(f"- Физики: {current['fiz_buy_ratio']:.1f}% покупателей.")
-    
-    if current['yur_buy_ratio'] > 50:
-        lines.append(f"- Юрики: {current['yur_buy_ratio']:.1f}% покупателей.")
+    lines.append("| Группа | % | Доминирование | Действие |")
+    lines.append("| :--- | :--- | :--- | :--- |")
+    fiz_pct = current['fiz_buy_ratio']
+    yur_pct = current['yur_buy_ratio']
+    if fiz_pct > 65:
+        fiz_dom = "Доминируют"
+    elif fiz_pct < 35:
+        fiz_dom = "Доминируют"
     else:
-        lines.append(f"- Юрики: {100 - current['yur_buy_ratio']:.1f}% продавцов.")
-    
-    # Кто доминирует
-    if current['fiz_buy_ratio'] > 65:
-        lines.append(f"- Физики доминируют ({current['fiz_buy_ratio']:.1f}% покупателей).")
-    elif current['yur_buy_ratio'] > 65:
-        lines.append(f"- Юрики доминируют ({current['yur_buy_ratio']:.1f}% покупателей).")
-    elif current['fiz_buy_ratio'] < 35:
-        lines.append(f"- Физики доминируют ({100 - current['fiz_buy_ratio']:.1f}% продавцов).")
-    elif current['yur_buy_ratio'] < 35:
-        lines.append(f"- Юрики доминируют ({100 - current['yur_buy_ratio']:.1f}% продавцов).")
+        fiz_dom = "—"
+    fiz_side = "покупателей" if fiz_pct > 50 else "продавцов"
+    fiz_display = fiz_pct if fiz_pct > 50 else 100 - fiz_pct
+    if yur_pct > 65:
+        yur_dom = "Доминируют"
+    elif yur_pct < 35:
+        yur_dom = "Доминируют"
     else:
-        lines.append(f"- Равновесие. Явного лидера нет.")
-    
-    # Противоборство или единство
+        yur_dom = "—"
+    yur_side = "покупателей" if yur_pct > 50 else "продавцов"
+    yur_display = yur_pct if yur_pct > 50 else 100 - yur_pct
     if current['phys_net'] > 0 and current['corp_net'] < 0:
-        lines.append(f"- Физики покупают, юрики продают — ДИСТРИБУЦИЯ.")
+        action = "Дистрибуция"
     elif current['phys_net'] < 0 and current['corp_net'] > 0:
-        lines.append(f"- Физики продают, юрики покупают — АККУМУЛЯЦИЯ.")
+        action = "Аккумуляция"
     elif current['phys_net'] > 0 and current['corp_net'] > 0:
-        lines.append(f"- Обе группы в лонге — ЕДИНСТВО.")
+        action = "Единство (лонг)"
     elif current['phys_net'] < 0 and current['corp_net'] < 0:
-        lines.append(f"- Обе группы в шорте — ЕДИНСТВО.")
-    
+        action = "Единство (шорт)"
+    else:
+        action = "—"
+    lines.append(f"| Физики | {fiz_display:.1f}% {fiz_side} | {fiz_dom} | {action} |")
+    lines.append(f"| Юрики | {yur_display:.1f}% {yur_side} | {yur_dom} | {action} |")
     lines.append("")
-    
-    # Риск
     risk = []
     if fiz_overheated:
         risk.append("Перекупленность у физиков")
     elif fiz_oversold:
         risk.append("Перепроданность у физиков")
-    
     if current['yur_buy_ratio'] > 80:
         risk.append("Перекупленность у юриков")
     elif current['yur_buy_ratio'] < 20:
         risk.append("Перепроданность у юриков")
-    
     if current['divergence']:
         risk.append("Дивергенция")
-    
     if risk:
         lines.append(f"**Риск:** {', '.join(risk)}.")
     else:
         lines.append(f"**Риск:** Низкий.")
-    
     lines.append("")
-    
-    # Прогноз
     lines.append(f"**Прогноз:**")
     if signal_type == "LONG":
         lines.append(f"Высокая вероятность продолжения роста. Ближайшая цель — уровень сопротивления.")
@@ -350,10 +313,7 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         lines.append(f"Ожидание отскока вверх. После отскока — вход в шорт от уровня сопротивления.")
     else:
         lines.append(f"Тренд не определён. Ждать формирования сигнала.")
-    
     lines.append("")
-    
-    # Рекомендация
     lines.append(f"**💡 Рекомендация:**")
     if signal_type == "LONG":
         lines.append(f"Входить в лонг от уровня поддержки. Стоп под минимум дня. Цель — сопротивление.")
@@ -365,8 +325,6 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         lines.append(f"Ждать отскока к уровню сопротивления. Входить в шорт только после подтверждения разворота.")
     else:
         lines.append(f"Ждать. Сигнал не сформирован.")
-    
-    # Смена сигнала
     if len(history) >= 3:
         last_signals = [h['signal'] for h in history[-3:]]
         prev_signal = last_signals[-2]
@@ -374,27 +332,22 @@ def calculate_signals(df, df_d1=None, df_ts=None):
             lines.append("")
             prev_emoji = "🟢" if prev_signal == "LONG" else "🔴" if prev_signal == "SHORT" else "⚪"
             lines.append(f"🔄 **Смена сигнала:** предыдущий был {prev_emoji} {prev_signal}")
-    
     signal_info = "\n".join(lines)
     signal_emoji = "🟢" if signal_type == "LONG" else "🔴" if signal_type in ["SHORT", "WAIT_FOR_RETRACEMENT"] else "⚪"
-    
     return signal_type, signal_info, signal_emoji, history
 
 # ========== СБОР ДАННЫХ ДЛЯ ДАШБОРДА ==========
 collectors_info = {}
-
 futoi_stats = get_folder_stats(DATA_ROOT / "futoi")
 futoi_date, futoi_log = get_last_log_info("futoi_collector")
 futoi_stats["last_log_date"] = futoi_date
 futoi_stats["last_log_name"] = futoi_log
 collectors_info["FutOI"] = futoi_stats
-
 hi2_stats = get_folder_stats(DATA_ROOT / "hi2")
 hi2_date, hi2_log = get_last_log_info("hi2_collector")
 hi2_stats["last_log_date"] = hi2_date
 hi2_stats["last_log_name"] = hi2_log
 collectors_info["HI2"] = hi2_stats
-
 funding_file = DATA_ROOT / "funding" / "funding.parquet"
 if funding_file.exists():
     df_funding = pd.read_parquet(funding_file)
@@ -408,22 +361,13 @@ if funding_file.exists():
         "last_log_name": funding_log
     }
 else:
-    funding_stats = {
-        "status": "❌", 
-        "files": 0, 
-        "total_rows": 0, 
-        "last_modified": None,
-        "last_log_date": None,
-        "last_log_name": "нет"
-    }
+    funding_stats = {"status": "❌", "files": 0, "total_rows": 0, "last_modified": None, "last_log_date": None, "last_log_name": "нет"}
 collectors_info["Funding"] = funding_stats
-
 sc_stats = get_folder_stats(DATA_ROOT / "supercandles")
 sc_date, sc_log = get_last_log_info("supercandles_collector")
 sc_stats["last_log_date"] = sc_date
 sc_stats["last_log_name"] = sc_log
 collectors_info["Super Candles"] = sc_stats
-
 h4_stats = get_folder_stats(DATA_ROOT / "supercandles_h4")
 h4_date, h4_log = get_last_log_info("supercandles")
 h4_stats["last_log_date"] = h4_date
@@ -431,59 +375,32 @@ h4_stats["last_log_name"] = h4_log
 collectors_info["Super Candles H4"] = h4_stats
 
 # ========== НАСТРОЙКИ СТРАНИЦЫ ==========
-st.set_page_config(
-    page_title="FinLabPy Terminal",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="FinLabPy Terminal", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
 # ========== САЙДБАР ==========
 st.sidebar.title("🚀 FinLabPy Terminal")
 st.sidebar.markdown("---")
-
-page = st.sidebar.radio(
-    "📌 Навигация",
-    ["Дашборд", "FutOI", "Super Candles", "Funding", "Super Candles H4"],
-    index=0
-)
-
+page = st.sidebar.radio("📌 Навигация", ["Дашборд", "FutOI", "Super Candles", "Funding", "Super Candles H4"], index=0)
 st.sidebar.markdown("---")
-st.sidebar.info(
-    "**FinLabPy v0.2.0**\n\n"
-    "Курс: FutOI + HI2 + ML\n\n"
-    "Сервер: lvkseaqdin\n"
-    "Данные: Parquet"
-)
+st.sidebar.info("**FinLabPy v0.2.0**\n\nКурс: FutOI + HI2 + ML\n\nСервер: lvkseaqdin\nДанные: Parquet")
 
 # ========== РОУТИНГ СТРАНИЦ ==========
 if page == "Дашборд":
     st.title("📋 Статус сборщиков")
     st.caption("Данные обновлены с сервера lvkseaqdin")
-    
     cols = st.columns(len(collectors_info))
-    
     for col, (name, info) in zip(cols, collectors_info.items()):
         with col:
             last_mod = "нет"
             if info.get("last_modified"):
                 dt = datetime.fromtimestamp(info["last_modified"])
                 last_mod = dt.strftime("%d.%m.%Y %H:%M")
-            
             log_info = ""
             if info.get("last_log_date"):
                 log_info = f"📋 лог: {info['last_log_date'].strftime('%d.%m.%Y')}"
-            
-            st.metric(
-                label=f"{info['status']} {name}",
-                value=f"{info['total_rows']:,}".replace(",", " "),
-                delta=f"📅 {last_mod} {log_info}"
-            )
-    
+            st.metric(label=f"{info['status']} {name}", value=f"{info['total_rows']:,}".replace(",", " "), delta=f"📅 {last_mod} {log_info}")
     st.markdown("---")
-    
     col1, col2 = st.columns(2)
-    
     with col1:
         st.subheader("📁 Детали по сборщикам")
         detail_data = []
@@ -492,30 +409,14 @@ if page == "Дашборд":
             if info.get("last_modified"):
                 dt = datetime.fromtimestamp(info["last_modified"])
                 last_mod_formatted = dt.strftime("%d.%m.%Y %H:%M")
-            
-            detail_data.append({
-                "Сборщик": name,
-                "Статус": info['status'],
-                "Файлов": info['files'],
-                "Записей": f"{info['total_rows']:,}".replace(",", " "),
-                "Данные от": last_mod_formatted,
-                "Лог": info.get('last_log_name', '—')
-            })
+            detail_data.append({"Сборщик": name, "Статус": info['status'], "Файлов": info['files'], "Записей": f"{info['total_rows']:,}".replace(",", " "), "Данные от": last_mod_formatted, "Лог": info.get('last_log_name', '—')})
         st.dataframe(pd.DataFrame(detail_data), use_container_width=True, hide_index=True)
-    
     with col2:
         st.subheader("📊 Все Parquet-файлы")
         if DATA_ROOT.exists():
             files = list(DATA_ROOT.rglob("*.parquet"))
             if files:
-                df_files = pd.DataFrame([
-                    {
-                        "Файл": f.relative_to(DATA_ROOT).as_posix(), 
-                        "Размер (KB)": round(f.stat().st_size / 1024, 1),
-                        "Изменён": datetime.fromtimestamp(os.path.getmtime(f)).strftime("%d.%m.%Y %H:%M")
-                    }
-                    for f in sorted(files)
-                ])
+                df_files = pd.DataFrame([{"Файл": f.relative_to(DATA_ROOT).as_posix(), "Размер (KB)": round(f.stat().st_size / 1024, 1), "Изменён": datetime.fromtimestamp(os.path.getmtime(f)).strftime("%d.%m.%Y %H:%M")} for f in sorted(files)])
                 st.dataframe(df_files, use_container_width=True, hide_index=True)
             else:
                 st.warning("Parquet-файлы не найдены")
@@ -524,131 +425,63 @@ if page == "Дашборд":
 
 elif page == "FutOI":
     st.title("📈 FutOI — Расширенная аналитика")
-    
     all_data, tickers = load_futoi_data()
-    
     if all_data is None:
         st.error("Данные FutOI не найдены")
     else:
         selected_ticker = st.selectbox("Выберите тикер", tickers)
-        
-        # Получаем расширенную аналитику
         df_analytics = prepare_futoi_analytics(all_data[all_data['ticker'] == selected_ticker])
-        
         if df_analytics.empty:
             st.warning(f"Нет данных для {selected_ticker}")
         else:
-            # Сигналы
-            # Загружаем D1 для вердикта
-candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
-df_d1 = pd.read_parquet(candle_file) if candle_file.exists() else None
-tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
-df_ts = pd.read_parquet(tradestats_file) if tradestats_file.exists() else None
-signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_analytics, df_d1, df_ts)
-            
-            # Последние значения
+            candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
+            df_d1 = pd.read_parquet(candle_file) if candle_file.exists() else None
+            tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
+            df_ts = pd.read_parquet(tradestats_file) if tradestats_file.exists() else None
+            signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_analytics, df_d1, df_ts)
             latest = df_analytics.iloc[-1]
             prev = df_analytics.iloc[-2] if len(df_analytics) > 1 else latest
-            
+
             # Единый торговый вердикт
             st.markdown(signal_info)
-            
+
             # Основные метрики (3 колонки)
             col1, col2, col3 = st.columns(3)
-            
-            # Процент физиков в лонге и юриков в шорте
             fiz_long_pct = latest['pos_long_fiz'] / (latest['pos_long_fiz'] + latest['pos_short_fiz'] + 1) * 100
             yur_short_pct = latest['pos_short_yur'] / (latest['pos_long_yur'] + latest['pos_short_yur'] + 1) * 100
             diff_pct = fiz_long_pct - yur_short_pct
-            
             with col1:
-                st.metric(
-                    "Открытый интерес",
-                    f"{abs(latest['phys_net']):,.0f} контрактов".replace(",", " "),
-                    delta=f"Физ в лонге: {fiz_long_pct:.1f}% | Юр в шорте: {yur_short_pct:.1f}% | Δ: {diff_pct:+.1f}%"
-                )
-            
+                st.metric("Открытый интерес", f"{abs(latest['phys_net']):,.0f} контрактов".replace(",", " "), delta=f"Физ в лонге: {fiz_long_pct:.1f}% | Юр в шорте: {yur_short_pct:.1f}% | Δ: {diff_pct:+.1f}%")
             with col2:
-                st.metric(
-                    "% покупателей среди физиков",
-                    f"{latest['fiz_buy_ratio']:.1f}%",
-                    delta=f"{(latest['fiz_buy_ratio'] - prev['fiz_buy_ratio']):+.1f}%"
-                )
-            
+                st.metric("% покупателей среди физиков", f"{latest['fiz_buy_ratio']:.1f}%", delta=f"{(latest['fiz_buy_ratio'] - prev['fiz_buy_ratio']):+.1f}%")
             with col3:
-                st.metric(
-                    "% покупателей среди юриков",
-                    f"{latest['yur_buy_ratio']:.1f}%",
-                    delta=f"{(latest['yur_buy_ratio'] - prev['yur_buy_ratio']):+.1f}%"
-                )
-            
+                st.metric("% покупателей среди юриков", f"{latest['yur_buy_ratio']:.1f}%", delta=f"{(latest['yur_buy_ratio'] - prev['yur_buy_ratio']):+.1f}%")
             st.markdown("---")
-            
+
             # График Цена + Позиция (только для акций)
             sc_file = DATA_ROOT / "supercandles" / f"{selected_ticker}_supercandles.parquet"
-            
             if sc_file.exists():
                 st.subheader(f"📊 Цена vs Чистая позиция физиков — {selected_ticker}")
-                
                 df_price = pd.read_parquet(sc_file)
-                df_price['datetime'] = pd.to_datetime(
-                    df_price['tradedate'].astype(str) + ' ' + df_price['tradetime'].astype(str)
-                )
-                
+                df_price['datetime'] = pd.to_datetime(df_price['tradedate'].astype(str) + ' ' + df_price['tradetime'].astype(str))
                 fig1 = make_subplots(specs=[[{"secondary_y": True}]])
-                
-                # Цена
-                fig1.add_trace(
-                    go.Scatter(
-                        x=df_price['datetime'],
-                        y=df_price['pr_close'],
-                        mode='lines',
-                        name='Цена закрытия',
-                        line=dict(color='#FFD700', width=2)
-                    ),
-                    secondary_y=False
-                )
-                
-                # Чистая позиция физиков
-                fig1.add_trace(
-                    go.Scatter(
-                        x=df_analytics['datetime'],
-                        y=df_analytics['phys_net'],
-                        mode='lines',
-                        name='Чистая позиция физ.',
-                        line=dict(color='#00BFFF', width=2)
-                    ),
-                    secondary_y=True
-                )
-                
-                fig1.update_layout(
-                    title="Цена vs Чистая позиция физиков (дивергенция = расхождение линий)",
-                    hovermode='x unified',
-                    height=500,
-                    template='plotly_dark'
-                )
-                
+                fig1.add_trace(go.Scatter(x=df_price['datetime'], y=df_price['pr_close'], mode='lines', name='Цена закрытия', line=dict(color='#FFD700', width=2)), secondary_y=False)
+                fig1.add_trace(go.Scatter(x=df_analytics['datetime'], y=df_analytics['phys_net'], mode='lines', name='Чистая позиция физ.', line=dict(color='#00BFFF', width=2)), secondary_y=True)
+                fig1.update_layout(title="Цена vs Чистая позиция физиков (дивергенция = расхождение линий)", hovermode='x unified', height=500, template='plotly_dark')
                 fig1.update_yaxes(title_text="Цена", secondary_y=False)
                 fig1.update_yaxes(title_text="Позиция", secondary_y=True)
-                
                 st.plotly_chart(fig1, use_container_width=True)
-            
+
             # График D1 (контекст тренда)
-            candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
-            
-            if candle_file.exists():
+            if df_d1 is not None:
                 st.subheader(f"📈 Дневной график — {selected_ticker}")
-                
-                df_d1 = pd.read_parquet(candle_file)
                 df_d1['begin'] = pd.to_datetime(df_d1['begin'])
                 df_d1 = df_d1.sort_values('begin')
-                
-                # Расчёт тренда
                 if len(df_d1) >= 20:
-                    df_d1['sma20'] = df_d1['close'].rolling(20).mean()
+                    if 'sma20' not in df_d1.columns:
+                        df_d1['sma20'] = df_d1['close'].rolling(20).mean()
                     last_close = df_d1['close'].iloc[-1]
                     sma20 = df_d1['sma20'].iloc[-1]
-                    
                     if last_close > sma20 * 1.02:
                         trend = "Восходящий ▲"
                         trend_color = "green"
@@ -661,8 +494,6 @@ signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_an
                 else:
                     trend = "Недостаточно данных"
                     trend_color = "gray"
-                
-                # Расчёт уровней поддержки/сопротивления
                 if len(df_d1) >= 20:
                     high_20 = df_d1['high'].tail(20).max()
                     low_20 = df_d1['low'].tail(20).min()
@@ -671,16 +502,12 @@ signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_an
                     high_20 = df_d1['high'].max()
                     low_20 = df_d1['low'].min()
                     close_current = df_d1['close'].iloc[-1]
-                
-                # Вывод тренда и уровней
                 col_trend, col_levels = st.columns([1, 2])
-                
                 with col_trend:
                     st.markdown(f"**Тренд на D1:**")
                     st.markdown(f"### :{trend_color}[{trend}]")
                     st.markdown(f"Цена: **{close_current:.2f}**")
                     st.markdown(f"SMA 20: **{sma20:.2f}**")
-                
                 with col_levels:
                     st.markdown(f"**Уровни (20 дней):**")
                     st.markdown(f"🔴 Сопротивление: **{high_20:.2f}**")
@@ -688,297 +515,48 @@ signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_an
                     distance_to_resist = ((high_20 - close_current) / close_current * 100)
                     distance_to_support = ((close_current - low_20) / close_current * 100)
                     st.markdown(f"До сопротивления: **{distance_to_resist:.1f}%** | До поддержки: **{distance_to_support:.1f}%**")
-                
-                # График D1
                 fig_d1 = go.Figure()
-                
-                fig_d1.add_trace(go.Candlestick(
-                    x=df_d1['begin'],
-                    open=df_d1['open'],
-                    high=df_d1['high'],
-                    low=df_d1['low'],
-                    close=df_d1['close'],
-                    name='D1'
-                ))
-                
+                fig_d1.add_trace(go.Candlestick(x=df_d1['begin'], open=df_d1['open'], high=df_d1['high'], low=df_d1['low'], close=df_d1['close'], name='D1'))
                 if len(df_d1) >= 20:
-                    fig_d1.add_trace(go.Scatter(
-                        x=df_d1['begin'],
-                        y=df_d1['sma20'],
-                        mode='lines',
-                        name='SMA 20',
-                        line=dict(color='orange', width=2)
-                    ))
-                
-                # Уровни
+                    fig_d1.add_trace(go.Scatter(x=df_d1['begin'], y=df_d1['sma20'], mode='lines', name='SMA 20', line=dict(color='orange', width=2)))
                 fig_d1.add_hline(y=high_20, line_dash="dash", line_color="red", opacity=0.5)
                 fig_d1.add_hline(y=low_20, line_dash="dash", line_color="green", opacity=0.5)
-                
-                fig_d1.update_layout(
-                    title=f"Дневной график {selected_ticker}",
-                    xaxis_title="Дата",
-                    yaxis_title="Цена",
-                    hovermode='x unified',
-                    height=400,
-                    template='plotly_dark'
-                )
-                
+                fig_d1.update_layout(title=f"Дневной график {selected_ticker}", xaxis_title="Дата", yaxis_title="Цена", hovermode='x unified', height=400, template='plotly_dark')
                 st.plotly_chart(fig_d1, use_container_width=True)
-            else:
-                st.info(f"Нет данных свечей для {selected_ticker}. Запустите сборщик candles_collector.")
-            
-            # Volume Profile (горизонтальная гистограмма объёмов)
-            tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
-            
-            if tradestats_file.exists():
+
+            # Volume Profile
+            if df_ts is not None:
                 st.subheader(f"📊 Volume Profile — {selected_ticker}")
-                
-                df_ts = pd.read_parquet(tradestats_file)
-                
-                # Агрегируем объёмы по ценовым уровням (используем pr_close)
-                # Округляем цену до 1 знака для группировки
                 df_ts['price_level'] = df_ts['pr_close'].round(1)
-                vol_profile = df_ts.groupby('price_level').agg(
-                    total_vol=('vol', 'sum'),
-                    buy_vol=('vol_b', 'sum'),
-                    sell_vol=('vol_s', 'sum')
-                ).reset_index()
-                
-                # Сортируем по цене
+                vol_profile = df_ts.groupby('price_level').agg(total_vol=('vol', 'sum'), buy_vol=('vol_b', 'sum'), sell_vol=('vol_s', 'sum')).reset_index()
                 vol_profile = vol_profile.sort_values('price_level')
-                
-                # Определяем текущую цену (последнее pr_close)
                 current_price = df_ts['pr_close'].iloc[-1]
-                
-                # Строим горизонтальную гистограмму
                 fig_vp = go.Figure()
-                
-                # Покупки (зелёный)
-                fig_vp.add_trace(go.Bar(
-                    y=vol_profile['price_level'],
-                    x=vol_profile['buy_vol'],
-                    orientation='h',
-                    name='Покупки',
-                    marker_color='green',
-                    opacity=0.7
-                ))
-                
-                # Продажи (красный)
-                fig_vp.add_trace(go.Bar(
-                    y=vol_profile['price_level'],
-                    x=vol_profile['sell_vol'],
-                    orientation='h',
-                    name='Продажи',
-                    marker_color='red',
-                    opacity=0.7
-                ))
-                
-                # Линия текущей цены
-                fig_vp.add_hline(
-                    y=current_price,
-                    line_dash="solid",
-                    line_color="yellow",
-                    line_width=2,
-                    annotation_text=f"Цена: {current_price:.2f}"
-                )
-                
-                fig_vp.update_layout(
-                    title=f"Профиль объёма (D1) — {selected_ticker}",
-                    xaxis_title="Объём",
-                    yaxis_title="Цена",
-                    barmode='stack',
-                    height=500,
-                    template='plotly_dark',
-                    showlegend=True
-                )
-                
+                fig_vp.add_trace(go.Bar(y=vol_profile['price_level'], x=vol_profile['buy_vol'], orientation='h', name='Покупки', marker_color='green', opacity=0.7))
+                fig_vp.add_trace(go.Bar(y=vol_profile['price_level'], x=vol_profile['sell_vol'], orientation='h', name='Продажи', marker_color='red', opacity=0.7))
+                fig_vp.add_hline(y=current_price, line_dash="solid", line_color="yellow", line_width=2, annotation_text=f"Цена: {current_price:.2f}")
+                fig_vp.update_layout(title=f"Профиль объёма (D1) — {selected_ticker}", xaxis_title="Объём", yaxis_title="Цена", barmode='stack', height=500, template='plotly_dark', showlegend=True)
                 st.plotly_chart(fig_vp, use_container_width=True)
-                
-                # Таблица с детализацией по уровням
-                st.caption("Детализация по ценовым уровням (топ-10 по объёму)")
-                top_levels = vol_profile.nlargest(10, 'total_vol')
-                st.dataframe(
-                    top_levels[['price_level', 'total_vol', 'buy_vol', 'sell_vol']],
-                    use_container_width=True,
-                    hide_index=True
-                )
-            else:
-                st.info(f"Нет данных TradeStats для {selected_ticker}. Запустите сборщик tradestats_collector.")
-            
-            # Индикаторы настроения (для всех)
-            st.subheader("🎯 Индикаторы настроения")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("### Физики")
-                current_ratio_fiz = latest['fiz_buy_ratio']
-                
-                if current_ratio_fiz > 80:
-                    st.error(f"🔴 ПЕРЕКУПЛЕННОСТЬ ({current_ratio_fiz:.1f}%)")
-                elif current_ratio_fiz < 20:
-                    st.success(f"🟢 ПЕРЕПРОДАННОСТЬ ({current_ratio_fiz:.1f}%)")
-                elif current_ratio_fiz > 60:
-                    st.warning(f"🟡 Выше нормы ({current_ratio_fiz:.1f}%)")
-                elif current_ratio_fiz < 40:
-                    st.info(f"🔵 Ниже нормы ({current_ratio_fiz:.1f}%)")
-                else:
-                    st.success(f"⚪ Нейтрально ({current_ratio_fiz:.1f}%)")
-                
-                # График % покупателей физиков с зонами
-                fig_fiz = go.Figure()
-                fig_fiz.add_trace(go.Scatter(
-                    x=df_analytics['datetime'],
-                    y=df_analytics['fiz_buy_ratio'],
-                    mode='lines',
-                    name='% покупателей (Физ)',
-                    line=dict(color='#00BFFF', width=2)
-                ))
-                fig_fiz.add_hrect(y0=80, y1=100, fillcolor="red", opacity=0.1, line_width=0)
-                fig_fiz.add_hrect(y0=0, y1=20, fillcolor="green", opacity=0.1, line_width=0)
-                fig_fiz.add_hline(y=80, line_dash="dash", line_color="red", opacity=0.5)
-                fig_fiz.add_hline(y=20, line_dash="dash", line_color="green", opacity=0.5)
-                fig_fiz.add_hline(y=50, line_dash="dot", line_color="gray", opacity=0.3)
-                fig_fiz.update_layout(
-                    title="% покупателей среди физиков",
-                    xaxis_title="Дата",
-                    yaxis_title="% покупателей",
-                    height=350,
-                    template='plotly_dark'
-                )
-                st.plotly_chart(fig_fiz, use_container_width=True)
-            
-            with col2:
-                st.markdown("### Юрики")
-                current_ratio_yur = latest['yur_buy_ratio']
-                
-                if current_ratio_yur > 80:
-                    st.error(f"🔴 ПЕРЕКУПЛЕННОСТЬ ({current_ratio_yur:.1f}%)")
-                elif current_ratio_yur < 20:
-                    st.success(f"🟢 ПЕРЕПРОДАННОСТЬ ({current_ratio_yur:.1f}%)")
-                elif current_ratio_yur > 60:
-                    st.warning(f"🟡 Выше нормы ({current_ratio_yur:.1f}%)")
-                elif current_ratio_yur < 40:
-                    st.info(f"🔵 Ниже нормы ({current_ratio_yur:.1f}%)")
-                else:
-                    st.success(f"⚪ Нейтрально ({current_ratio_yur:.1f}%)")
-                
-                # График % покупателей юриков с зонами
-                fig_yur = go.Figure()
-                fig_yur.add_trace(go.Scatter(
-                    x=df_analytics['datetime'],
-                    y=df_analytics['yur_buy_ratio'],
-                    mode='lines',
-                    name='% покупателей (Юр)',
-                    line=dict(color='#FF6B6B', width=2)
-                ))
-                fig_yur.add_hrect(y0=80, y1=100, fillcolor="red", opacity=0.1, line_width=0)
-                fig_yur.add_hrect(y0=0, y1=20, fillcolor="green", opacity=0.1, line_width=0)
-                fig_yur.add_hline(y=80, line_dash="dash", line_color="red", opacity=0.5)
-                fig_yur.add_hline(y=20, line_dash="dash", line_color="green", opacity=0.5)
-                fig_yur.add_hline(y=50, line_dash="dot", line_color="gray", opacity=0.3)
-                fig_yur.update_layout(
-                    title="% покупателей среди юриков",
-                    xaxis_title="Дата",
-                    yaxis_title="% покупателей",
-                    height=350,
-                    template='plotly_dark'
-                )
-                st.plotly_chart(fig_yur, use_container_width=True)
-            
-            # История сигналов
-            st.subheader("📜 История сигналов (последние 5)")
-            
-            if signal_history:
-                history_df = pd.DataFrame(signal_history[-5:])
-                history_df = history_df.rename(columns={
-                    'datetime': 'Время',
-                    'signal': 'Сигнал',
-                    'fiz_buy_ratio': '% покуп. физ',
-                    'divergence': 'Дивергенция'
-                })
-                
-                # Добавляем эмодзи к сигналам
-                history_df['Сигнал'] = history_df['Сигнал'].map({
-                    'LONG': '🟢 LONG',
-                    'SHORT': '🔴 SHORT',
-                    'NEUTRAL': '⚪ NEUTRAL'
-                })
-                
-                st.dataframe(
-                    history_df[['Время', 'Сигнал', '% покуп. физ', 'Дивергенция']],
-                    use_container_width=True,
-                    hide_index=True
-                )
-                
-                # Анализ последовательности
-                if len(signal_history) >= 3:
-                    last_signals = [h['signal'] for h in signal_history[-3:]]
-                    if last_signals[-1] != last_signals[-2]:
-                        st.info("🔄 Последний сигнал изменился! Проверьте графики для подтверждения.")
-            
-            # Таблица последних значений
-            st.subheader("Последние 10 наблюдений")
-            display_cols = ['datetime', 'phys_net', 'corp_net', 'fiz_buy_ratio', 'yur_buy_ratio', 'fiz_yur_ratio']
-            display_df = df_analytics[display_cols].tail(10).sort_values('datetime', ascending=False)
-            
-            display_df = display_df.rename(columns={
-                'datetime': 'Дата',
-                'phys_net': 'Чистая физ.',
-                'corp_net': 'Чистая юр.',
-                'fiz_buy_ratio': '% покуп. физ',
-                'yur_buy_ratio': '% покуп. юр',
-                'fiz_yur_ratio': 'Соотн. физ/юр'
-            })
-            
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 elif page == "Super Candles":
     st.title("🕯️ Super Candles (D1)")
-    
     all_data, tickers = load_supercandles_data()
-    
     if all_data is None:
         st.error("Данные Super Candles не найдены")
     else:
         selected_ticker = st.selectbox("Выберите тикер", tickers)
-        
         df_ticker = all_data[all_data["secid"] == selected_ticker].copy()
-        
-        df_ticker["datetime"] = pd.to_datetime(
-            df_ticker["tradedate"].astype(str) + " " + df_ticker["tradetime"].astype(str)
-        )
-        
+        df_ticker["datetime"] = pd.to_datetime(df_ticker["tradedate"].astype(str) + " " + df_ticker["tradetime"].astype(str))
         st.subheader(f"Super Candles — {selected_ticker}")
-        
         fig = go.Figure()
-        
-        fig.add_trace(go.Candlestick(
-            x=df_ticker["datetime"],
-            open=df_ticker["pr_open"],
-            high=df_ticker["pr_high"],
-            low=df_ticker["pr_low"],
-            close=df_ticker["pr_close"],
-            name="Цена"
-        ))
-        
-        fig.update_layout(
-            title=f"Super Candles ({selected_ticker})",
-            xaxis_title="Дата",
-            yaxis_title="Цена",
-            hovermode="x unified",
-            height=600,
-            template="plotly_dark"
-        )
-        
+        fig.add_trace(go.Candlestick(x=df_ticker["datetime"], open=df_ticker["pr_open"], high=df_ticker["pr_high"], low=df_ticker["pr_low"], close=df_ticker["pr_close"], name="Цена"))
+        fig.update_layout(title=f"Super Candles ({selected_ticker})", xaxis_title="Дата", yaxis_title="Цена", hovermode="x unified", height=600, template="plotly_dark")
         st.plotly_chart(fig, use_container_width=True)
-        
         st.subheader("Последние записи")
         st.dataframe(df_ticker.tail(10), use_container_width=True, hide_index=True)
 
 elif page == "Funding":
     st.title("💰 Ставки фандинга")
-    
     funding_path = DATA_ROOT / "funding" / "funding.parquet"
     if funding_path.exists():
         df = pd.read_parquet(funding_path)
@@ -989,7 +567,6 @@ elif page == "Funding":
 
 elif page == "Super Candles H4":
     st.title("🕯️ Super Candles H4")
-    
     h4_path = DATA_ROOT / "supercandles_h4"
     if h4_path.exists():
         files = list(h4_path.glob("*.parquet"))
@@ -1003,11 +580,3 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
-
-
-
-
-
-
-
-
