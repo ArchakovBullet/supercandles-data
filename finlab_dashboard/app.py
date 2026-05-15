@@ -642,3 +642,4 @@ elif page == "Super Candles H4":
     else:
         st.error(f"Папка {h4_path} не существует")
 
+
