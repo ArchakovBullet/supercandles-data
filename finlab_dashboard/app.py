@@ -157,7 +157,7 @@ def prepare_futoi_analytics(df_ticker):
     
     return df_merged
 
-def calculate_signals(df, df_d1=None):
+def calculate_signals(df, df_d1=None, df_ts=None):
     """Расчёт торговых сигналов с единым вердиктом (v3.0)"""
     if len(df) < 3:
         return "NEUTRAL", "Недостаточно данных", "⚪", []
@@ -542,7 +542,9 @@ elif page == "FutOI":
             # Загружаем D1 для вердикта
 candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
 df_d1 = pd.read_parquet(candle_file) if candle_file.exists() else None
-signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_analytics, df_d1)
+tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
+df_ts = pd.read_parquet(tradestats_file) if tradestats_file.exists() else None
+signal_type, signal_info, signal_emoji, signal_history = calculate_signals(df_analytics, df_d1, df_ts)
             
             # Последние значения
             latest = df_analytics.iloc[-1]
@@ -1001,6 +1003,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
