@@ -124,9 +124,9 @@ def prepare_futoi_analytics(df_ticker):
     return df_merged
 
 def calculate_signals(df, df_d1=None, df_ts=None):
-    """Расчёт торговых сигналов с единым вердиктом (v3.2)"""
+    """Расчёт торговых сигналов с единым вердиктом (v3.4)"""
     if len(df) < 3:
-        return "NEUTRAL", "Недостаточно данных", "⚪", []
+        return "NEUTRAL", "Недостаточно данных", "⚪", [], None, None, None
     history = []
     for i in range(max(0, len(df) - 10), len(df)):
         if i < 3:
@@ -161,19 +161,13 @@ def calculate_signals(df, df_d1=None, df_ts=None):
                 divergence = True
         history.append({
             'datetime': latest['datetime'],
-            'signal': signal_type,
-            'strength': strength,
-            'divergence': divergence,
-            'fiz_buy_ratio': latest['fiz_buy_ratio'],
-            'yur_buy_ratio': latest['yur_buy_ratio'],
-            'phys_net': latest['phys_net'],
-            'corp_net': latest['corp_net'],
-            'fiz_yur_ratio': latest['fiz_yur_ratio'],
-            'fiz_volume': latest['fiz_volume'],
-            'yur_volume': latest['yur_volume']
+            'signal': signal_type, 'strength': strength, 'divergence': divergence,
+            'fiz_buy_ratio': latest['fiz_buy_ratio'], 'yur_buy_ratio': latest['yur_buy_ratio'],
+            'phys_net': latest['phys_net'], 'corp_net': latest['corp_net'],
+            'fiz_yur_ratio': latest['fiz_yur_ratio'], 'fiz_volume': latest['fiz_volume'], 'yur_volume': latest['yur_volume']
         })
     if not history:
-        return "NEUTRAL", "Недостаточно данных", "⚪", []
+        return "NEUTRAL", "Недостаточно данных", "⚪", [], None, None, None
     current = history[-1]
     signal_type = current['signal']
     fiz_overheated = current['fiz_buy_ratio'] > 80
@@ -181,11 +175,14 @@ def calculate_signals(df, df_d1=None, df_ts=None):
     yur_buying = current['yur_buy_ratio'] > 50
     yur_selling = current['yur_buy_ratio'] < 50
 
-    # Определяем тренд и положение цены относительно POC
     trend_is_down = False
+    trend_is_up = False
     price_below_poc = False
+    price_above_poc = False
     is_distribution = current['phys_net'] > 0 and current['corp_net'] < 0
     is_accumulation = current['phys_net'] < 0 and current['corp_net'] > 0
+    is_unity_long = current['phys_net'] > 0 and current['corp_net'] > 0
+    is_unity_short = current['phys_net'] < 0 and current['corp_net'] < 0
 
     if df_d1 is not None and len(df_d1) >= 20:
         if 'sma20' not in df_d1.columns:
@@ -194,6 +191,15 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         sma20 = df_d1['sma20'].iloc[-1]
         if last_close < sma20 * 0.98:
             trend_is_down = True
+        elif last_close > sma20 * 1.02:
+            trend_is_up = True
+
+    poc_price = None
+    high_20 = None
+    low_20 = None
+    if df_d1 is not None and len(df_d1) >= 20:
+        high_20 = df_d1['high'].tail(20).max()
+        low_20 = df_d1['low'].tail(20).min()
 
     if df_ts is not None and len(df_ts) > 0:
         df_ts['price_level'] = df_ts['pr_close'].round(1)
@@ -204,29 +210,41 @@ def calculate_signals(df, df_d1=None, df_ts=None):
                 last_close = df_d1['close'].iloc[-1]
                 if last_close < poc_price:
                     price_below_poc = True
+                else:
+                    price_above_poc = True
 
     # === ПРАВИЛА БЛОКИРОВКИ LONG ===
+    block_reasons = []
     if signal_type == "LONG":
         if fiz_overheated and yur_selling:
             signal_type = "WAIT_FOR_RETRACEMENT"
-        elif fiz_overheated and is_distribution:
-            signal_type = "BLOCKED_LONG_DISTRIBUTION"
-        elif trend_is_down:
-            signal_type = "BLOCKED_LONG_DOWNTREND"
-        elif price_below_poc:
-            signal_type = "BLOCKED_LONG_BELOW_POC"
+            block_reasons.append("Перекупленность + Юрики продают")
+        else:
+            if fiz_overheated:
+                block_reasons.append("Перекупленность")
+            if is_distribution:
+                block_reasons.append("Дистрибуция")
+            if trend_is_down:
+                block_reasons.append("Нисходящий тренд")
+            if price_below_poc:
+                block_reasons.append("Цена ниже POC")
+            if block_reasons:
+                signal_type = "BLOCKED_LONG"
 
     # === ПРАВИЛА БЛОКИРОВКИ SHORT ===
     if signal_type == "SHORT":
         if fiz_oversold and yur_buying:
             signal_type = "WAIT_FOR_BOUNCE"
-        elif fiz_oversold and is_accumulation:
-            signal_type = "BLOCKED_SHORT_ACCUMULATION"
-        elif not trend_is_down and df_d1 is not None and len(df_d1) >= 20:
-            last_close = df_d1['close'].iloc[-1]
-            sma20 = df_d1['sma20'].iloc[-1]
-            if last_close > sma20 * 1.02:
-                signal_type = "BLOCKED_SHORT_UPTREND"
+            block_reasons.append("Перепроданность + Юрики покупают")
+        else:
+            if fiz_oversold:
+                block_reasons.append("Перепроданность")
+            if is_accumulation:
+                block_reasons.append("Аккумуляция")
+            if trend_is_up:
+                block_reasons.append("Восходящий тренд")
+            if block_reasons:
+                signal_type = "BLOCKED_SHORT"
 
     # === ЕДИНЫЙ ВЕРДИКТ ===
     lines = []
@@ -238,16 +256,12 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         lines.append(f"**🔴 КРИТИЧЕСКАЯ ПЕРЕГРЕТОСТЬ. ВХОД ТОЛЬКО НА ОТКАТЕ**")
     elif signal_type == "WAIT_FOR_BOUNCE":
         lines.append(f"**🟢 КРИТИЧЕСКАЯ ПЕРЕПРОДАННОСТЬ. ВХОД ТОЛЬКО НА ОТСКОКЕ**")
-    elif signal_type == "BLOCKED_LONG_DOWNTREND":
-        lines.append(f"**🔴 НЕ ВХОДИТЬ. Нисходящий тренд. Ждать разворота тренда.**")
-    elif signal_type == "BLOCKED_LONG_DISTRIBUTION":
-        lines.append(f"**🔴 НЕ ВХОДИТЬ. Перекупленность + Дистрибуция. Крупные игроки продают.**")
-    elif signal_type == "BLOCKED_LONG_BELOW_POC":
-        lines.append(f"**🔴 НЕ ВХОДИТЬ. Цена ниже POC. Ждать возврата выше зоны максимального объёма.**")
-    elif signal_type == "BLOCKED_SHORT_UPTREND":
-        lines.append(f"**🟢 НЕ ВХОДИТЬ. Восходящий тренд. Ждать разворота тренда.**")
-    elif signal_type == "BLOCKED_SHORT_ACCUMULATION":
-        lines.append(f"**🟢 НЕ ВХОДИТЬ. Перепроданность + Аккумуляция. Крупные игроки покупают.**")
+    elif signal_type == "BLOCKED_LONG":
+        reasons = ", ".join(block_reasons)
+        lines.append(f"**🔴 НЕ ВХОДИТЬ. Причины: {reasons}.**")
+    elif signal_type == "BLOCKED_SHORT":
+        reasons = ", ".join(block_reasons)
+        lines.append(f"**🟢 НЕ ВХОДИТЬ. Причины: {reasons}.**")
     else:
         lines.append(f"**⚪ Сигнал: НЕЙТРАЛЬНО. Ждать формирования сигнала.**")
 
@@ -261,8 +275,6 @@ def calculate_signals(df, df_d1=None, df_ts=None):
             df_d1['sma20'] = df_d1['close'].rolling(20).mean()
         last_close = df_d1['close'].iloc[-1]
         sma20 = df_d1['sma20'].iloc[-1]
-        high_20 = df_d1['high'].tail(20).max()
-        low_20 = df_d1['low'].tail(20).min()
         if last_close > sma20 * 1.02:
             trend = "Восходящий ▲"
         elif last_close < sma20 * 0.98:
@@ -274,42 +286,28 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         lines.append(f"| Тренд | {trend} |")
         lines.append(f"| Цена | {last_close:.2f} |")
         lines.append(f"| SMA 20 | {sma20:.2f} |")
-        lines.append(f"| Поддержка | {low_20:.2f} (дист. {dist_to_support:.1f}%) |")
         lines.append(f"| Сопротивление | {high_20:.2f} (дист. {dist_to_resist:.1f}%) |")
+        lines.append(f"| Поддержка | {low_20:.2f} (дист. {dist_to_support:.1f}%) |")
     else:
         lines.append(f"| Тренд | Данные D1 недоступны |")
         lines.append(f"| Уровни | Данные D1 недоступны |")
 
-    # Volume Profile
-    if df_ts is not None and len(df_ts) > 0:
-        df_ts['price_level'] = df_ts['pr_close'].round(1)
-        vol_profile = df_ts.groupby('price_level')['vol'].sum().reset_index()
-        if len(vol_profile) > 0:
-            poc_price = vol_profile.loc[vol_profile['vol'].idxmax(), 'price_level']
-            vol_profile_sorted = vol_profile.sort_values('vol', ascending=False)
-            vol_profile_sorted['cumsum'] = vol_profile_sorted['vol'].cumsum()
-            total_vol = vol_profile_sorted['vol'].sum()
-            value_area = vol_profile_sorted[vol_profile_sorted['cumsum'] <= total_vol * 0.7]
-            if len(value_area) > 0:
-                va_low = value_area['price_level'].min()
-                va_high = value_area['price_level'].max()
+    if poc_price is not None:
+        lines.append(f"| POC (макс. объём) | {poc_price:.2f} |")
+        if df_d1 is not None and len(df_d1) > 0:
+            last_close = df_d1['close'].iloc[-1]
+            if last_close > poc_price:
+                lines.append(f"| Цена vs POC | Выше → поддержка |")
             else:
-                va_low = poc_price
-                va_high = poc_price
-            lines.append(f"| POC (макс. объём) | {poc_price:.2f} |")
-            lines.append(f"| Value Area (70%) | {va_low:.2f} – {va_high:.2f} |")
-            if df_d1 is not None and len(df_d1) > 0:
-                last_close = df_d1['close'].iloc[-1]
-                if last_close > poc_price:
-                    lines.append(f"| Цена vs POC | Выше → поддержка |")
-                else:
-                    lines.append(f"| Цена vs POC | Ниже → сопротивление |")
+                lines.append(f"| Цена vs POC | Ниже → сопротивление |")
 
     lines.append("")
     lines.append("| Группа | % | Доминирование | Действие |")
     lines.append("| :--- | :--- | :--- | :--- |")
     fiz_pct = current['fiz_buy_ratio']
     yur_pct = current['yur_buy_ratio']
+
+    # Физики
     if fiz_pct > 65:
         fiz_dom = "Доминируют"
     elif fiz_pct < 35:
@@ -318,6 +316,9 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         fiz_dom = "—"
     fiz_side = "покупателей" if fiz_pct > 50 else "продавцов"
     fiz_display = fiz_pct if fiz_pct > 50 else 100 - fiz_pct
+    action_fiz = "Покупают" if current['phys_net'] > 0 else "Продают"
+
+    # Юрики
     if yur_pct > 65:
         yur_dom = "Доминируют"
     elif yur_pct < 35:
@@ -326,18 +327,44 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         yur_dom = "—"
     yur_side = "покупателей" if yur_pct > 50 else "продавцов"
     yur_display = yur_pct if yur_pct > 50 else 100 - yur_pct
-    if current['phys_net'] > 0 and current['corp_net'] < 0:
-        action = "Дистрибуция"
-    elif current['phys_net'] < 0 and current['corp_net'] > 0:
-        action = "Аккумуляция"
-    elif current['phys_net'] > 0 and current['corp_net'] > 0:
-        action = "Единство (лонг)"
-    elif current['phys_net'] < 0 and current['corp_net'] < 0:
-        action = "Единство (шорт)"
+    action_yur = "Покупают" if current['corp_net'] > 0 else "Продают"
+
+    # Общее действие
+    if is_distribution:
+        action_common = "Дистрибуция"
+    elif is_accumulation:
+        action_common = "Аккумуляция"
+    elif is_unity_long:
+        action_common = "Единство (лонг)"
+    elif is_unity_short:
+        action_common = "Единство (шорт)"
     else:
-        action = "—"
-    lines.append(f"| Физики | {fiz_display:.1f}% {fiz_side} | {fiz_dom} | {action} |")
-    lines.append(f"| Юрики | {yur_display:.1f}% {yur_side} | {yur_dom} | {action} |")
+        action_common = "—"
+
+    lines.append(f"| Физики | {fiz_display:.1f}% {fiz_side} | {fiz_dom} | {action_fiz} |")
+    lines.append(f"| Юрики | {yur_display:.1f}% {yur_side} | {yur_dom} | {action_yur} |")
+    lines.append(f"| Общее | — | — | {action_common} |")
+
+    # === ПОЯСНЕНИЕ К СИТУАЦИИ ===
+    lines.append("")
+    lines.append("**📝 Анализ:**")
+    if is_distribution and yur_pct > 50:
+        lines.append(f"Большинство юриков ({yur_pct:.1f}%) покупает, но меньшинство ({100-yur_pct:.1f}%) продаёт так крупно, что чистая позиция юриков отрицательная. Крупные игроки продают толпе — **медвежий сигнал** (дистрибуция).")
+    elif is_distribution:
+        lines.append(f"Юрики продают ({yur_display:.1f}% продавцов). Крупные игроки продают толпе — **медвежий сигнал** (дистрибуция).")
+    elif is_accumulation and yur_pct < 50:
+        lines.append(f"Большинство юриков ({yur_display:.1f}%) продаёт, но меньшинство покупает так крупно, что чистая позиция юриков положительная. Крупные игроки набирают позицию у толпы — **бычий сигнал** (аккумуляция).")
+    elif is_accumulation:
+        lines.append(f"Юрики покупают ({yur_display:.1f}% покупателей). Крупные игроки набирают позицию у толпы — **бычий сигнал** (аккумуляция).")
+    elif is_unity_long:
+        lines.append(f"Обе группы покупают. Единство в лонге — **бычий сигнал**. Тренд поддерживается всеми участниками.")
+    elif is_unity_short:
+        lines.append(f"Обе группы продают. Единство в шорте — **медвежий сигнал**. Падение поддерживается всеми участниками.")
+    elif yur_pct > 50 and current['corp_net'] > 0:
+        lines.append(f"Большинство юриков ({yur_pct:.1f}%) покупает, но перевес небольшой. Юрики не доминируют — **нейтральный сигнал**.")
+    elif yur_pct < 50 and current['corp_net'] < 0:
+        lines.append(f"Большинство юриков ({yur_display:.1f}%) продаёт, но перевес небольшой. Юрики не доминируют — **нейтральный сигнал**.")
+
     lines.append("")
     risk = []
     if fiz_overheated:
@@ -360,9 +387,9 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         lines.append(f"Высокая вероятность продолжения роста. Ближайшая цель — уровень сопротивления.")
     elif signal_type == "SHORT":
         lines.append(f"Высокая вероятность продолжения падения. Ближайшая цель — уровень поддержки.")
-    elif signal_type in ["BLOCKED_LONG_DOWNTREND", "BLOCKED_LONG_DISTRIBUTION", "BLOCKED_LONG_BELOW_POC"]:
+    elif signal_type == "BLOCKED_LONG":
         lines.append(f"Высокая вероятность продолжения падения или консолидации. Дождитесь разворота тренда или возврата цены выше POC.")
-    elif signal_type in ["BLOCKED_SHORT_UPTREND", "BLOCKED_SHORT_ACCUMULATION"]:
+    elif signal_type == "BLOCKED_SHORT":
         lines.append(f"Высокая вероятность продолжения роста или консолидации. Дождитесь разворота тренда или возврата цены ниже POC.")
     elif signal_type == "WAIT_FOR_RETRACEMENT":
         lines.append(f"Ожидание коррекции вниз. После отката — вход в лонг от уровня поддержки.")
@@ -380,9 +407,9 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         lines.append(f"Ждать отката к уровню поддержки. Входить в лонг только после подтверждения разворота.")
     elif signal_type == "WAIT_FOR_BOUNCE":
         lines.append(f"Ждать отскока к уровню сопротивления. Входить в шорт только после подтверждения разворота.")
-    elif signal_type in ["BLOCKED_LONG_DOWNTREND", "BLOCKED_LONG_DISTRIBUTION", "BLOCKED_LONG_BELOW_POC"]:
+    elif signal_type == "BLOCKED_LONG":
         lines.append(f"Не входить в лонг. Ждать: 1) возврата цены выше POC, 2) разворота тренда на восходящий, 3) снижения перекупленности ниже 80%.")
-    elif signal_type in ["BLOCKED_SHORT_UPTREND", "BLOCKED_SHORT_ACCUMULATION"]:
+    elif signal_type == "BLOCKED_SHORT":
         lines.append(f"Не входить в шорт. Ждать: 1) возврата цены ниже POC, 2) разворота тренда на нисходящий, 3) снижения перепроданности выше 20%.")
     else:
         lines.append(f"Ждать. Сигнал не сформирован.")
@@ -394,8 +421,8 @@ def calculate_signals(df, df_d1=None, df_ts=None):
             prev_emoji = "🟢" if prev_signal == "LONG" else "🔴" if prev_signal == "SHORT" else "⚪"
             lines.append(f"🔄 **Смена сигнала:** предыдущий был {prev_emoji} {prev_signal}")
     signal_info = "\n".join(lines)
-    signal_emoji = "🟢" if signal_type == "LONG" else "🔴" if signal_type in ["SHORT", "WAIT_FOR_RETRACEMENT", "BLOCKED_LONG_DOWNTREND", "BLOCKED_LONG_DISTRIBUTION", "BLOCKED_LONG_BELOW_POC"] else "⚪"
-    return signal_type, signal_info, signal_emoji, history
+    signal_emoji = "🟢" if signal_type == "LONG" else "🔴" if signal_type in ["SHORT", "WAIT_FOR_RETRACEMENT", "BLOCKED_LONG"] else "⚪"
+    return signal_type, signal_info, signal_emoji, history, poc_price, high_20, low_20
 
 # ========== СБОР ДАННЫХ ДЛЯ ДАШБОРДА ==========
 collectors_info = {}
@@ -641,5 +668,6 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
