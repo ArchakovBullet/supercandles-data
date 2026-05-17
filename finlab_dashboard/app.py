@@ -329,11 +329,11 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None):
         lines.append(f"| POC (макс. объём) | {poc_price:.2f} |")
         if df_d1 is not None and len(df_d1) > 0:
             if last_close > poc_price:
-                    lines.append(f"| Цена vs POC | Выше → поддержка |")
-    if atr_info is not None:
-        lines.append(f"| Волатильность (ATR) | {atr_info['atr']:.2f} ({atr_info['atr_pct']:.1f}%) — {atr_info['emoji']} {atr_info['level']} |")
+                lines.append(f"| Цена vs POC | Выше → поддержка |")
             else:
                 lines.append(f"| Цена vs POC | Ниже → сопротивление |")
+        if atr_info is not None:
+            lines.append(f"| Волатильность (ATR) | {atr_info['atr']:.2f} ({atr_info['atr_pct']:.1f}%) — {atr_info['emoji']} {atr_info['level']} |")
 
     lines.append("")
     lines.append("| Группа | % | Доминирование | Действие |")
@@ -669,4 +669,5 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
