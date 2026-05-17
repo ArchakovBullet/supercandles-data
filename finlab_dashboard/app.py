@@ -465,7 +465,8 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
     if current['divergence']:
         risk.append("Дивергенция")
     if hi2_info is not None and hi2_info['level'] in ["Высокая", "Экстремальная"]:
-        risk.append(f"Концентрация {hi2_info['level'].lower()} (HI2={hi2_info['value']:.0f}, {hi2_info['pct']:.0f}% от макс.)")
+        pct_str = f", {hi2_info['pct']:.0f}% от макс." if 'pct' in hi2_info else ""
+        risk.append(f"Концентрация {hi2_info['level'].lower()} (HI2={hi2_info['value']:.0f}{pct_str})")
     lines.append(f"**Риск:** {', '.join(risk) if risk else 'Низкий'}.")
     lines.append("")
     lines.append(f"**Прогноз:**")
@@ -924,6 +925,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
