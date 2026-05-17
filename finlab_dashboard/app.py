@@ -92,6 +92,7 @@ def load_supercandles_data():
 
 @st.cache_data
 def load_hi2_data():
+    """Загружает все данные HI2, возвращает DataFrame с колонками ticker, tradedate, metric, value"""
     hi2_path = DATA_ROOT / "hi2"
     if not hi2_path.exists():
         return None
@@ -108,6 +109,7 @@ def load_hi2_data():
     if not dfs:
         return None
     all_data = pd.concat(dfs, ignore_index=True)
+    all_data['tradedate'] = pd.to_datetime(all_data['tradedate'])
     return all_data
 
 # ========== ФУНКЦИИ АНАЛИТИКИ FUTOI ==========
@@ -354,7 +356,11 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
         if atr_info is not None:
             lines.append(f"| Волатильность (ATR) | {atr_info['atr']:.2f} ({atr_info['atr_pct']:.1f}%) — {atr_info['emoji']} {atr_info['level']} |")
         if hi2_info is not None:
-            lines.append(f"| HI2 (концентрация) | {hi2_info['value']:.0f} — {hi2_info['emoji']} {hi2_info['level']} |")
+            delta_str = ""
+            if hi2_info['delta'] is not None:
+                arrow = "▲" if hi2_info['delta'] > 0 else "▼"
+                delta_str = f" ({arrow} {abs(hi2_info['delta']):.0f} за сутки)"
+            lines.append(f"| HI2 (концентрация) | {hi2_info['value']:.0f} — {hi2_info['emoji']} {hi2_info['level']}{delta_str} |")
 
     lines.append("")
     lines.append("| Группа | % | Доминирование | Действие |")
@@ -409,6 +415,11 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
         lines.append(f"Большинство юриков ({yur_pct:.1f}%) покупает, но перевес небольшой. Юрики не доминируют — **нейтральный сигнал**.")
     elif yur_pct < 50 and current['corp_net'] < 0:
         lines.append(f"Большинство юриков ({yur_display:.1f}%) продаёт, но перевес небольшой. Юрики не доминируют — **нейтральный сигнал**.")
+    
+    # Добавляем анализ HI2
+    if hi2_info is not None and hi2_info['level'] == "Высокая":
+        lines.append(f"")
+        lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} (высокая концентрация):** Узкая группа юрлиц (2-3 крупных игрока) контролирует {hi2_info['value']:.0f}% позиций. Это повышает риск резких движений — крупный игрок может развернуть цену в любой момент. Следите за снижением HI2 как сигналом к выходу из позиции.")
 
     lines.append("")
     risk = []
@@ -595,6 +606,34 @@ elif page == "FutOI":
                 with col3:
                     st.metric("% покупателей среди юриков", f"{latest['yur_buy_ratio']:.1f}%", delta=f"{(latest['yur_buy_ratio'] - prev['yur_buy_ratio']):+.1f}%")
 
+            # Мини-график HI2 (если есть данные)
+            if hi2_history is not None and len(hi2_history) > 1:
+                with col_left:
+                    fig_hi2 = go.Figure()
+                    fig_hi2.add_trace(go.Scatter(
+                        x=hi2_history['tradedate'],
+                        y=hi2_history['value'],
+                        mode='lines+markers',
+                        name='HI2',
+                        line=dict(color='#FFA500', width=2),
+                        marker=dict(size=4)
+                    ))
+                    # Зоны
+                    fig_hi2.add_hrect(y0=0, y1=40, fillcolor="green", opacity=0.1, line_width=0)
+                    fig_hi2.add_hrect(y0=40, y1=70, fillcolor="yellow", opacity=0.1, line_width=0)
+                    fig_hi2.add_hrect(y0=70, y1=hi2_history['value'].max() + 10, fillcolor="red", opacity=0.1, line_width=0)
+                    fig_hi2.add_hline(y=40, line_dash="dash", line_color="green", opacity=0.5)
+                    fig_hi2.add_hline(y=70, line_dash="dash", line_color="red", opacity=0.5)
+                    fig_hi2.update_layout(
+                        title="Концентрация позиций (HI2) за 20 дней",
+                        xaxis_title="Дата",
+                        yaxis_title="HI2",
+                        height=250,
+                        template='plotly_dark',
+                        margin=dict(l=0, r=0, t=30, b=0)
+                    )
+                    st.plotly_chart(fig_hi2, use_container_width=True)
+
             # График D1 справа от вердикта
             if df_d1 is not None:
                 with col_right:
@@ -773,6 +812,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
