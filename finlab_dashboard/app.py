@@ -628,6 +628,83 @@ elif page == "FutOI":
                 fig_vp.add_hline(y=current_price, line_dash="solid", line_color="yellow", line_width=2, annotation_text=f"Цена: {current_price:.2f}")
                 fig_vp.update_layout(title=f"Профиль объёма (D1) — {selected_ticker}", xaxis_title="Объём", yaxis_title="Цена", barmode='stack', height=500, template='plotly_dark', showlegend=True)
                 st.plotly_chart(fig_vp, use_container_width=True)
+
+            # Графики % покупателей (физики и юрики)
+            st.subheader("🎯 Настроение участников")
+            
+            col_fiz, col_yur = st.columns(2)
+            
+            with col_fiz:
+                current_ratio_fiz = latest['fiz_buy_ratio']
+                
+                if current_ratio_fiz > 80:
+                    st.error(f"🔴 ПЕРЕКУПЛЕННОСТЬ ({current_ratio_fiz:.1f}%)")
+                elif current_ratio_fiz < 20:
+                    st.success(f"🟢 ПЕРЕПРОДАННОСТЬ ({current_ratio_fiz:.1f}%)")
+                elif current_ratio_fiz > 60:
+                    st.warning(f"🟡 Выше нормы ({current_ratio_fiz:.1f}%)")
+                elif current_ratio_fiz < 40:
+                    st.info(f"🔵 Ниже нормы ({current_ratio_fiz:.1f}%)")
+                else:
+                    st.success(f"⚪ Нейтрально ({current_ratio_fiz:.1f}%)")
+                
+                fig_fiz = go.Figure()
+                fig_fiz.add_trace(go.Scatter(
+                    x=df_analytics['datetime'],
+                    y=df_analytics['fiz_buy_ratio'],
+                    mode='lines',
+                    name='% покупателей (Физ)',
+                    line=dict(color='#00BFFF', width=2)
+                ))
+                fig_fiz.add_hrect(y0=80, y1=100, fillcolor="red", opacity=0.1, line_width=0)
+                fig_fiz.add_hrect(y0=0, y1=20, fillcolor="green", opacity=0.1, line_width=0)
+                fig_fiz.add_hline(y=80, line_dash="dash", line_color="red", opacity=0.5)
+                fig_fiz.add_hline(y=20, line_dash="dash", line_color="green", opacity=0.5)
+                fig_fiz.add_hline(y=50, line_dash="dot", line_color="gray", opacity=0.3)
+                fig_fiz.update_layout(
+                    title="% покупателей среди физиков",
+                    xaxis_title="Дата",
+                    yaxis_title="% покупателей",
+                    height=350,
+                    template='plotly_dark'
+                )
+                st.plotly_chart(fig_fiz, use_container_width=True)
+            
+            with col_yur:
+                current_ratio_yur = latest['yur_buy_ratio']
+                
+                if current_ratio_yur > 80:
+                    st.error(f"🔴 ПЕРЕКУПЛЕННОСТЬ ({current_ratio_yur:.1f}%)")
+                elif current_ratio_yur < 20:
+                    st.success(f"🟢 ПЕРЕПРОДАННОСТЬ ({current_ratio_yur:.1f}%)")
+                elif current_ratio_yur > 60:
+                    st.warning(f"🟡 Выше нормы ({current_ratio_yur:.1f}%)")
+                elif current_ratio_yur < 40:
+                    st.info(f"🔵 Ниже нормы ({current_ratio_yur:.1f}%)")
+                else:
+                    st.success(f"⚪ Нейтрально ({current_ratio_yur:.1f}%)")
+                
+                fig_yur = go.Figure()
+                fig_yur.add_trace(go.Scatter(
+                    x=df_analytics['datetime'],
+                    y=df_analytics['yur_buy_ratio'],
+                    mode='lines',
+                    name='% покупателей (Юр)',
+                    line=dict(color='#FF6B6B', width=2)
+                ))
+                fig_yur.add_hrect(y0=80, y1=100, fillcolor="red", opacity=0.1, line_width=0)
+                fig_yur.add_hrect(y0=0, y1=20, fillcolor="green", opacity=0.1, line_width=0)
+                fig_yur.add_hline(y=80, line_dash="dash", line_color="red", opacity=0.5)
+                fig_yur.add_hline(y=20, line_dash="dash", line_color="green", opacity=0.5)
+                fig_yur.add_hline(y=50, line_dash="dot", line_color="gray", opacity=0.3)
+                fig_yur.update_layout(
+                    title="% покупателей среди юриков",
+                    xaxis_title="Дата",
+                    yaxis_title="% покупателей",
+                    height=350,
+                    template='plotly_dark'
+                )
+                st.plotly_chart(fig_yur, use_container_width=True)
 elif page == "Super Candles":
     st.title("🕯️ Super Candles (D1)")
     all_data, tickers = load_supercandles_data()
@@ -673,6 +750,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
