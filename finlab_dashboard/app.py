@@ -113,6 +113,27 @@ def load_hi2_data():
     return all_data
 
 # ========== ФУНКЦИИ АНАЛИТИКИ FUTOI ==========
+def calculate_delta_1h(df_analytics):
+    """Расчёт дельты за 1 час для fiz_buy_ratio и yur_buy_ratio"""
+    if df_analytics is None or len(df_analytics) < 2:
+        return None, None
+    
+    latest = df_analytics.iloc[-1]
+    latest_time = latest['datetime']
+    target_time = latest_time - pd.Timedelta(hours=1)
+    
+    # Ищем ближайшую строку к 1 часу назад
+    df_before = df_analytics[df_analytics['datetime'] <= target_time]
+    if len(df_before) == 0:
+        return None, None
+    
+    prev = df_before.iloc[-1]
+    
+    delta_fiz = latest['fiz_buy_ratio'] - prev['fiz_buy_ratio']
+    delta_yur = latest['yur_buy_ratio'] - prev['yur_buy_ratio']
+    
+    return delta_fiz, delta_yur
+
 def prepare_futoi_analytics(df_ticker):
     df_ticker['datetime'] = pd.to_datetime(df_ticker['tradedate'].astype(str) + ' ' + df_ticker['tradetime'].astype(str))
     df_fiz = df_ticker[df_ticker['clgroup'] == 'FIZ'].copy()
@@ -637,17 +658,37 @@ elif page == "FutOI":
             with col_left:
                 st.markdown(signal_info)
 
+                # Расчёт дельты за 1 час
+                delta_fiz_1h, delta_yur_1h = calculate_delta_1h(df_analytics)
+                
                 # Основные метрики (3 колонки)
                 col1, col2, col3 = st.columns(3)
                 fiz_long_pct = latest['pos_long_fiz'] / (latest['pos_long_fiz'] + latest['pos_short_fiz'] + 1) * 100
                 yur_short_pct = latest['pos_short_yur'] / (latest['pos_long_yur'] + latest['pos_short_yur'] + 1) * 100
                 diff_pct = fiz_long_pct - yur_short_pct
+                
+                # Стрелка для физиков
+                if delta_fiz_1h is not None:
+                    fiz_arrow = "▲" if delta_fiz_1h > 0.1 else "▼" if delta_fiz_1h < -0.1 else "▬"
+                    fiz_delta_str = f"{delta_fiz_1h:+.1f}% за 1 час"
+                else:
+                    fiz_arrow = ""
+                    fiz_delta_str = "нет данных"
+                
+                # Стрелка для юриков
+                if delta_yur_1h is not None:
+                    yur_arrow = "▲" if delta_yur_1h > 0.1 else "▼" if delta_yur_1h < -0.1 else "▬"
+                    yur_delta_str = f"{delta_yur_1h:+.1f}% за 1 час"
+                else:
+                    yur_arrow = ""
+                    yur_delta_str = "нет данных"
+                
                 with col1:
                     st.metric("Открытый интерес", f"{abs(latest['phys_net']):,.0f} контрактов".replace(",", " "), delta=f"Физ в лонге: {fiz_long_pct:.1f}% | Юр в шорте: {yur_short_pct:.1f}% | Δ: {diff_pct:+.1f}%")
                 with col2:
-                    st.metric("% покупателей среди физиков", f"{latest['fiz_buy_ratio']:.1f}%", delta=f"{(latest['fiz_buy_ratio'] - prev['fiz_buy_ratio']):+.1f}%")
+                    st.metric("% покупателей среди физиков", f"{latest['fiz_buy_ratio']:.1f}% {fiz_arrow}", delta=fiz_delta_str)
                 with col3:
-                    st.metric("% покупателей среди юриков", f"{latest['yur_buy_ratio']:.1f}%", delta=f"{(latest['yur_buy_ratio'] - prev['yur_buy_ratio']):+.1f}%")
+                    st.metric("% покупателей среди юриков", f"{latest['yur_buy_ratio']:.1f}% {yur_arrow}", delta=yur_delta_str)
 
             # Мини-график HI2 (загружаем данные здесь)
             hi2_data_graph = load_hi2_data()
@@ -864,6 +905,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
