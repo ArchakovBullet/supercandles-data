@@ -546,7 +546,7 @@ elif page == "FutOI":
             tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
             df_ts = pd.read_parquet(tradestats_file) if tradestats_file.exists() else None
             atr_info, _ = calculate_atr(df_d1) if df_d1 is not None else (None, None)
-signal_type, signal_info, signal_emoji, signal_history, poc_price, high_20, low_20 = calculate_signals(df_analytics, df_d1, df_ts, atr_info)
+            signal_type, signal_info, signal_emoji, signal_history, poc_price, high_20, low_20 = calculate_signals(df_analytics, df_d1, df_ts, atr_info)
             latest = df_analytics.iloc[-1]
             prev = df_analytics.iloc[-2] if len(df_analytics) > 1 else latest
 
@@ -669,6 +669,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
