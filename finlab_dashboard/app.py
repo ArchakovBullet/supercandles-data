@@ -589,7 +589,44 @@ elif page == "FutOI":
             tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
             df_ts = pd.read_parquet(tradestats_file) if tradestats_file.exists() else None
             atr_info, _ = calculate_atr(df_d1) if df_d1 is not None else (None, None)
-            signal_type, signal_info, signal_emoji, signal_history, poc_price, high_20, low_20 = calculate_signals(df_analytics, df_d1, df_ts, atr_info)
+
+            # Загружаем HI2 для вердикта
+            hi2_info = None
+            hi2_data = load_hi2_data()
+            if hi2_data is not None:
+                hi2_ticker = hi2_data[hi2_data['ticker'] == selected_ticker]
+                if len(hi2_ticker) > 0:
+                    hi2_agressive = hi2_ticker[hi2_ticker['metric'] == 'hhi_agressive']
+                    if len(hi2_agressive) > 0:
+                        hi2_sorted = hi2_agressive.sort_values('tradedate')
+                        last_hi2 = hi2_sorted.iloc[-1]
+                        hi2_value = last_hi2['value']
+                        hi2_delta = None
+                        if len(hi2_sorted) >= 2:
+                            hi2_delta = hi2_value - hi2_sorted.iloc[-2]['value']
+                        if hi2_value > 500:
+                            hi2_level = "Экстремальная"
+                            hi2_emoji = "🔴"
+                        elif hi2_value > 150:
+                            hi2_level = "Очень высокая"
+                            hi2_emoji = "🔴"
+                        elif hi2_value > 70:
+                            hi2_level = "Высокая"
+                            hi2_emoji = "🟡"
+                        elif hi2_value > 40:
+                            hi2_level = "Средняя"
+                            hi2_emoji = "🟢"
+                        else:
+                            hi2_level = "Низкая"
+                            hi2_emoji = "🟢"
+                        hi2_info = {
+                            'value': hi2_value,
+                            'level': hi2_level,
+                            'emoji': hi2_emoji,
+                            'delta': hi2_delta
+                        }
+
+            signal_type, signal_info, signal_emoji, signal_history, poc_price, high_20, low_20 = calculate_signals(df_analytics, df_d1, df_ts, atr_info, hi2_info)
             latest = df_analytics.iloc[-1]
             prev = df_analytics.iloc[-2] if len(df_analytics) > 1 else latest
 
@@ -826,6 +863,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
