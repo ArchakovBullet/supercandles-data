@@ -403,7 +403,7 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None):
         risk.append("Дивергенция")
     lines.append(f"**Риск:** {', '.join(risk) if risk else 'Низкий'}.")
     lines.append("")
-        lines.append(f"**Прогноз:**")
+    lines.append(f"**Прогноз:**")
     if atr_info is not None and atr_info['level'] in ["Высокая", "Экстремальная"]:
         lines.append(f"Волатильность {atr_info['level'].lower()}. Возможны резкие движения и выбитие стопов.")
     if signal_type == "LONG":
@@ -669,5 +669,6 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
