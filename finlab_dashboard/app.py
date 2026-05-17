@@ -89,7 +89,26 @@ def load_supercandles_data():
         return None, []
     all_data = pd.concat(dfs, ignore_index=True)
     tickers = sorted(all_data['secid'].unique())
-    return all_data, tickers
+
+@st.cache_data
+def load_hi2_data():
+    hi2_path = DATA_ROOT / "hi2"
+    if not hi2_path.exists():
+        return None
+    files = list(hi2_path.glob("*_hi2.parquet"))
+    if not files:
+        return None
+    dfs = []
+    for f in files:
+        try:
+            df = pd.read_parquet(f)
+            dfs.append(df)
+        except:
+            pass
+    if not dfs:
+        return None
+    all_data = pd.concat(dfs, ignore_index=True)
+    return all_data
 
 # ========== ФУНКЦИИ АНАЛИТИКИ FUTOI ==========
 def prepare_futoi_analytics(df_ticker):
@@ -162,7 +181,7 @@ def calculate_atr(df_d1, period=14):
         'emoji': emoji
     }, None
 
-def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None):
+def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
     """Расчёт торговых сигналов с единым вердиктом (v3.4)"""
     if len(df) < 3:
         return "NEUTRAL", "Недостаточно данных", "⚪", [], None, None, None
@@ -334,6 +353,8 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None):
                 lines.append(f"| Цена vs POC | Ниже → сопротивление |")
         if atr_info is not None:
             lines.append(f"| Волатильность (ATR) | {atr_info['atr']:.2f} ({atr_info['atr_pct']:.1f}%) — {atr_info['emoji']} {atr_info['level']} |")
+        if hi2_info is not None:
+            lines.append(f"| HI2 (концентрация) | {hi2_info['value']:.0f} — {hi2_info['emoji']} {hi2_info['level']} |")
 
     lines.append("")
     lines.append("| Группа | % | Доминирование | Действие |")
@@ -405,6 +426,8 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None):
         risk.append("Аккумуляция (юрики покупают)")
     if current['divergence']:
         risk.append("Дивергенция")
+    if hi2_info is not None and hi2_info['level'] == "Высокая":
+        risk.append("Высокая концентрация (HI2)")
     lines.append(f"**Риск:** {', '.join(risk) if risk else 'Низкий'}.")
     lines.append("")
     lines.append(f"**Прогноз:**")
@@ -750,6 +773,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
