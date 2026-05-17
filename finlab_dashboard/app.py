@@ -114,7 +114,55 @@ def prepare_futoi_analytics(df_ticker):
     df_merged['fiz_volume'] = df_merged['pos_long_fiz'] + df_merged['pos_short_fiz']
     df_merged['yur_volume'] = df_merged['pos_long_yur'] + df_merged['pos_short_yur']
     return df_merged
-def calculate_signals(df, df_d1=None, df_ts=None):
+def calculate_atr(df_d1, period=14):
+    """Расчёт Average True Range (волатильности)"""
+    if df_d1 is None or len(df_d1) < period + 1:
+        return None, "Недостаточно данных"
+    
+    df = df_d1.copy()
+    df['high'] = pd.to_numeric(df['high'], errors='coerce')
+    df['low'] = pd.to_numeric(df['low'], errors='coerce')
+    df['close'] = pd.to_numeric(df['close'], errors='coerce')
+    
+    # True Range
+    df['tr'] = df[['high', 'low', 'close']].apply(
+        lambda row: max(
+            row['high'] - row['low'],
+            abs(row['high'] - row['close']),
+            abs(row['low'] - row['close'])
+        ) if pd.notna(row[['high', 'low', 'close']]).all() else 0,
+        axis=1
+    )
+    
+    # ATR
+    df['atr'] = df['tr'].rolling(period).mean()
+    
+    current_atr = df['atr'].iloc[-1]
+    avg_close = df['close'].tail(period).mean()
+    atr_pct = (current_atr / avg_close * 100) if avg_close > 0 else 0
+    
+    # Определяем уровень волатильности
+    if atr_pct < 1.0:
+        level = "Низкая"
+        emoji = "🔵"
+    elif atr_pct < 2.5:
+        level = "Нормальная"
+        emoji = "🟢"
+    elif atr_pct < 5.0:
+        level = "Высокая"
+        emoji = "🟡"
+    else:
+        level = "Экстремальная"
+        emoji = "🔴"
+    
+    return {
+        'atr': current_atr,
+        'atr_pct': atr_pct,
+        'level': level,
+        'emoji': emoji
+    }, None
+
+def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None):
     """Расчёт торговых сигналов с единым вердиктом (v3.4)"""
     if len(df) < 3:
         return "NEUTRAL", "Недостаточно данных", "⚪", [], None, None, None
@@ -281,7 +329,9 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         lines.append(f"| POC (макс. объём) | {poc_price:.2f} |")
         if df_d1 is not None and len(df_d1) > 0:
             if last_close > poc_price:
-                lines.append(f"| Цена vs POC | Выше → поддержка |")
+                    lines.append(f"| Цена vs POC | Выше → поддержка |")
+    if atr_info is not None:
+        lines.append(f"| Волатильность (ATR) | {atr_info['atr']:.2f} ({atr_info['atr_pct']:.1f}%) — {atr_info['emoji']} {atr_info['level']} |")
             else:
                 lines.append(f"| Цена vs POC | Ниже → сопротивление |")
 
@@ -353,7 +403,9 @@ def calculate_signals(df, df_d1=None, df_ts=None):
         risk.append("Дивергенция")
     lines.append(f"**Риск:** {', '.join(risk) if risk else 'Низкий'}.")
     lines.append("")
-    lines.append(f"**Прогноз:**")
+        lines.append(f"**Прогноз:**")
+    if atr_info is not None and atr_info['level'] in ["Высокая", "Экстремальная"]:
+        lines.append(f"Волатильность {atr_info['level'].lower()}. Возможны резкие движения и выбитие стопов.")
     if signal_type == "LONG":
         lines.append(f"Высокая вероятность продолжения роста. Ближайшая цель — уровень сопротивления.")
     elif signal_type == "SHORT":
@@ -369,7 +421,9 @@ def calculate_signals(df, df_d1=None, df_ts=None):
     else:
         lines.append(f"Тренд не определён. Ждать формирования сигнала.")
     lines.append("")
-    lines.append(f"**💡 Рекомендация:**")
+        lines.append(f"**💡 Рекомендация:**")
+    if atr_info is not None and atr_info['level'] in ["Высокая", "Экстремальная"]:
+        lines.append(f"⚠️ Волатильность повышена. Увеличьте стоп в 1.5-2 раза. Рассмотрите выход из позиции.")
     if signal_type == "LONG":
         lines.append(f"Входить в лонг от уровня поддержки. Стоп под минимум дня. Цель — сопротивление.")
     elif signal_type == "SHORT":
@@ -491,7 +545,8 @@ elif page == "FutOI":
             df_d1 = pd.read_parquet(candle_file) if candle_file.exists() else None
             tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
             df_ts = pd.read_parquet(tradestats_file) if tradestats_file.exists() else None
-            signal_type, signal_info, signal_emoji, signal_history, poc_price, high_20, low_20 = calculate_signals(df_analytics, df_d1, df_ts)
+            atr_info, _ = calculate_atr(df_d1) if df_d1 is not None else (None, None)
+signal_type, signal_info, signal_emoji, signal_history, poc_price, high_20, low_20 = calculate_signals(df_analytics, df_d1, df_ts, atr_info)
             latest = df_analytics.iloc[-1]
             prev = df_analytics.iloc[-2] if len(df_analytics) > 1 else latest
 
@@ -614,3 +669,4 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
