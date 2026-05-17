@@ -656,18 +656,14 @@ elif page == "FutOI":
             col_left, col_right = st.columns([3, 2])
 
             with col_left:
-                st.markdown(signal_info)
-
-                # Расчёт дельты за 1 час
+                # === МЕТРИКИ НАВЕРХУ ===
                 delta_fiz_1h, delta_yur_1h = calculate_delta_1h(df_analytics)
                 
-                # Основные метрики (3 колонки)
                 col1, col2, col3 = st.columns(3)
                 fiz_long_pct = latest['pos_long_fiz'] / (latest['pos_long_fiz'] + latest['pos_short_fiz'] + 1) * 100
                 yur_short_pct = latest['pos_short_yur'] / (latest['pos_long_yur'] + latest['pos_short_yur'] + 1) * 100
                 diff_pct = fiz_long_pct - yur_short_pct
                 
-                # Стрелка для физиков
                 if delta_fiz_1h is not None:
                     fiz_arrow = "▲" if delta_fiz_1h > 0.1 else "▼" if delta_fiz_1h < -0.1 else "▬"
                     fiz_delta_str = f"{delta_fiz_1h:+.1f}% за 1 час"
@@ -675,7 +671,6 @@ elif page == "FutOI":
                     fiz_arrow = ""
                     fiz_delta_str = "нет данных"
                 
-                # Стрелка для юриков
                 if delta_yur_1h is not None:
                     yur_arrow = "▲" if delta_yur_1h > 0.1 else "▼" if delta_yur_1h < -0.1 else "▬"
                     yur_delta_str = f"{delta_yur_1h:+.1f}% за 1 час"
@@ -689,6 +684,11 @@ elif page == "FutOI":
                     st.metric("% покупателей среди физиков", f"{latest['fiz_buy_ratio']:.1f}% {fiz_arrow}", delta=fiz_delta_str)
                 with col3:
                     st.metric("% покупателей среди юриков", f"{latest['yur_buy_ratio']:.1f}% {yur_arrow}", delta=yur_delta_str)
+                
+                st.markdown("---")
+                
+                # === ВЕРДИКТ ПОСЛЕ МЕТРИК ===
+                st.markdown(signal_info)
 
             # Мини-график HI2 (загружаем данные здесь)
             hi2_data_graph = load_hi2_data()
@@ -711,12 +711,14 @@ elif page == "FutOI":
                         line=dict(color='#FFA500', width=2),
                         marker=dict(size=4)
                     ))
-                    # Зоны
+                    # Зоны: Низкая (0-40), Средняя (40-70), Высокая (70-150), Экстремальная (>150)
                     fig_hi2.add_hrect(y0=0, y1=40, fillcolor="green", opacity=0.1, line_width=0)
                     fig_hi2.add_hrect(y0=40, y1=70, fillcolor="yellow", opacity=0.1, line_width=0)
-                    fig_hi2.add_hrect(y0=70, y1=hi2_history['value'].max() + 10, fillcolor="red", opacity=0.1, line_width=0)
+                    fig_hi2.add_hrect(y0=70, y1=150, fillcolor="orange", opacity=0.1, line_width=0)
+                    fig_hi2.add_hrect(y0=150, y1=max(hi2_history['value'].max() + 10, 200), fillcolor="red", opacity=0.1, line_width=0)
                     fig_hi2.add_hline(y=40, line_dash="dash", line_color="green", opacity=0.5)
-                    fig_hi2.add_hline(y=70, line_dash="dash", line_color="red", opacity=0.5)
+                    fig_hi2.add_hline(y=70, line_dash="dash", line_color="red", opacity=0.7)
+                    fig_hi2.add_hline(y=150, line_dash="dash", line_color="darkred", opacity=0.7)
                     fig_hi2.update_layout(
                         title="Концентрация позиций (HI2) за 20 дней",
                         xaxis_title="Дата",
@@ -905,6 +907,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
