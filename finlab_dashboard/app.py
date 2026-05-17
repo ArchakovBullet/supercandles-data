@@ -611,7 +611,16 @@ elif page == "FutOI":
                 with col3:
                     st.metric("% покупателей среди юриков", f"{latest['yur_buy_ratio']:.1f}%", delta=f"{(latest['yur_buy_ratio'] - prev['yur_buy_ratio']):+.1f}%")
 
-            # Мини-график HI2 (если есть данные)
+            # Мини-график HI2 (загружаем данные здесь)
+            hi2_data_graph = load_hi2_data()
+            hi2_history = None
+            if hi2_data_graph is not None:
+                hi2_ticker_graph = hi2_data_graph[hi2_data_graph['ticker'] == selected_ticker]
+                if len(hi2_ticker_graph) > 0:
+                    hi2_agressive_graph = hi2_ticker_graph[hi2_ticker_graph['metric'] == 'hhi_agressive']
+                    if len(hi2_agressive_graph) > 0:
+                        hi2_history = hi2_agressive_graph.sort_values('tradedate').tail(20)
+            
             if hi2_history is not None and len(hi2_history) > 1:
                 with col_left:
                     fig_hi2 = go.Figure()
@@ -817,6 +826,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
