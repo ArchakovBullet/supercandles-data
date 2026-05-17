@@ -337,7 +337,8 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
             trend = "Боковик ◼"
         dist_to_support = (last_close - low_20) / last_close * 100
         dist_to_resist = (high_20 - last_close) / last_close * 100
-        lines.append(f"| Тренд | {trend} |")
+        lines.append(f"| Таймфрейм анализа | D1 |")
+    lines.append(f"| Тренд | {trend} |")
         lines.append(f"| Цена | {last_close:.2f} |")
         lines.append(f"| SMA 20 | {sma20:.2f} |")
         lines.append(f"| Сопротивление | {high_20:.2f} (дист. {dist_to_resist:.1f}%) |")
@@ -863,6 +864,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
