@@ -382,7 +382,8 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
             if hi2_info['delta'] is not None:
                 arrow = "▲" if hi2_info['delta'] > 0 else "▼"
                 delta_str = f" ({arrow} {abs(hi2_info['delta']):.0f} за сутки)"
-            lines.append(f"| HI2 (концентрация) | {hi2_info['value']:.0f} — {hi2_info['emoji']} {hi2_info['level']}{delta_str} |")
+            pct_str = f" ({hi2_info['pct']:.0f}% от макс. {hi2_info['max']:.0f})" if 'pct' in hi2_info else ""
+            lines.append(f"| HI2 (концентрация) | {hi2_info['value']:.0f} — {hi2_info['emoji']} {hi2_info['level']}{delta_str}{pct_str} |")
 
     lines.append("")
     lines.append("| Группа | % | Доминирование | Действие |")
@@ -439,14 +440,12 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
         lines.append(f"Большинство юриков ({yur_display:.1f}%) продаёт, но перевес небольшой. Юрики не доминируют — **нейтральный сигнал**.")
     
     # Добавляем анализ HI2
-    if hi2_info is not None and hi2_info['level'] in ["Высокая", "Очень высокая", "Экстремальная"]:
+    if hi2_info is not None and hi2_info['level'] in ["Высокая", "Экстремальная"]:
         lines.append(f"")
         if hi2_info['level'] == "Экстремальная":
-            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} (экстремальная концентрация):** Практически весь объём позиций сконцентрирован в руках 1-2 крупных игроков. Рынок полностью зависит от их действий. Любой сигнал может быть ложным, если крупный игрок решит развернуть позицию.")
-        elif hi2_info['level'] == "Очень высокая":
-            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} (очень высокая концентрация):** Несколько крупных игроков контролируют большую часть позиций. Высокий риск резких движений при входе/выходе крупного игрока.")
+            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} ({hi2_info['pct']:.0f}% от макс. — экстремальная концентрация):** Практически весь объём позиций сконцентрирован в руках 1-2 крупных игроков. Рынок полностью зависит от их действий.")
         else:
-            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} (высокая концентрация):** Группа крупных игроков контролирует значительную часть позиций. Возможны резкие движения при изменении их стратегии.")
+            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} ({hi2_info['pct']:.0f}% от макс. — высокая концентрация):** Крупные игроки контролируют значительную часть позиций. Возможны резкие движения.")
 
     lines.append("")
     risk = []
@@ -464,8 +463,8 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
         risk.append("Аккумуляция (юрики покупают)")
     if current['divergence']:
         risk.append("Дивергенция")
-    if hi2_info is not None and hi2_info['level'] in ["Высокая", "Очень высокая", "Экстремальная"]:
-        risk.append(f"Концентрация {hi2_info['level'].lower()} (HI2={hi2_info['value']:.0f})")
+    if hi2_info is not None and hi2_info['level'] in ["Высокая", "Экстремальная"]:
+        risk.append(f"Концентрация {hi2_info['level'].lower()} (HI2={hi2_info['value']:.0f}, {hi2_info['pct']:.0f}% от макс.)")
     lines.append(f"**Риск:** {', '.join(risk) if risk else 'Низкий'}.")
     lines.append("")
     lines.append(f"**Прогноз:**")
@@ -626,21 +625,32 @@ elif page == "FutOI":
                         hi2_delta = None
                         if len(hi2_sorted) >= 2:
                             hi2_delta = hi2_value - hi2_sorted.iloc[-2]['value']
-                        if hi2_value > 500:
+                        
+                        # Относительные уровни (процентили от исторического максимума)
+                        hi2_max = hi2_sorted['value'].max()
+                        hi2_pct = (hi2_value / hi2_max * 100) if hi2_max > 0 else 0
+                        
+                        if hi2_pct > 75:
                             hi2_level = "Экстремальная"
                             hi2_emoji = "🔴"
-                        elif hi2_value > 150:
-                            hi2_level = "Очень высокая"
-                            hi2_emoji = "🔴"
-                        elif hi2_value > 70:
+                        elif hi2_pct > 50:
                             hi2_level = "Высокая"
                             hi2_emoji = "🟡"
-                        elif hi2_value > 40:
+                        elif hi2_pct > 25:
                             hi2_level = "Средняя"
                             hi2_emoji = "🟢"
                         else:
                             hi2_level = "Низкая"
                             hi2_emoji = "🟢"
+                        
+                        hi2_info = {
+                            'value': hi2_value,
+                            'level': hi2_level,
+                            'emoji': hi2_emoji,
+                            'delta': hi2_delta,
+                            'pct': hi2_pct,
+                            'max': hi2_max
+                        }
                         hi2_info = {
                             'value': hi2_value,
                             'level': hi2_level,
@@ -702,6 +712,12 @@ elif page == "FutOI":
             
             if hi2_history is not None and len(hi2_history) > 1:
                 with col_left:
+                    # Рассчитываем относительные пороги
+                    hi2_max_val = hi2_history['value'].max()
+                    p25 = hi2_max_val * 0.25
+                    p50 = hi2_max_val * 0.50
+                    p75 = hi2_max_val * 0.75
+                    
                     fig_hi2 = go.Figure()
                     fig_hi2.add_trace(go.Scatter(
                         x=hi2_history['tradedate'],
@@ -711,14 +727,14 @@ elif page == "FutOI":
                         line=dict(color='#FFA500', width=2),
                         marker=dict(size=4)
                     ))
-                    # Зоны: Низкая (0-40), Средняя (40-70), Высокая (70-150), Экстремальная (>150)
-                    fig_hi2.add_hrect(y0=0, y1=40, fillcolor="green", opacity=0.1, line_width=0)
-                    fig_hi2.add_hrect(y0=40, y1=70, fillcolor="yellow", opacity=0.1, line_width=0)
-                    fig_hi2.add_hrect(y0=70, y1=150, fillcolor="orange", opacity=0.1, line_width=0)
-                    fig_hi2.add_hrect(y0=150, y1=max(hi2_history['value'].max() + 10, 200), fillcolor="red", opacity=0.1, line_width=0)
-                    fig_hi2.add_hline(y=40, line_dash="dash", line_color="green", opacity=0.5)
-                    fig_hi2.add_hline(y=70, line_dash="dash", line_color="red", opacity=0.7)
-                    fig_hi2.add_hline(y=150, line_dash="dash", line_color="darkred", opacity=0.7)
+                    # Относительные зоны
+                    fig_hi2.add_hrect(y0=0, y1=p25, fillcolor="green", opacity=0.1, line_width=0)
+                    fig_hi2.add_hrect(y0=p25, y1=p50, fillcolor="yellow", opacity=0.1, line_width=0)
+                    fig_hi2.add_hrect(y0=p50, y1=p75, fillcolor="orange", opacity=0.1, line_width=0)
+                    fig_hi2.add_hrect(y0=p75, y1=hi2_max_val + 10, fillcolor="red", opacity=0.1, line_width=0)
+                    fig_hi2.add_hline(y=p25, line_dash="dash", line_color="green", opacity=0.5)
+                    fig_hi2.add_hline(y=p50, line_dash="dash", line_color="red", opacity=0.7)
+                    fig_hi2.add_hline(y=p75, line_dash="dash", line_color="darkred", opacity=0.7)
                     fig_hi2.update_layout(
                         title="Концентрация позиций (HI2) за 20 дней",
                         xaxis_title="Дата",
@@ -907,6 +923,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
