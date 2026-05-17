@@ -421,7 +421,7 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None):
     else:
         lines.append(f"Тренд не определён. Ждать формирования сигнала.")
     lines.append("")
-        lines.append(f"**💡 Рекомендация:**")
+    lines.append(f"**💡 Рекомендация:**")
     if atr_info is not None and atr_info['level'] in ["Высокая", "Экстремальная"]:
         lines.append(f"⚠️ Волатильность повышена. Увеличьте стоп в 1.5-2 раза. Рассмотрите выход из позиции.")
     if signal_type == "LONG":
@@ -669,6 +669,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
