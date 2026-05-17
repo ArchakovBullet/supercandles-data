@@ -442,10 +442,11 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
     # Добавляем анализ HI2
     if hi2_info is not None and hi2_info['level'] in ["Высокая", "Экстремальная"]:
         lines.append(f"")
+        pct_str = f" ({hi2_info['pct']:.0f}% от макс.)" if 'pct' in hi2_info else ""
         if hi2_info['level'] == "Экстремальная":
-            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} ({hi2_info['pct']:.0f}% от макс. — экстремальная концентрация):** Практически весь объём позиций сконцентрирован в руках 1-2 крупных игроков. Рынок полностью зависит от их действий.")
+            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f}{pct_str} — экстремальная концентрация:** Практически весь объём позиций сконцентрирован в руках 1-2 крупных игроков. Рынок полностью зависит от их действий.")
         else:
-            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} ({hi2_info['pct']:.0f}% от макс. — высокая концентрация):** Крупные игроки контролируют значительную часть позиций. Возможны резкие движения.")
+            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f}{pct_str} — высокая концентрация:** Крупные игроки контролируют значительную часть позиций. Возможны резкие движения.")
 
     lines.append("")
     risk = []
@@ -923,6 +924,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
