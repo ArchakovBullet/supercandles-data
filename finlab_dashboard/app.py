@@ -417,9 +417,14 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
         lines.append(f"Большинство юриков ({yur_display:.1f}%) продаёт, но перевес небольшой. Юрики не доминируют — **нейтральный сигнал**.")
     
     # Добавляем анализ HI2
-    if hi2_info is not None and hi2_info['level'] == "Высокая":
+    if hi2_info is not None and hi2_info['level'] in ["Высокая", "Очень высокая", "Экстремальная"]:
         lines.append(f"")
-        lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} (высокая концентрация):** Узкая группа юрлиц (2-3 крупных игрока) контролирует {hi2_info['value']:.0f}% позиций. Это повышает риск резких движений — крупный игрок может развернуть цену в любой момент. Следите за снижением HI2 как сигналом к выходу из позиции.")
+        if hi2_info['level'] == "Экстремальная":
+            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} (экстремальная концентрация):** Практически весь объём позиций сконцентрирован в руках 1-2 крупных игроков. Рынок полностью зависит от их действий. Любой сигнал может быть ложным, если крупный игрок решит развернуть позицию.")
+        elif hi2_info['level'] == "Очень высокая":
+            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} (очень высокая концентрация):** Несколько крупных игроков контролируют большую часть позиций. Высокий риск резких движений при входе/выходе крупного игрока.")
+        else:
+            lines.append(f"**🔍 HI2 = {hi2_info['value']:.0f} (высокая концентрация):** Группа крупных игроков контролирует значительную часть позиций. Возможны резкие движения при изменении их стратегии.")
 
     lines.append("")
     risk = []
@@ -437,8 +442,8 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
         risk.append("Аккумуляция (юрики покупают)")
     if current['divergence']:
         risk.append("Дивергенция")
-    if hi2_info is not None and hi2_info['level'] == "Высокая":
-        risk.append("Высокая концентрация (HI2)")
+    if hi2_info is not None and hi2_info['level'] in ["Высокая", "Очень высокая", "Экстремальная"]:
+        risk.append(f"Концентрация {hi2_info['level'].lower()} (HI2={hi2_info['value']:.0f})")
     lines.append(f"**Риск:** {', '.join(risk) if risk else 'Низкий'}.")
     lines.append("")
     lines.append(f"**Прогноз:**")
@@ -812,6 +817,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
