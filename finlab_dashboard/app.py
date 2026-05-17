@@ -653,12 +653,7 @@ elif page == "FutOI":
                             'pct': hi2_pct,
                             'max': hi2_max
                         }
-                        hi2_info = {
-                            'value': hi2_value,
-                            'level': hi2_level,
-                            'emoji': hi2_emoji,
-                            'delta': hi2_delta
-                        }
+
 
             signal_type, signal_info, signal_emoji, signal_history, poc_price, high_20, low_20 = calculate_signals(df_analytics, df_d1, df_ts, atr_info, hi2_info)
             latest = df_analytics.iloc[-1]
@@ -925,6 +920,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
