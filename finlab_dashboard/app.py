@@ -714,6 +714,16 @@ elif page == "FutOI":
                 with col1:
                     st.metric("Открытый интерес", f"{abs(latest['phys_net']):,.0f} контрактов".replace(",", " "), delta=oi_delta_str if oi_delta_str else None)
                     st.caption(f"Физ в лонге: {fiz_long_pct:.1f}% | Юр в шорте: {yur_short_pct:.1f}% | Δ: {diff_pct:+.1f}%")
+                    
+                    # Пояснение по чистой позиции
+                    if latest['phys_net'] > 0 and latest['corp_net'] < 0:
+                        st.info("💡 Физики покупают, юрики продают — **Дистрибуция**. Крупные игроки продают толпе. Медвежий сигнал.")
+                    elif latest['phys_net'] < 0 and latest['corp_net'] > 0:
+                        st.info("💡 Физики продают, юрики покупают — **Аккумуляция**. Крупные игроки набирают позицию. Бычий сигнал.")
+                    elif latest['phys_net'] > 0 and latest['corp_net'] > 0:
+                        st.info("💡 Обе группы в лонге — **Единство**. Тренд поддерживается всеми участниками.")
+                    elif latest['phys_net'] < 0 and latest['corp_net'] < 0:
+                        st.info("💡 Обе группы в шорте — **Единство**. Падение поддерживается всеми участниками.")
                 with col2:
                     st.metric("% покупателей среди физиков", f"{latest['fiz_buy_ratio']:.1f}% {fiz_arrow}", delta=fiz_delta_str)
                 with col3:
@@ -947,6 +957,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
