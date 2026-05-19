@@ -913,11 +913,28 @@ elif page == "FutOI":
                 st.plotly_chart(fig_yur, use_container_width=True)
 elif page == "Super Candles":
     st.title("🕯️ Super Candles (D1)")
-    result = load_supercandles_data()
-    if result is None or result[0] is None or len(result[0]) == 0:
-        st.error("Данные Super Candles не найдены")
+    
+    # Загружаем данные напрямую (в обход load_supercandles_data)
+    sc_path = DATA_ROOT / "supercandles"
+    if not sc_path.exists():
+        st.error("Папка supercandles не найдена")
     else:
-        all_data, tickers = result
+        files = list(sc_path.glob("*_supercandles.parquet"))
+        if not files:
+            st.error("Файлы Super Candles не найдены")
+        else:
+            dfs = []
+            for f in files:
+                try:
+                    df = pd.read_parquet(f)
+                    dfs.append(df)
+                except:
+                    pass
+            if not dfs:
+                st.error("Не удалось прочитать файлы")
+            else:
+                all_data = pd.concat(dfs, ignore_index=True)
+                tickers = sorted(all_data['secid'].unique())
         selected_ticker = st.selectbox("Выберите тикер", tickers)
         df_ticker = all_data[all_data["secid"] == selected_ticker].copy()
         df_ticker["datetime"] = pd.to_datetime(df_ticker["tradedate"].astype(str) + " " + df_ticker["tradetime"].astype(str))
@@ -957,6 +974,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
