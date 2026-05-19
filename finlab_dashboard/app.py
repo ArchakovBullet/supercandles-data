@@ -685,8 +685,23 @@ elif page == "FutOI":
                     yur_arrow = ""
                     yur_delta_str = "нет данных"
                 
+                # Расчёт Δ OI за сутки
+                oi_delta_str = ""
+                if df_d1 is not None and len(df_d1) >= 2:
+                    current_oi = abs(latest['phys_net'])
+                    # Ищем OI сутки назад
+                    latest_time = df_analytics['datetime'].max()
+                    target_time = latest_time - pd.Timedelta(hours=24)
+                    df_before = df_analytics[df_analytics['datetime'] <= target_time]
+                    if len(df_before) > 0:
+                        prev_oi = abs(df_before.iloc[-1]['phys_net'])
+                        oi_change = current_oi - prev_oi
+                        oi_change_pct = (oi_change / prev_oi * 100) if prev_oi > 0 else 0
+                        oi_arrow = "▲" if oi_change > 0 else "▼" if oi_change < 0 else "▬"
+                        oi_delta_str = f"{oi_arrow} {oi_change_pct:+.1f}% за сутки | "
+                
                 with col1:
-                    st.metric("Открытый интерес", f"{abs(latest['phys_net']):,.0f} контрактов".replace(",", " "), delta=f"Физ в лонге: {fiz_long_pct:.1f}% | Юр в шорте: {yur_short_pct:.1f}% | Δ: {diff_pct:+.1f}%")
+                    st.metric("Открытый интерес", f"{abs(latest['phys_net']):,.0f} контрактов".replace(",", " "), delta=f"{oi_delta_str}Физ в лонге: {fiz_long_pct:.1f}% | Юр в шорте: {yur_short_pct:.1f}% | Δ: {diff_pct:+.1f}%")
                 with col2:
                     st.metric("% покупателей среди физиков", f"{latest['fiz_buy_ratio']:.1f}% {fiz_arrow}", delta=fiz_delta_str)
                 with col3:
@@ -920,6 +935,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
