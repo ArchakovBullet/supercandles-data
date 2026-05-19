@@ -77,7 +77,7 @@ def load_supercandles_data():
         return None, []
     files = list(sc_path.glob("*_supercandles.parquet"))
     if not files:
-        return None, []
+        return pd.DataFrame(), []
     dfs = []
     for f in files:
         try:
@@ -957,6 +957,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
