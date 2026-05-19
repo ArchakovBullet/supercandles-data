@@ -913,10 +913,11 @@ elif page == "FutOI":
                 st.plotly_chart(fig_yur, use_container_width=True)
 elif page == "Super Candles":
     st.title("🕯️ Super Candles (D1)")
-    all_data, tickers = load_supercandles_data()
-    if all_data is None:
+    result = load_supercandles_data()
+    if result is None or result[0] is None or len(result[0]) == 0:
         st.error("Данные Super Candles не найдены")
     else:
+        all_data, tickers = result
         selected_ticker = st.selectbox("Выберите тикер", tickers)
         df_ticker = all_data[all_data["secid"] == selected_ticker].copy()
         df_ticker["datetime"] = pd.to_datetime(df_ticker["tradedate"].astype(str) + " " + df_ticker["tradetime"].astype(str))
@@ -956,6 +957,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
