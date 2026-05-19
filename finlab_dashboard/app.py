@@ -291,6 +291,18 @@ def calculate_signals(df, df_d1=None, df_ts=None, atr_info=None, hi2_info=None):
 
     # === ПРАВИЛА БЛОКИРОВКИ ===
     block_reasons = []
+    
+    # Блокировка NEUTRAL при перекупленности/перепроданности
+    if signal_type == "NEUTRAL":
+        if fiz_overheated and is_distribution:
+            signal_type = "BLOCKED_LONG"
+            block_reasons.append("Перекупленность")
+            block_reasons.append("Дистрибуция")
+        elif fiz_oversold and is_accumulation:
+            signal_type = "BLOCKED_SHORT"
+            block_reasons.append("Перепроданность")
+            block_reasons.append("Аккумуляция")
+    
     if signal_type == "LONG":
         if fiz_overheated and yur_selling:
             signal_type = "WAIT_FOR_RETRACEMENT"
@@ -935,6 +947,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
