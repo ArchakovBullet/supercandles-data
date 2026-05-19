@@ -70,7 +70,6 @@ def load_futoi_data():
     tickers = sorted(all_data['ticker'].unique())
     return all_data, tickers
 
-@st.cache_data
 def load_supercandles_data():
     sc_path = DATA_ROOT / "supercandles"
     if not sc_path.exists():
@@ -949,7 +948,7 @@ elif page == "Super Candles H4":
         files = list(h4_path.glob("*.parquet"))
         if files:
             st.success(f"Найдено {len(files)} файлов H4")
-            sample_file = files[0]
+            sample_file = sorted(files)[-1]
             df = pd.read_parquet(sample_file)
             st.subheader(f"Файл: {sample_file.name}")
             st.dataframe(df.tail(10), use_container_width=True)
@@ -957,6 +956,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
