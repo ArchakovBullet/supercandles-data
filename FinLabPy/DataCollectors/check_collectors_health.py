@@ -17,7 +17,7 @@ logger = setup_logger('collectors_health')
 
 # ========== КОНФИГ ==========
 TOKEN = "vk1.a.SlI9YR5W8dTnTYhVLlhNxXEmgDo6rImtWM1jEIpsZKb9KR8EB_x325YDm_Piu1QZffsffqKethgXWlBH3G0e_6h9DUmZEVzbCmXajTm3jW33hE1F49dUOVtjHGRLYN_5pYOnLN0ZiFpdu_DVVqPHLfShNWDBN1prFS7Yf1ec-PE75C_hhs5Mo7SANbnE_uWzA3dGP3_l3So8HfcUVW3f8A"
-GROUP_ID = 238639379
+ADMIN_PEER_ID = 497763452
 LOGS_DIR = Path('/root/finlab/logs')
 DATA_DIR = Path('/root/finlab/data')
 
@@ -91,7 +91,7 @@ def send_vk_message(message):
     url = "https://api.vk.com/method/messages.send"
     params = {
         "access_token": TOKEN,
-        "peer_id": GROUP_ID,
+        "peer_id": ADMIN_PEER_ID,
         "message": message,
         "random_id": random.randint(1, 2**31 - 1),
         "v": "5.131"
@@ -125,4 +125,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
