@@ -857,13 +857,6 @@ elif page == "FutOI":
                     if poc_price is not None:
                         fig_m10.add_hline(y=poc_price, line_dash="dot", line_color="white", line_width=1, opacity=0.5)
                     
-                    fig_m10.update_layout(
-                        title=f"M10 (последние 2 дня)",
-                        xaxis_title="Время", yaxis_title="Цена",
-                        hovermode='x unified', height=350, template='plotly_dark'
-                    )
-                    st.plotly_chart(fig_m10, use_container_width=True)
-
             st.markdown("---")
 
             # График Цена + Позиция (только для акций)
@@ -1033,6 +1026,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
