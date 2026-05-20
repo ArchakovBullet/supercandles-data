@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 import random
+import time
 
 # ========== КОНФИГ ==========
 TOKEN = "vk1.a.SlI9YR5W8dTnTYhVLlhNxXEmgDo6rImtWM1jEIpsZKb9KR8EB_x325YDm_Piu1QZffsffqKethgXWlBH3G0e_6h9DUmZEVzbCmXajTm3jW33hE1F49dUOVtjHGRLYN_5pYOnLN0ZiFpdu_DVVqPHLfShNWDBN1prFS7Yf1ec-PE75C_hhs5Mo7SANbnE_uWzA3dGP3_l3So8HfcUVW3f8A"
@@ -102,14 +103,13 @@ def get_funding_rates():
         
         lines = ["💰 Ставки фандинга:", ""]
         
-        # Берём последние записи для каждого тикера
         if 'ticker' in df.columns:
             latest = df.sort_values('timestamp' if 'timestamp' in df.columns else df.columns[0])
             latest = latest.drop_duplicates(subset=['ticker'], keep='last')
             
             for _, row in latest.iterrows():
                 ticker = row.get('ticker', '?')
-                rate = row.get('rate', row.get('funding_rate', 0))
+                rate = row.get('swaprate', 0)
                 lines.append(f"{ticker}: {rate:+.4%}" if isinstance(rate, float) else f"{ticker}: {rate}")
         else:
             lines.append(f"Данные: {df.tail(5).to_string()}")
@@ -120,38 +120,62 @@ def get_funding_rates():
 
 # ========== ОСНОВНОЙ КОД ==========
 def main():
-    vk_session = vk_api.VkApi(token=TOKEN)
-    longpoll = VkBotLongPoll(vk_session, GROUP_ID)
-    vk = vk_session.get_api()
+    connection_lost = False
     
-    print("🤖 VK Bot запущен. Ожидание команд...")
-    
-    for event in longpoll.listen():
-        if event.type == VkBotEventType.MESSAGE_NEW:
-            msg = event.object.message
-            text = msg.get('text', '').lower().strip()
-            peer_id = msg.get('peer_id')
+    while True:
+        try:
+            vk_session = vk_api.VkApi(token=TOKEN)
+            longpoll = VkBotLongPoll(vk_session, GROUP_ID)
+            vk = vk_session.get_api()
             
-            if text == '/status':
-                response = get_collectors_status()
-            elif text == '/futoi':
-                response = get_futoi_signal()
-            elif text == '/funding':
-                response = get_funding_rates()
-            elif text == '/help':
-                response = "📋 Доступные команды:\n/status — статус сборщиков\n/futoi — сигналы FutOI\n/funding — ставки фандинга"
-            else:
-                response = "Неизвестная команда. Используйте /help для списка команд."
+            print("🤖 VK Bot запущен. Ожидание команд...")
             
-            try:
-                vk.messages.send(
-                    peer_id=peer_id,
-                    message=response[:4096],  # Лимит ВК на длину сообщения
-                    random_id=random.randint(1, 2**31 - 1)
-                )
-                print(f"✅ Ответ отправлен на /{text}")
-            except Exception as e:
-                print(f"❌ Ошибка отправки: {e}")
+            # Если связь восстановлена после обрыва — уведомляем
+            if connection_lost:
+                try:
+                    vk.messages.send(
+                        peer_id=238639379,
+                        message="✅ Связь с сервером VK восстановлена. Бот работает.",
+                        random_id=random.randint(1, 2**31 - 1)
+                    )
+                except:
+                    pass
+                connection_lost = False
+            
+            for event in longpoll.listen():
+                if event.type == VkBotEventType.MESSAGE_NEW:
+                    msg = event.object.message
+                    text = msg.get('text', '').lower().strip()
+                    peer_id = msg.get('peer_id')
+                    
+                    if str(peer_id) == str(GROUP_ID):
+                        continue
+                    
+                    if text in ['status', '/status']:
+                        response = get_collectors_status()
+                    elif text in ['futoi', '/futoi']:
+                        response = get_futoi_signal()
+                    elif text in ['funding', '/funding']:
+                        response = get_funding_rates()
+                    elif text in ['help', '/help']:
+                        response = "📋 Доступные команды:\nstatus — статус сборщиков\nfutoi — сигналы FutOI\nfunding — ставки фандинга"
+                    else:
+                        response = "Неизвестная команда. Используйте help для списка команд."
+                    
+                    try:
+                        vk.messages.send(
+                            peer_id=peer_id,
+                            message=response[:4096],
+                            random_id=random.randint(1, 2**31 - 1)
+                        )
+                        print(f"✅ Ответ отправлен на /{text}")
+                    except Exception as e:
+                        print(f"❌ Ошибка отправки: {e}")
+        
+        except Exception as e:
+            print(f"❌ Ошибка соединения: {e}")
+            connection_lost = True
+            time.sleep(30)
 
 if __name__ == '__main__':
     main()
