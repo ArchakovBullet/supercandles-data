@@ -806,8 +806,34 @@ elif page == "FutOI":
                         hovermode='x unified', height=350, template='plotly_dark'
                     )
                     st.plotly_chart(fig_d1, use_container_width=True)
-                
-                # Внутридневной график (M10)
+                    
+                    # Внутридневной график (M10) — в той же колонке
+                    if df_m10 is not None:
+                        df_m10['begin'] = pd.to_datetime(df_m10['begin'])
+                        df_m10 = df_m10.sort_values('begin')
+                        cutoff = df_m10['begin'].max() - pd.Timedelta(days=2)
+                        df_m10_recent = df_m10[df_m10['begin'] >= cutoff]
+                        
+                        fig_m10 = go.Figure()
+                        fig_m10.add_trace(go.Candlestick(
+                            x=df_m10_recent['begin'], open=df_m10_recent['open'],
+                            high=df_m10_recent['high'], low=df_m10_recent['low'],
+                            close=df_m10_recent['close'], name='M10'
+                        ))
+                        
+                        if high_20 is not None:
+                            fig_m10.add_hline(y=high_20, line_dash="dash", line_color="red", line_width=1, opacity=0.5)
+                        if low_20 is not None:
+                            fig_m10.add_hline(y=low_20, line_dash="dash", line_color="green", line_width=1, opacity=0.5)
+                        if poc_price is not None:
+                            fig_m10.add_hline(y=poc_price, line_dash="dot", line_color="white", line_width=1, opacity=0.5)
+                        
+                        fig_m10.update_layout(
+                            title=f"M10 (последние 2 дня)",
+                            xaxis_title="Время", yaxis_title="Цена",
+                            hovermode='x unified', height=350, template='plotly_dark'
+                        )
+                        st.plotly_chart(fig_m10, use_container_width=True)
                 if df_m10 is not None:
                     st.subheader(f"📈 {selected_ticker} (M10)")
                     df_m10['begin'] = pd.to_datetime(df_m10['begin'])
@@ -1007,6 +1033,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
