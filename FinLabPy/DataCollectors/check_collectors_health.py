@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime
 import random
 
-project_root = Path('/root/finlab/FinLabPy')
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from FinLabPy.Utils import setup_logger
@@ -125,3 +125,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
