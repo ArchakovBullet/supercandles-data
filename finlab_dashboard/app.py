@@ -620,6 +620,8 @@ elif page == "FutOI":
         else:
             candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
             df_d1 = pd.read_parquet(candle_file) if candle_file.exists() else None
+            intraday_file = DATA_ROOT / "candles" / f"{selected_ticker}_M10.parquet"
+            df_m10 = pd.read_parquet(intraday_file) if intraday_file.exists() else None
             tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
             df_ts = pd.read_parquet(tradestats_file) if tradestats_file.exists() else None
             atr_info, _ = calculate_atr(df_d1) if df_d1 is not None else (None, None)
@@ -799,11 +801,42 @@ elif page == "FutOI":
                         fig_d1.add_hline(y=poc_price, line_dash="dot", line_color="white", line_width=2, annotation_text="POC")
 
                     fig_d1.update_layout(
-                        title=f"{selected_ticker} с уровнями",
+                        title=f"D1 с уровнями",
                         xaxis_title="Дата", yaxis_title="Цена",
-                        hovermode='x unified', height=500, template='plotly_dark'
+                        hovermode='x unified', height=350, template='plotly_dark'
                     )
                     st.plotly_chart(fig_d1, use_container_width=True)
+                
+                # Внутридневной график (M10)
+                if df_m10 is not None:
+                    st.subheader(f"📈 {selected_ticker} (M10)")
+                    df_m10['begin'] = pd.to_datetime(df_m10['begin'])
+                    df_m10 = df_m10.sort_values('begin')
+                    # Показываем последние 2 дня для читаемости
+                    cutoff = df_m10['begin'].max() - pd.Timedelta(days=2)
+                    df_m10_recent = df_m10[df_m10['begin'] >= cutoff]
+                    
+                    fig_m10 = go.Figure()
+                    fig_m10.add_trace(go.Candlestick(
+                        x=df_m10_recent['begin'], open=df_m10_recent['open'],
+                        high=df_m10_recent['high'], low=df_m10_recent['low'],
+                        close=df_m10_recent['close'], name='M10'
+                    ))
+                    
+                    # Уровни с D1 на M10
+                    if high_20 is not None:
+                        fig_m10.add_hline(y=high_20, line_dash="dash", line_color="red", line_width=1, opacity=0.5)
+                    if low_20 is not None:
+                        fig_m10.add_hline(y=low_20, line_dash="dash", line_color="green", line_width=1, opacity=0.5)
+                    if poc_price is not None:
+                        fig_m10.add_hline(y=poc_price, line_dash="dot", line_color="white", line_width=1, opacity=0.5)
+                    
+                    fig_m10.update_layout(
+                        title=f"M10 (последние 2 дня)",
+                        xaxis_title="Время", yaxis_title="Цена",
+                        hovermode='x unified', height=350, template='plotly_dark'
+                    )
+                    st.plotly_chart(fig_m10, use_container_width=True)
 
             st.markdown("---")
 
@@ -974,6 +1007,7 @@ elif page == "Super Candles H4":
             st.warning("Файлы H4 не найдены")
     else:
         st.error(f"Папка {h4_path} не существует")
+
 
 
 
