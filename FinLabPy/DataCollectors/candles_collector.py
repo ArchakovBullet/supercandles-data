@@ -78,7 +78,7 @@ def main():
             if file_path.exists():
                 existing = pd.read_parquet(file_path)
                 if not existing.empty:
-                    dt_from = existing['begin'].max() + timedelta(minutes=1)
+                    dt_from = pd.to_datetime(existing['begin'].max()) + timedelta(minutes=1)
                 else:
                     dt_from = datetime.now() - timedelta(days=365)
             else:
@@ -138,4 +138,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
