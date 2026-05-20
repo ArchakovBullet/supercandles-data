@@ -108,12 +108,51 @@ def send_vk_message(message):
     except:
         pass
 
+def check_memory():
+    """Проверяет использование памяти и диска"""
+    import psutil
+    warnings = []
+    
+    # RAM
+    ram = psutil.virtual_memory()
+    ram_pct = ram.percent
+    ram_used_gb = ram.used / (1024**3)
+    ram_total_gb = ram.total / (1024**3)
+    
+    # Диск
+    disk = psutil.disk_usage('/')
+    disk_pct = disk.percent
+    disk_free_gb = disk.free / (1024**3)
+    
+    print(f"RAM: {ram_pct:.1f}% ({ram_used_gb:.1f}/{ram_total_gb:.1f} GB)")
+    print(f"Диск: {disk_pct:.1f}% (свободно {disk_free_gb:.1f} GB)")
+    
+    if ram_pct > 85:
+        warnings.append(f"🔴 RAM перегружена: {ram_pct:.1f}%")
+    elif ram_pct > 75:
+        warnings.append(f"🟡 RAM высокая: {ram_pct:.1f}%")
+    
+    if disk_pct > 85:
+        warnings.append(f"🔴 Диск заполнен: {disk_pct:.1f}%")
+    elif disk_pct > 75:
+        warnings.append(f"🟡 Диск заполнен: {disk_pct:.1f}%")
+    
+    return warnings
+
 def main():
     print("=" * 60)
     print(f"ПРОВЕРКА ЗДОРОВЬЯ СБОРЩИКОВ | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
     
     problems = []
+    
+    # Проверяем память
+    print("")
+    print("--- ПАМЯТЬ ---")
+    mem_warnings = check_memory()
+    if mem_warnings:
+        problems.extend(mem_warnings)
+    print("")
     
     for name, config in COLLECTORS.items():
         ok, msg = check_collector(name, config)
@@ -132,6 +171,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
