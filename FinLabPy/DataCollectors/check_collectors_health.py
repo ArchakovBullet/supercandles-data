@@ -61,31 +61,36 @@ COLLECTORS = {
 }
 
 def check_collector(name, config):
-    """Проверяет, отработал ли сборщик за сегодня (или за вчера для вечерних)"""
+    """Проверяет, отработал ли сборщик: смотрит дату изменения файлов данных"""
     from datetime import timedelta
-    today = datetime.now().strftime('%Y-%m-%d')
-    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-    log_file = LOGS_DIR / config['log_pattern']
+    today = datetime.now().date()
+    yesterday = today - timedelta(days=1)
     
-    if not log_file.exists():
-        return False, "лог-файл не найден"
-    
-    # Проверяем, есть ли записи за сегодня ИЛИ за вчера
-    with open(log_file, 'r') as f:
-        log_content = f.read()
-        if today not in log_content and yesterday not in log_content:
-            return False, f"нет записей за {today} и {yesterday}"
-    
-    # Проверяем, есть ли данные
     data_path = config['data_path']
+    
+    # Получаем самую свежую дату изменения файла
+    latest_mtime = None
     if data_path.is_dir():
         files = list(data_path.glob("*.parquet"))
-        if not files:
+        if files:
+            latest_mtime = max(f.stat().st_mtime for f in files)
+        else:
             return False, "нет файлов данных"
-    elif not data_path.exists():
+    elif data_path.exists():
+        latest_mtime = data_path.stat().st_mtime
+    else:
         return False, "файл данных не найден"
     
-    return True, "OK"
+    if latest_mtime is None:
+        return False, "не удалось определить дату"
+    
+    latest_date = datetime.fromtimestamp(latest_mtime).date()
+    
+    # Проверяем, что данные обновлены сегодня или вчера
+    if latest_date >= yesterday:
+        return True, f"OK (последнее обновление: {latest_date})"
+    else:
+        return False, f"нет обновлений с {latest_date} (сегодня: {today}, вчера: {yesterday})"
 
 def send_vk_message(message):
     """Отправляет сообщение в VK"""
@@ -127,6 +132,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
