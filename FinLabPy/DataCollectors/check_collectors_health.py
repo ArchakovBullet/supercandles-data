@@ -61,18 +61,20 @@ COLLECTORS = {
 }
 
 def check_collector(name, config):
-    """Проверяет, отработал ли сборщик за сегодня"""
+    """Проверяет, отработал ли сборщик за сегодня (или за вчера для вечерних)"""
+    from datetime import timedelta
     today = datetime.now().strftime('%Y-%m-%d')
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
     log_file = LOGS_DIR / config['log_pattern']
     
     if not log_file.exists():
         return False, "лог-файл не найден"
     
-    # Проверяем, есть ли записи за сегодня
+    # Проверяем, есть ли записи за сегодня ИЛИ за вчера
     with open(log_file, 'r') as f:
-        content = f.read()
-        if today not in content:
-            return False, f"нет записей за сегодня ({today})"
+        log_content = f.read()
+        if today not in log_content and yesterday not in log_content:
+            return False, f"нет записей за {today} и {yesterday}"
     
     # Проверяем, есть ли данные
     data_path = config['data_path']
@@ -125,5 +127,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
