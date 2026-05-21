@@ -28,19 +28,20 @@ def load_data():
     tf = api.timeframe_to_moex_timeframe(TIMEFRAME)
     print(f"   Загрузка {TICKER} {TIMEFRAME} за {DAYS} дней...")
     data = api.get_candles('RFUD', TICKER, dt_from, dt_till, tf)
-    
-    candles_data = data['candles']['data']
-    candles_columns = data['candles']['columns']
-    
-    if candles_data is None or len(candles_data) == 0:
-        raise ValueError(f"Нет данных для {TICKER}")
-    
-    print(f"   Баров: {len(candles_data)}")
-    
-    df = pd.DataFrame(candles_data, columns=candles_columns)
-    df['datetime'] = pd.to_datetime(df['begin'])
+    col_idx = {col: idx for idx, col in enumerate(data['candles']['columns'])}
+    candles = []
+    for row in data['candles']['data']:
+        candles.append({
+            'datetime': pd.to_datetime(row[col_idx['begin']]),
+            'open': float(row[col_idx['open']]),
+            'high': float(row[col_idx['high']]),
+            'low': float(row[col_idx['low']]),
+            'close': float(row[col_idx['close']]),
+            'volume': int(row[col_idx['volume']])
+        })
+    df = pd.DataFrame(candles).sort_values('datetime')
+    print(f"   Баров: {len(df)}")
     df.set_index('datetime', inplace=True)
-    
     data_feed = bt.feeds.PandasData(dataname=df)
     return data_feed
 
@@ -143,5 +144,6 @@ if __name__ == '__main__':
     
     if PLOT:
         cerebro.plot(style='candlestick', barup='green', bardown='red', volume=False)
+
 
 
