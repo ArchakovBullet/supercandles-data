@@ -27,19 +27,22 @@ def load_data():
     dt_from = dt_till - timedelta(days=DAYS)
     tf = api.timeframe_to_moex_timeframe(TIMEFRAME)
     print(f"   Загрузка {TICKER} {TIMEFRAME} за {DAYS} дней...")
-    candles = api.get_candles('RFUD', TICKER, dt_from, dt_till, tf)
+    data = api.get_candles('RFUD', TICKER, dt_from, dt_till, tf)
     
-    if candles is None or len(candles) == 0:
+    candles_data = data['candles']['data']
+    candles_columns = data['candles']['columns']
+    
+    if candles_data is None or len(candles_data) == 0:
         raise ValueError(f"Нет данных для {TICKER}")
     
-    print(f"   Баров: {len(candles)}")
+    print(f"   Баров: {len(candles_data)}")
     
-    df = pd.DataFrame(candles)
-    df['datetime'] = pd.to_datetime(df['datetime'])
+    df = pd.DataFrame(candles_data, columns=candles_columns)
+    df['datetime'] = pd.to_datetime(df['begin'])
     df.set_index('datetime', inplace=True)
     
-    data = bt.feeds.PandasData(dataname=df)
-    return data
+    data_feed = bt.feeds.PandasData(dataname=df)
+    return data_feed
 
 
 class FutOIStrategyML(bt.Strategy):
@@ -140,3 +143,4 @@ if __name__ == '__main__':
     
     if PLOT:
         cerebro.plot(style='candlestick', barup='green', bardown='red', volume=False)
+
