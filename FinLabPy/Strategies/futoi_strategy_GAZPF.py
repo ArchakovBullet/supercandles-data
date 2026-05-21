@@ -54,7 +54,7 @@ class FutOIStrategyML(bt.Strategy):
     def __init__(self):
         self.futoi = FutOIIndicator()
         self.signal = FutOISignal(self.futoi)
-        self.ml_filter = FutOIMLFilter(self.data, self.futoi, min_confidence=self.params.ml_confidence)
+        self.ml_filter = FutOIMLFilter()
         self.order = None
         self.trades_log = []
         self.bar_count = 0
@@ -143,4 +143,5 @@ if __name__ == '__main__':
     
     if PLOT:
         cerebro.plot(style='candlestick', barup='green', bardown='red', volume=False)
+
 
