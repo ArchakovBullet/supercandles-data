@@ -22,7 +22,9 @@ def get_collectors_status():
         "HI2": DATA_ROOT / "hi2",
         "Funding": DATA_ROOT / "funding" / "funding.parquet",
         "Super Candles": DATA_ROOT / "supercandles",
-        "Super Candles H4": DATA_ROOT / "supercandles_h4"
+        "Super Candles H4": DATA_ROOT / "supercandles_h4",
+        "TradeStats": DATA_ROOT / "tradestats",
+        "Candles": DATA_ROOT / "candles"
     }
     
     for name, path in collectors.items():
