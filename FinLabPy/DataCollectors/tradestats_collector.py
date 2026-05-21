@@ -45,7 +45,10 @@ def collect_tradestats(ticker, board):
             return 0
         
         # Преобразуем в DataFrame
-        df = pd.DataFrame(result['data'])
+        if isinstance(result['data'], dict) and 'data' in result['data']:
+            df = pd.DataFrame(result['data']['data'], columns=result['data']['columns'])
+        else:
+            df = pd.DataFrame(result['data'])
         
         if df.empty:
             print("пустой ответ")
