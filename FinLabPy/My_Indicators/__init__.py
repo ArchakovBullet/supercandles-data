@@ -13,3 +13,4 @@ __all__ = [
     'ForceIndex'
 ]
 from .short_signal import ShortSignalAnalyzer
+from .short_signal import ShortSignalAnalyzer
