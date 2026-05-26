@@ -12,3 +12,4 @@ __all__ = [
     'FutOIIndicator', 'FutOISignal', 'FutOIMLFilter',
     'ForceIndex'
 ]
+from .short_signal import ShortSignalAnalyzer
