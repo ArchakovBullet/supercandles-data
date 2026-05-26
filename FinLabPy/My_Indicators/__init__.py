@@ -15,3 +15,4 @@ __all__ = [
 from .short_signal import ShortSignalAnalyzer
 from .short_signal import ShortSignalAnalyzer
 from .short_signal import ShortSignalAnalyzer
+from .short_signal import ShortSignalAnalyzer
