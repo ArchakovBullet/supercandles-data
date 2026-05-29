@@ -17,3 +17,5 @@ from .short_signal import ShortSignalAnalyzer
 from .short_signal import ShortSignalAnalyzer
 from .short_signal import ShortSignalAnalyzer
 from .short_signal import ShortSignalAnalyzer
+from .garch_indicator import GARCHIndicator, calculate_garch_for_ticker
+
