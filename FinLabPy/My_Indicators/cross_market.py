@@ -42,6 +42,10 @@ class CrossMarketAnalyzer:
         if df1 is None or df2 is None or len(df1) < days or len(df2) < days:
             return 0
         
+        df1['begin'] = pd.to_datetime(df1['begin'])
+        df2['begin'] = pd.to_datetime(df2['begin'])
+        df1['begin'] = pd.to_datetime(df1['begin'])
+        df2['begin'] = pd.to_datetime(df2['begin'])
         common_dates = set(df1['begin'].dt.date) & set(df2['begin'].dt.date)
         if len(common_dates) < days:
             return 0
@@ -60,6 +64,10 @@ class CrossMarketAnalyzer:
         if df1 is None or df2 is None:
             return {'zscore': 0, 'direction': '—', 'width_pct': 0}
         
+        df1['begin'] = pd.to_datetime(df1['begin'])
+        df2['begin'] = pd.to_datetime(df2['begin'])
+        df1['begin'] = pd.to_datetime(df1['begin'])
+        df2['begin'] = pd.to_datetime(df2['begin'])
         common_dates = set(df1['begin'].dt.date) & set(df2['begin'].dt.date)
         if len(common_dates) < days:
             return {'zscore': 0, 'direction': '—', 'width_pct': 0}
