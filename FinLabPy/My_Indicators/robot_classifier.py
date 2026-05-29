@@ -107,7 +107,7 @@ class RobotClassifier:
             inst_score += 30
         
         if inst_score >= 50:
-            action = 'продают' if jur_net > 0 else 'покупают'
+            action = 'продают' if jur_net > 20 else ('покупают' if jur_net < -20 else 'накапливают позицию')
             result['institutional'] = {
                 'active': True,
                 'score': inst_score,
