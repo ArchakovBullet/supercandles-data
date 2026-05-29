@@ -23,3 +23,5 @@ from .market_aggression import MarketAggression, calculate_aggression_for_ticker
 
 from .robot_classifier import RobotClassifier, classify_market
 
+from .cross_market import CrossMarketAnalyzer, analyze_cross_market
+
