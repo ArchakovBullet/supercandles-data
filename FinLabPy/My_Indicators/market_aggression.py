@@ -113,8 +113,8 @@ class MarketAggression:
             return {'score': 50, 'level': 'Нет данных', 'direction': '—', 'interpretation': 'Нет данных'}
         
         # Суммируем объёмы
-        buy_vol = tradestats_df.get('buy_volume', pd.Series([0])).sum()
-        sell_vol = tradestats_df.get('sell_volume', pd.Series([0])).sum()
+        buy_vol = tradestats_df.get('vol_b', pd.Series([0])).sum()
+        sell_vol = tradestats_df.get('vol_s', pd.Series([0])).sum()
         total_vol = buy_vol + sell_vol
         
         return self.calculate_aggression_score(buy_vol, sell_vol, total_vol, price_change_pct, hi2)
