@@ -1,22 +1,25 @@
-﻿import vk_api
+import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import random
 import time
+import threading
 
 # ========== КОНФИГ ==========
 TOKEN = "vk1.a.SlI9YR5W8dTnTYhVLlhNxXEmgDo6rImtWM1jEIpsZKb9KR8EB_x325YDm_Piu1QZffsffqKethgXWlBH3G0e_6h9DUmZEVzbCmXajTm3jW33hE1F49dUOVtjHGRLYN_5pYOnLN0ZiFpdu_DVVqPHLfShNWDBN1prFS7Yf1ec-PE75C_hhs5Mo7SANbnE_uWzA3dGP3_l3So8HfcUVW3f8A"
 GROUP_ID = 238639379
 DATA_ROOT = Path("/root/finlab/data")
+STATE_FILE = Path("/root/finlab/logs/trend_state.json")
+
+TICKERS = ["CNYRUBF", "GAZPF", "GLDRUBF", "IMOEXF", "SBERF"]
+MAX_CHAT_MESSAGES = 5  # Автоочистка при >5 сообщений
 
 # ========== ФУНКЦИИ ДАННЫХ ==========
 def get_collectors_status():
-    """Статус всех сборщиков"""
     status_lines = ["📊 Статус сборщиков:", ""]
-    
     collectors = {
         "FutOI": DATA_ROOT / "futoi",
         "HI2": DATA_ROOT / "hi2",
@@ -26,7 +29,6 @@ def get_collectors_status():
         "TradeStats": DATA_ROOT / "tradestats",
         "Candles": DATA_ROOT / "candles"
     }
-    
     for name, path in collectors.items():
         if path.exists():
             if path.is_dir():
@@ -46,113 +48,195 @@ def get_collectors_status():
                     status_lines.append(f"⚠️ {name}: файл пуст")
         else:
             status_lines.append(f"❌ {name}: путь не найден")
-    
     return "\n".join(status_lines)
 
 def get_futoi_signal():
-    """Текущий сигнал FutOI по всем тикерам"""
     futoi_path = DATA_ROOT / "futoi"
     if not futoi_path.exists():
         return "❌ Данные FutOI не найдены"
-    
     files = list(futoi_path.glob("*_futoi.parquet"))
     if not files:
         return "❌ Нет файлов FutOI"
-    
     lines = ["📈 FutOI — чистая позиция физиков:", ""]
-    
     for f in sorted(files):
         ticker = f.stem.replace("_futoi", "")
         try:
             df = pd.read_parquet(f)
             df_fiz = df[df['clgroup'] == 'FIZ'].copy()
-            
             if df_fiz.empty:
-                lines.append(f"{ticker}: нет данных по физикам")
+                lines.append(f"{ticker}: нет данных")
                 continue
-            
-            df_fiz['datetime'] = pd.to_datetime(
-                df_fiz['tradedate'].astype(str) + ' ' + df_fiz['tradetime'].astype(str)
-            )
+            df_fiz['datetime'] = pd.to_datetime(df_fiz['tradedate'].astype(str) + ' ' + df_fiz['tradetime'].astype(str))
             df_fiz = df_fiz.sort_values(['datetime', 'seqnum'])
             df_agg = df_fiz.groupby('datetime').last().reset_index()
-            
             if len(df_agg) >= 2:
                 latest = df_agg.iloc[-1]
                 prev = df_agg.iloc[-2]
                 delta = latest['pos'] - prev['pos']
                 signal = "🟢" if latest['pos'] > 0 else "🔴"
-                lines.append(
-                    f"{signal} {ticker}: {latest['pos']:+,.0f} "
-                    f"(Δ {delta:+,.0f}) | L:{latest['pos_long']:,.0f} S:{latest['pos_short']:,.0f}"
-                    .replace(",", " ")
-                )
+                lines.append(f"{signal} {ticker}: {latest['pos']:+,.0f} (Δ {delta:+,.0f})".replace(",", " "))
         except Exception as e:
             lines.append(f"⚠️ {ticker}: ошибка чтения")
-    
     return "\n".join(lines)
 
 def get_funding_rates():
-    """Текущие ставки фандинга"""
     funding_path = DATA_ROOT / "funding" / "funding.parquet"
     if not funding_path.exists():
         return "❌ Данные фандинга не найдены"
-    
     try:
         df = pd.read_parquet(funding_path)
         if df.empty:
             return "❌ Нет данных фандинга"
-        
         lines = ["💰 Ставки фандинга:", ""]
-        
         if 'ticker' in df.columns:
             latest = df.sort_values('timestamp' if 'timestamp' in df.columns else df.columns[0])
             latest = latest.drop_duplicates(subset=['ticker'], keep='last')
-            
             for _, row in latest.iterrows():
                 ticker = row.get('ticker', '?')
                 rate = row.get('swaprate', 0)
                 lines.append(f"{ticker}: {rate:+.4%}" if isinstance(rate, float) else f"{ticker}: {rate}")
         else:
             lines.append(f"Данные: {df.tail(5).to_string()}")
-        
         return "\n".join(lines)
     except Exception as e:
         return f"❌ Ошибка чтения фандинга: {e}"
 
+def get_trend_for_ticker(ticker):
+    """Определяет текущий тренд тикера: LONG/SHORT/NEUTRAL"""
+    try:
+        f = DATA_ROOT / "futoi" / f"{ticker}_futoi.parquet"
+        if not f.exists():
+            return None
+        df = pd.read_parquet(f)
+        df_fiz = df[df['clgroup'] == 'FIZ'].copy()
+        if df_fiz.empty:
+            return None
+        df_fiz['datetime'] = pd.to_datetime(df_fiz['tradedate'].astype(str) + ' ' + df_fiz['tradetime'].astype(str))
+        df_fiz = df_fiz.sort_values(['datetime', 'seqnum'])
+        df_agg = df_fiz.groupby('datetime').last().reset_index()
+        if len(df_agg) < 2:
+            return None
+        latest = df_agg.iloc[-1]
+        prev = df_agg.iloc[-2]
+        delta = latest['pos'] - prev['pos']
+        # Определяем тренд
+        if latest['pos'] > 0 and delta > 0:
+            return "LONG"
+        elif latest['pos'] < 0 and delta < 0:
+            return "SHORT"
+        else:
+            return "NEUTRAL"
+    except:
+        return None
+
+def load_state():
+    """Загружает предыдущее состояние трендов"""
+    if STATE_FILE.exists():
+        with open(STATE_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_state(state):
+    """Сохраняет состояние трендов"""
+    with open(STATE_FILE, 'w') as f:
+        json.dump(state, f)
+
+def auto_cleanup(vk, peer_id):
+    """Удаляет старые сообщения, оставляя последние MAX_CHAT_MESSAGES"""
+    try:
+        history = vk.messages.getHistory(peer_id=peer_id, count=20)
+        messages = history.get('items', [])
+        # Оставляем последние MAX_CHAT_MESSAGES, удаляем остальные
+        if len(messages) > MAX_CHAT_MESSAGES:
+            for msg in messages[MAX_CHAT_MESSAGES:]:
+                try:
+                    vk.messages.delete(message_id=msg['id'], delete_for_all=1)
+                except:
+                    pass
+    except:
+        pass
+
+def check_trend_changes(vk):
+    """Проверяет смену трендов и отправляет уведомления"""
+    prev_state = load_state()
+    changes = []
+    
+    for ticker in TICKERS:
+        current_trend = get_trend_for_ticker(ticker)
+        if current_trend is None:
+            continue
+        
+        prev_trend = prev_state.get(ticker)
+        prev_state[ticker] = current_trend
+        
+        if prev_trend and prev_trend != current_trend:
+            emoji = "🟢" if current_trend == "LONG" else ("🔴" if current_trend == "SHORT" else "⚪")
+            changes.append(f"{emoji} {ticker}: {prev_trend} → {current_trend}")
+    
+    save_state(prev_state)
+    
+    if changes:
+        msg = "🔄 Смена тренда:\n" + "\n".join(changes)
+        try:
+            vk.messages.send(
+                peer_id=GROUP_ID,
+                message=msg,
+                random_id=random.randint(1, 2**31 - 1)
+            )
+            print(f"📤 Уведомление о смене тренда: {len(changes)} тикеров")
+            auto_cleanup(vk, GROUP_ID)
+        except Exception as e:
+            print(f"❌ Ошибка отправки уведомления: {e}")
+
+def trend_monitor(vk):
+    """Фоновый мониторинг трендов (каждые 10 минут)"""
+    while True:
+        try:
+            check_trend_changes(vk)
+        except Exception as e:
+            print(f"❌ Ошибка мониторинга трендов: {e}")
+        time.sleep(600)  # Каждые 10 минут
+
 # ========== ОСНОВНОЙ КОД ==========
 def main():
     connection_lost = False
-    
+    monitor_started = False
+
     while True:
         try:
             vk_session = vk_api.VkApi(token=TOKEN)
             longpoll = VkBotLongPoll(vk_session, GROUP_ID)
             vk = vk_session.get_api()
-            
+
             print("🤖 VK Bot запущен. Ожидание команд...")
-            
-            # Если связь восстановлена после обрыва — уведомляем
+
+            # Запускаем фоновый мониторинг трендов (один раз)
+            if not monitor_started:
+                monitor_thread = threading.Thread(target=trend_monitor, args=(vk,), daemon=True)
+                monitor_thread.start()
+                monitor_started = True
+                print("📡 Мониторинг трендов запущен (каждые 10 мин)")
+
             if connection_lost:
                 try:
                     vk.messages.send(
-                        peer_id=238639379,
+                        peer_id=GROUP_ID,
                         message="✅ Связь с сервером VK восстановлена. Бот работает.",
                         random_id=random.randint(1, 2**31 - 1)
                     )
                 except:
                     pass
                 connection_lost = False
-            
+
             for event in longpoll.listen():
                 if event.type == VkBotEventType.MESSAGE_NEW:
                     msg = event.object.message
                     text = msg.get('text', '').lower().strip()
                     peer_id = msg.get('peer_id')
-                    
+
                     if str(peer_id) == str(GROUP_ID):
                         continue
-                    
+
                     if text in ['status', '/status']:
                         response = get_collectors_status()
                     elif text in ['futoi', '/futoi']:
@@ -163,7 +247,7 @@ def main():
                         response = "📋 Доступные команды:\nstatus — статус сборщиков\nfutoi — сигналы FutOI\nfunding — ставки фандинга"
                     else:
                         response = "Неизвестная команда. Используйте help для списка команд."
-                    
+
                     try:
                         vk.messages.send(
                             peer_id=peer_id,
@@ -173,7 +257,7 @@ def main():
                         print(f"✅ Ответ отправлен на /{text}")
                     except Exception as e:
                         print(f"❌ Ошибка отправки: {e}")
-        
+
         except Exception as e:
             print(f"❌ Ошибка соединения: {e}")
             connection_lost = True
