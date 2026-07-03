@@ -1,53 +1,96 @@
-﻿# 📋 ДНЕВНИК РАЗРАБОТКИ FinLabPy
+# 📋 ПАСПОРТ FinLabPy — ДЛЯ AI-АССИСТЕНТА
 
-## 📅 Последнее обновление: 24.05.2026
+## 📅 Актуально на: 02.07.2026
 
 ---
 
-## 🗂️ НАВИГАЦИЯ
+## 🔗 ДОСТУПЫ
 
-| Дата | Файл | Ключевые события |
-|------|------|--------------------------------------------------|
-| 07.05 | WORK_LOG_2026-05-07.md | Проверка FutOI, начало акций, конвертер M10→D1 |
-| 08.05 | WORK_LOG_2026-05-08.md | HI2 сборщик, OsEngine данные, HMM прорыв |
-| 10.05 | WORK_LOG_2026-05-10.md | Валидация HMM, стоп-лоссы, FutOI стратегия |
-| 12.05 | WORK_LOG_2026-05-12.md | Дашборд v0.2 и VK бот |
-| 13.05 | WORK_LOG_2026-05-13_plan.md | План доработки FutOI — новые метрики и сигналы |
-| 14.05 | WORK_LOG_2026-05-14.md | Итоги дня + Треугольник |
-| 15.05 | WORK_LOG_2026-05-15.md | TradeStats, Volume Profile, Вердикт v3.2 |
-| 16.05 | WORK_LOG_2026-05-16.md | Уведомления VK-бота о смене тренда |
-| 16.05 | WORK_LOG_2026-05-16_audit.md | Аудит трейдера — 3 критических улучшения |
-| 16.05 | WORK_LOG_2026-05-16_continue.md | Continue + DeepSeek API |
-| 17.05 | WORK_LOG_2026-05-17_plan.md | Единый приоритетный план — 17 задач |
-| 17.05 | WORK_LOG_2026-05-17_triangle.md | Tampermonkey и Continue |
-| 19.05 | WORK_LOG_2026-05-19.md | Итоги дня + план на 20.05 |
-| 19.05 | WORK_LOG_2026-05-19_plan.md | 6 новых задач, приоритеты |
-| 20.05 | WORK_LOG_2026-05-20.md | Фандинг и корреляции при анализе активов |
-| 20.05 | WORK_LOG_2026-05-20_plan.md | 3 новые задачи + приоритеты |
-| 21.05 | WORK_LOG_2026-05-21.md | FMFS-скоринг и Zweig Filter |
+- **Локально:** E:\Python\FinLabProject (Windows, Python 3.12, venv)
+- **Сервер:** root@159.194.219.117 (Ubuntu 24.04, Python 3.12, venv: /root/finlab/venv)
+- **VS Code Server:** http://159.194.219.117:8080
+- **Токены:** MOEX_TOKEN, TINVEST_TOKEN, ALOR_TOKEN
+
 ---
 
-## 📊 ТЕКУЩИЙ СТАТУС ПРОЕКТА
+## 🚨 ПРАВИЛА РАБОТЫ (ИЗ RULES.MD)
+
+- **Обращение:** Напарник
+- **Язык:** весь код, комментарии, документация — строго на РУССКОМ
+- **Данные:** polars основная библиотека, pandas только для backtrader
+- **Логирование:** FinLabPy.Utils.setup_logger
+- **Новый сборщик:** код + cron + check_collectors_health.py + vk_bot.py + запись в дневник
+- **Код:** все изменения локально через PowerShell, сервер только pull и диагностика
+
+---
+
+## 🚨 GIT WORKFLOW
+
+- **Код (FinLabPy):** локально -> git push -> сервер git pull
+- **Дашборд (finlab-dashboard):** только на сервере /root/finlab/finlab_dashboard/app_v2.py
+- **Дневник (finlab-diary):** локально -> git push из E:\Python\FinLabProjectinlab-diary
+- **ЗАПРЕЩЕНО:** редактировать код на сервере
+- **Рассинхрон:** git fetch origin master && git reset --hard origin/master
+
+---
+
+## 📦 API MOEXPy (Algopack)
+
+Фьючерсы:
+  candles = api.get_candles('RFUD', 'GLDRUBF', dt_from, dt_till, tf)
+  futoi = api.get_futoi('GLDRUBF', dt_from, dt_till)
+
+Акции:
+  candles = api.get_candles('TQBR', 'SBER', dt_from, dt_till, 'D')
+  trades = api.get_trades('TQBR', 'SBER', tradeno=None)
+  hi2 = api.get_hi2('stocks', 'SBER', date)
+
+Вечные фьючерсы: GLDRUBF, IMOEXF, SBERF, GAZPF, CNYRUBF, USDRUBF, EURRUBF
+Срочные фьючерсы (короткий -> полный): BR->BRN6, SI->SIM6, GD->GDU6, RI->RIU6, MX->MXU6, ED->EDU6
+
+---
+
+## ⚠️ КРИТИЧЕСКИЕ ОСОБЕННОСТИ
+
+- FutOI: pos_short с минусом -> abs(), clgroup='FIZ'/'YUR', API отдаёт 3-4 дня
+- Свечи акций: MOEX отдаёт только M10, нет D1
+- HI2: engine='stocks' (не 'stock'!)
+
+---
+
+## 📁 СТРУКТУРА ПРОЕКТА (сервер)
+
+/root/finlab/
+  FinLabPy/
+    DataCollectors/    # Сборщики (cron)
+    My_Indicators/     # Индикаторы
+    Strategies/        # Стратегии
+    Utils/             # Утилиты
+  finlab_dashboard/
+    app_v2.py          # Дашборд
+  data/                # Parquet-хранилище
+  RULES.md             # Правила для AI-ассистента
+  vk_bot.py            # VK-бот
+
+---
+
+## 📊 ТЕКУЩИЙ СТАТУС (02.07.2026)
 
 ### Что работает:
+- FutOI сборщик — вечные фьючерсы, cron каждый час
+- HI2, Super Candles, Funding, TradeStats сборщики
+- Дашборд v3.2: сканер, MegaAlerts, Zweig Filter, TRIN, HPI
 
-  * ✅ **FutOI сборщик** — 5 фьючерсов, cron каждый час
-  * ✅ **HI2 сборщик** — 10 тикеров, cron раз в день
-  * ✅ **FutOI стратегия** — сигналы BUY/SELL на основе позиций физиков
-  * ✅ **Данные OsEngine** — 10 инструментов, до 943 дней истории
+### В процессе:
+- Унификация тикеров для срочных фьючерсов (GD, BR, SI)
+- Автозапуск FutOI при добавлении тикера
 
-### Что в процессе:
+### Проблемы:
+- Срочные фьючерсы не имеют данных FutOI
+- README был повреждён -> восстановлен 02.07.2026
 
-  * ⏳ **ML на FutOI** — ждём 60+ дней данных (конец июня 2026)
-  * ⏳ **HI2 накопление** — начато 10.05, нужно 60+ дней
+## 🗂️ НАВИГАЦИЯ ПО ДНЕВНИКУ
 
-### Что отложено:
-
-  * ❌ **HMM на дневках** — не даёт контрастных режимов
-  * ❌ **SuperTrend/HMM комбо** — не оправдало себя
-
----
-
-## 🔗 КЛЮЧЕВЫЕ ССЫЛКИ
-
-  * **Репозиторий кода:** `https://github.com/ArchakovBullet/finlab-strategies-local`n  * **Репозиторий данных FutOI:** `https://github.com/ArchakovBullet/futoi-data`n  * **Сервер:** `root@159.194.219.117`n  * **VS Code Server:** `http://159.194.219.117:8080`n
+| 07.05 | WORK_LOG_2026-05-07.md | Проверка FutOI, начало акций |
+| 08.05 | WORK_LOG_2026-05-08.md | HI2 сборщик, HMM прорыв |
+| 01.07 | WORK_LOG_2026-07-01_ticker-debug.md | Отладка GD, проблема срочных фьючерсов |
