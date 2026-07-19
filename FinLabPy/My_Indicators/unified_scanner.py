@@ -11,8 +11,8 @@ import numpy as np
 
 def get_tf_signal(df, tf_name):
     """Сигнал для одного таймфрейма на основе fiz_buy_ratio."""
-    if df is None or len(df) < 3:
-        return 'NEUTRAL', 50, {}
+    if df is None or not isinstance(df, pd.DataFrame) or len(df) < 3:
+        return 'NEUTRAL', 50, {'error': f'Нет данных для {tf_name}'}
     
     latest = df.iloc[-1]
     prev = df.iloc[-2] if len(df) >= 2 else latest
@@ -20,7 +20,14 @@ def get_tf_signal(df, tf_name):
     fiz_buy = latest.get('fiz_buy_ratio', 50)
     fiz_delta = fiz_buy - prev.get('fiz_buy_ratio', fiz_buy)
     
-    if fiz_buy > 60 and fiz_delta > 0:
+    # Исправлено на основе тестов 18.07: fiz_buy > 80 → SHORT (67% падение)
+    if fiz_buy > 80 and fiz_delta > 0:
+        signal = 'SHORT'
+        score = min(85, 50 + (fiz_buy - 80) * 2.0 + fiz_delta * 10)
+    elif fiz_buy < 20 and fiz_delta < 0:
+        signal = 'LONG'
+        score = min(85, 50 + (20 - fiz_buy) * 2.0 + abs(fiz_delta) * 10)
+    elif fiz_buy > 60 and fiz_delta > 0:
         signal = 'LONG'
         score = min(85, 50 + (fiz_buy - 60) * 1.5 + fiz_delta * 10)
     elif fiz_buy < 40 and fiz_delta < 0:
@@ -70,7 +77,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     
     # Взвешенный ТФ-скор
     tf_weighted = val_d1 * 0.50 + val_4h * 0.30 + val_1h * 0.20
-    tf_score = 50 + tf_weighted * 50  # 0-100
+    tf_score = 50 + abs(tf_weighted) * 50  # 0-100, используем абсолютное значение
     
     # === 2. HI2 — штраф за концентрацию (15%) ===
     hi2_penalty = 0
@@ -79,11 +86,11 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
         if hi2_value > 500:
             hi2_penalty = -15
             hi2_note = f"🔴 HI2={hi2_value:.0f} (экстремальная) — штраф {hi2_penalty}"
-        elif hi2_value > 300:
-            hi2_penalty = -8
-            hi2_note = f"🟡 HI2={hi2_value:.0f} (очень высокая) — штраф {hi2_penalty}"
         elif hi2_value > 150:
-            hi2_penalty = -3
+            hi2_penalty = -10
+            hi2_note = f"🟡 HI2={hi2_value:.0f} (очень высокая) — штраф {hi2_penalty}"
+        elif hi2_value > 70:
+            hi2_penalty = -5
             hi2_note = f"⚪ HI2={hi2_value:.0f} (высокая) — штраф {hi2_penalty}"
         else:
             hi2_note = f"✅ HI2={hi2_value:.0f} — норма"
@@ -197,7 +204,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
         recommendation = f'⛔ GARCH={garch_vol:.1f}% > 35% — вход заблокирован. Ждать снижения волатильности.'
     elif tf_weighted >= 0.4 and final_score >= 60:
         decision = 'LONG'
-    elif tf_weighted <= -0.4 and final_score >= 60:
+    elif tf_weighted <= -0.4 and final_score >= 40:
         decision = 'SHORT'
     else:
         decision = 'WAIT'
