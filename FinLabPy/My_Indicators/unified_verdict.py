@@ -1,4 +1,4 @@
-﻿"""
+"""
 Объединённый вердикт — единое решение на основе всех сигналов.
 Иерархия:
 FutOI (40%) — главный фильтр
@@ -45,6 +45,7 @@ def get_numeric_value(value, default=0):
     if isinstance(value, (int, float)):
         return float(value)
     
+    # Пытаемся преобразовать строку в число
     try:
         return float(value)
     except (ValueError, TypeError):
@@ -53,10 +54,51 @@ def get_numeric_value(value, default=0):
 
 def get_unified_verdict(signal_type, short_score, ofi, cum_delta, trend_is_up, trend_is_down,
                        support, resistance, atr, close_price, hi2_value=None):
+    """
+    Принимает все сигналы и возвращает единое решение с уровнями входа/выхода.
     
+    Args:
+        signal_type (str): Тип сигнала от FutOI (LONG, SHORT, WAIT_FOR_RETRACEMENT и т.д.)
+        short_score (float): Шорт-скор от TradeStats (0-100)
+        ofi (dict): Словарь с данными OFI {'ofi': float, 'divergence': bool}
+        cum_delta (dict): Словарь с данными Cumulative Delta {'delta_trend': str, 'divergence': bool}
+        trend_is_up (bool): Тренд вверх
+        trend_is_down (bool): Тренд вниз
+        support (float): Уровень поддержки
+        resistance (float): Уровень сопротивления
+        atr (float): Average True Range для риска
+        close_price (float): Текущая цена закрытия
+        hi2_value (float, optional): Значение HI2 для штрафа концентрации
+    
+    Returns:
+        dict: Решение с деталями:
+            decision: LONG / SHORT / WAIT
+            long_score: 0-100
+            short_score: 0-100
+            confidence: низкая / средняя / высокая
+            reason: текстовое пояснение
+            entry_price: рекомендуемая цена входа
+            stop_loss: стоп-лосс
+            target: цель
+            potential_pct: потенциал в %
+    """
+    
+    # === ЛОГГИРОВАНИЕ ВХОДНЫХ ДАННЫХ (для отладки) ===
+    debug_inputs = {
+        'signal_type': signal_type,
+        'short_score': short_score,
+        'trend': 'UP' if trend_is_up else 'DOWN' if trend_is_down else 'NEUTRAL',
+        'close_price': close_price,
+        'hi2_value': hi2_value
+    }
+    # Можно раскомментировать для отладки:
+    # print(f"[DEBUG] unified_verdict inputs: {debug_inputs}")
+    
+    # === 1. ВАЛИДАЦИЯ ВХОДНЫХ ДАННЫХ ===
     if not isinstance(signal_type, str):
         signal_type = str(signal_type)
     
+    # === 2. BLOCKED СИГНАЛЫ - ОБРАБОТКА СРАЗУ ===
     if "BLOCKED" in str(signal_type).upper():
         return {
             'decision': "WAIT",
@@ -76,8 +118,10 @@ def get_unified_verdict(signal_type, short_score, ofi, cum_delta, trend_is_up, t
             'potential_pct': None,
         }
     
+    # === 3. FutOI — главный фильтр (40%) ===
     futoi_score = 0
     futoi_direction = None
+    
     signal_type_str = str(signal_type).upper()
     
     if signal_type_str in ("LONG", "WAIT_FOR_RETRACEMENT"):
@@ -90,85 +134,131 @@ def get_unified_verdict(signal_type, short_score, ofi, cum_delta, trend_is_up, t
         futoi_score = 0
         futoi_direction = "NEUTRAL"
     
+    # === 4. TradeStats / шорт-скор (30%) ===
     trade_score = 0
-    short_score_val = get_numeric_value(short_score, 50)
+    
+    # Безопасное получение числового значения short_score
+    short_score_val = get_numeric_value(short_score, 50)  # По умолчанию 50 = нейтрально
     
     if 0 <= short_score_val <= 100:
+        # short_score 0-100 -> чем выше, тем сильнее шорт-сигнал
+        # Для лонга используем обратный скор (100 - short_score)
+        # Преобразуем в диапазон -30 до +30
         trade_score = (short_score_val - 50) / 50 * TRADE_WEIGHT
     else:
+        # Если значение вне диапазона, логируем и используем нейтральное
+        print(f"⚠️ WARNING: short_score {short_score_val} вне диапазона 0-100, используем 50 (нейтрально)")
         trade_score = 0
     
+    # === 5. Order Flow (20%) ===
     ofi_score = 0
     delta_score = 0
     
+    # OFI обработка с проверкой типов
     if ofi and isinstance(ofi, dict):
         ofi_val = get_numeric_value(ofi.get('ofi'), 0)
+        
+        # Ограничиваем OFI диапазоном -1 до +1 для безопасности
         ofi_val = max(-1.0, min(1.0, ofi_val))
+        
+        # OFI от -1 до +1 -> масштабируем до ±20
         ofi_score = ofi_val * OFI_WEIGHT
+        
+        # Дивергенция снижает вес
         if ofi.get('divergence'):
-            ofi_score = ofi_score * 0.3
+            ofi_score = ofi_score * 0.3  # ослабляем при дивергенции
     
+    # Cumulative Delta обработка с проверкой типов
     if cum_delta and isinstance(cum_delta, dict):
         cd = cum_delta
+        
+        # Тренд дельты: растёт = +5, падает = -5
         delta_trend = cd.get('delta_trend')
         if delta_trend == 'растёт':
             delta_score = 5
         elif delta_trend == 'падает':
             delta_score = -5
+        else:
+            delta_score = 0
+        
+        # Дивергенция
         if cd.get('divergence'):
             delta_score = delta_score * 0.3
     
-    ofi_total = ofi_score + delta_score
+    ofi_total = ofi_score + delta_score  # суммируем OFI + CumDelta
     
+    # === 6. Тренд (10%) ===
     trend_score = 0
     if trend_is_up:
         trend_score = TREND_WEIGHT
     elif trend_is_down:
         trend_score = -TREND_WEIGHT
     
+    # === 7. HI2 — штраф за концентрацию (до -15) ===
     hi2_penalty = 0
     hi2_val = get_numeric_value(hi2_value, 0)
-    if hi2_val > 500:
-        hi2_penalty = HI2_PENALTY_500
-    elif hi2_val > 150:
-        hi2_penalty = HI2_PENALTY_150
-    elif hi2_val > 70:
-        hi2_penalty = HI2_PENALTY_70
     
+    if hi2_val > 0:
+        if hi2_val > 500:
+            hi2_penalty = HI2_PENALTY_500
+        elif hi2_val > 150:
+            hi2_penalty = HI2_PENALTY_150
+        elif hi2_val > 70:
+            hi2_penalty = HI2_PENALTY_70
+    
+    # === 8. ИТОГОВЫЙ СКОР ===
     total_score = futoi_score + trade_score + ofi_total + trend_score + hi2_penalty
     
+    # === 9. ОПРЕДЕЛЯЕМ РЕШЕНИЕ ===
     decision = "WAIT"
     confidence = "низкая"
     reason = ""
     
+    # Если FutOI нейтральный и общий скор слабый - ждем
     if futoi_direction == "NEUTRAL" and abs(total_score) < ENTRY_THRESHOLD:
         decision = "WAIT"
+        confidence = "низкая"
         reason = "Вердикт NEUTRAL, сигналы не набрали порог"
+    
+    # LONG сигнал
     elif total_score >= ENTRY_THRESHOLD:
         decision = "LONG"
         if total_score >= HIGH_CONFIDENCE_THRESHOLD:
             confidence = "высокая"
         elif total_score >= MEDIUM_CONFIDENCE_THRESHOLD:
             confidence = "средняя"
+        else:
+            confidence = "низкая"
         reason = f"Суммарный скор {total_score:.0f}/100 — сигнал LONG"
+    
+    # SHORT сигнал
     elif total_score <= -ENTRY_THRESHOLD:
         decision = "SHORT"
         if total_score <= -HIGH_CONFIDENCE_THRESHOLD:
             confidence = "высокая"
         elif total_score <= -MEDIUM_CONFIDENCE_THRESHOLD:
             confidence = "средняя"
+        else:
+            confidence = "низкая"
         reason = f"Суммарный скор {abs(total_score):.0f}/100 — сигнал SHORT"
+    
+    # Ни один порог не достигнут
     else:
+        decision = "WAIT"
+        confidence = "низкая"
         reason = f"Суммарный скор {total_score:.0f}/100 — недостаточно для входа"
     
+    # === 10. УРОВНИ ВХОДА/ВЫХОДА ===
     entry_price = None
     stop_loss = None
     target = None
     potential_pct = None
     
+    # Безопасное получение ATR
     safe_atr = get_numeric_value(atr)
     if safe_atr is None or safe_atr <= 0:
-        safe_close = get_numeric_value(close_price, 100)
+        # Если ATR не предоставлен или некорректен, используем 1% от цены
+        safe_close = get_numeric_value(close_price, 100)  # Дефолт 100 если цена неизвестна
         safe_atr = safe_close * DEFAULT_ATR_PCT
     
     safe_close_price = get_numeric_value(close_price)
@@ -176,49 +266,65 @@ def get_unified_verdict(signal_type, short_score, ofi, cum_delta, trend_is_up, t
     safe_resistance = get_numeric_value(resistance)
     
     if decision == "LONG":
+        # Предпочитаем поддержку для входа, если она есть и корректна
         if is_valid_price(safe_support) and safe_support < (safe_close_price or float('inf')):
             entry_price = safe_support
         elif is_valid_price(safe_close_price):
             entry_price = safe_close_price
+        
         if entry_price and safe_atr > 0:
             stop_loss = entry_price - safe_atr * STOP_LOSS_ATR_MULTIPLIER
+            # Предпочитаем сопротивление как цель, если оно выше цены входа
             if is_valid_price(safe_resistance) and safe_resistance > entry_price:
                 target = safe_resistance
             else:
                 target = entry_price + safe_atr * TAKE_PROFIT_ATR_MULTIPLIER
+    
     elif decision == "SHORT":
+        # Предпочитаем сопротивление для входа, если оно есть и корректно
         if is_valid_price(safe_resistance) and safe_resistance > (safe_close_price or 0):
             entry_price = safe_resistance
         elif is_valid_price(safe_close_price):
             entry_price = safe_close_price
+        
         if entry_price and safe_atr > 0:
             stop_loss = entry_price + safe_atr * STOP_LOSS_ATR_MULTIPLIER
+            # Предпочитаем поддержку как цель, если она ниже цены входа
             if is_valid_price(safe_support) and safe_support < entry_price:
                 target = safe_support
             else:
                 target = entry_price - safe_atr * TAKE_PROFIT_ATR_MULTIPLIER
     
+    # Рассчитываем потенциал только если есть корректные уровни
     if entry_price and target and is_valid_price(entry_price):
+        # Избегаем деления на ноль
         if abs(entry_price) > MIN_PRICE_THRESHOLD:
             potential_pct = abs(target - entry_price) / abs(entry_price) * 100
     
+    # === 11. СКОРЫ ДЛЯ ОТОБРАЖЕНИЯ ===
     long_display = 0
     short_display = 0
     
     if decision == "LONG":
+        # LONG: 50-100, где 50 = порог входа, 100 = максимальный скор
         base_score = 50
         additional = min(50, max(0, (total_score - ENTRY_THRESHOLD) / (100 - ENTRY_THRESHOLD) * 50))
         long_display = round(base_score + additional)
         short_display = max(0, 100 - long_display)
+    
     elif decision == "SHORT":
+        # SHORT: 50-100, где 50 = порог входа, 100 = максимальный скор
         base_score = 50
         additional = min(50, max(0, (abs(total_score) - ENTRY_THRESHOLD) / (100 - ENTRY_THRESHOLD) * 50))
         short_display = round(base_score + additional)
         long_display = max(0, 100 - short_display)
-    else:
+    
+    else:  # WAIT
+        # Для WAIT показываем нейтральные значения
         long_display = max(0, min(100, 50 + total_score))
         short_display = max(0, min(100, 50 - total_score))
     
+    # === 12. ВОЗВРАЩАЕМ РЕЗУЛЬТАТ ===
     return {
         'decision': decision,
         'long_score': long_display,
