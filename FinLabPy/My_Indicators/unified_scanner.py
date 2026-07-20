@@ -7,6 +7,7 @@
 
 import pandas as pd
 import numpy as np
+from My_Indicators.volume_analyzer import VolumeAnomalyDetector
 
 
 def get_tf_signal(df, tf_name):
@@ -47,7 +48,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
                                  d1_trend_up=False, d1_trend_down=False,
                                  hi2_value=None, garch_vol=0,
                                  ofi=None, cum_delta=None,
-                                 is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None):
+                                 is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None, volume_spike=False):
     """
     Объединённый вердикт по трём таймфреймам + рыночные факторы.
     
@@ -192,8 +193,22 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     else:
         zweig_note = "Zweig: нет данных"
     
+    # === 8. VOLUME SPIKE — модификатор ===
+    volume_mod = 0
+    volume_note = ""
+    if volume_spike:
+        if tf_weighted > 0:
+            volume_mod = +5
+            volume_note = "📊 Volume Spike! Аномальный объём подтверждает LONG (+5)"
+        elif tf_weighted < 0:
+            volume_mod = +5
+            volume_note = "📊 Volume Spike! Аномальный объём подтверждает SHORT (+5)"
+        else:
+            volume_mod = +3
+            volume_note = "📊 Volume Spike! Аномальный объём — возможно движение (+3)"
+
     # === ИТОГОВЫЙ СКОР ===
-    total_mod = hi2_penalty + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod
+    total_mod = hi2_penalty + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod
     final_score = tf_score + total_mod
     final_score = max(0, min(100, final_score))
     
@@ -259,6 +274,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             'distr_note': distr_note,
             'hpi_mod': hpi_mod, 'hpi_note': hpi_note,
             'zweig_mod': zweig_mod, 'zweig_note': zweig_note,
+            'volume_mod': volume_mod, 'volume_note': volume_note,
             'total_mod': total_mod,
         }
     }
