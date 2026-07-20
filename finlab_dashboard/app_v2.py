@@ -193,12 +193,25 @@ def get_ticker_verdict(ticker):
                 pass
 
         # Используем unified_scanner для получения 4H/1H сигналов
+        # Volume spike
+        _vol_spike = False
+        try:
+            from My_Indicators.volume_analyzer import VolumeAnomalyDetector
+            _vd = VolumeAnomalyDetector()
+            _vdf = pd.read_parquet(DATA_ROOT / 'candles' / f'{ticker}_D1.parquet')
+            if 'volume' in _vdf.columns and len(_vdf) > 25:
+                _spikes = _vd.detect_spikes(_vdf['volume'])
+                _vol_spike = bool(_spikes['spikes'].iloc[-1])
+        except:
+            pass
+
         _scanner_result = get_unified_scanner_verdict(
             df_analytics, _df_4h, _df_1h,
             d1_trend_up=_trend_up, d1_trend_down=_trend_down,
             hi2_value=hi2_info['value'] if hi2_info else None,
             garch_vol=_garch_vol,
-            ofi=_ofi, cum_delta=_cd
+            ofi=_ofi, cum_delta=_cd,
+            volume_spike=_vol_spike
         )
 
         # Вердикт (с HI2-штрафом)
@@ -1221,7 +1234,17 @@ if page == "📊 Сводка":
 
             # Вердикт через stock_scanner_tf
             from My_Indicators.stock_scanner_tf import get_stock_scanner_verdict
-            _stock_v = get_stock_scanner_verdict(_sdf.copy(), None, None, _hi2_val, 0)
+            # Volume spike для акции
+            _vol_sp = False
+            try:
+                from My_Indicators.volume_analyzer import VolumeAnomalyDetector
+                _vd_s = VolumeAnomalyDetector()
+                if 'volume' in _sdf.columns and len(_sdf) > 25:
+                    _sp = _vd_s.detect_spikes(_sdf['volume'])
+                    _vol_sp = bool(_sp['spikes'].iloc[-1])
+            except:
+                pass
+            _stock_v = get_stock_scanner_verdict(_sdf.copy(), None, None, _hi2_val, 0, volume_spike=_vol_sp)
             _decision = _stock_v['decision']
             _d1_sig = _stock_v['signals']['1D']['signal']
 
@@ -2969,12 +2992,26 @@ collect_tradestats(_code, "RFUD")
             from datetime import datetime
             _wd = datetime.now().weekday()
             _wd_names = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
-            if _wd == 3:  # Четверг
+            if _wd == 3:
                 st.caption("📅 Четверг — исторически худший день (win-rate 43%). Будь осторожнее.")
-            elif _wd == 2:  # Среда
+            elif _wd == 2:
                 st.caption("📅 Среда — исторически лучший день (win-rate 53%). Хорошее время для входа.")
             elif _wd >= 5:
                 st.caption("📅 Выходной — рынок закрыт, сигналы неактуальны.")
+            
+            # === VOLUME SPIKE: проверка аномалий объёма ===
+            try:
+                from My_Indicators.volume_analyzer import VolumeAnomalyDetector
+                _vd = VolumeAnomalyDetector()
+                _d1_file = DATA_ROOT / 'candles' / f'{selected_ticker}_D1.parquet'
+                if _d1_file.exists():
+                    _vdf = pd.read_parquet(_d1_file)
+                    if 'volume' in _vdf.columns and len(_vdf) > 25:
+                        _spikes = _vd.detect_spikes(_vdf['volume'])
+                        if _spikes['spikes'].iloc[-1]:
+                            st.caption("📊 Volume Spike! Аномальный объём — возможно движение цены (SV:75%, SI:65% win-rate).")
+            except:
+                pass
         with col_m:
             cols = st.columns(2)
             cols[0].metric("Лонг", f"{_long_s}/100")
@@ -3000,6 +3037,7 @@ collect_tradestats(_code, "RFUD")
 
 **Zweig Filter:** объединяет режим рынка, TRIN, сессию и GARCH. BLOCKED = вход запрещён, CAUTION = штраф -5.
 **Индекс Херрика (HPI):** объединяет Цену + Объём + Открытый интерес. Показывает приток/отток капитала. HPI>0 = деньги заходят, HPI<0 = деньги уходят. Дивергенция HPI = цена и потоки расходятся → предупреждение.
+**Volume Spike Detector:** обнаруживает аномальные всплески объёма (Z-score > 2.5). На исторических данных: SV 75%, SI 65%, BR 64% win-rate после спайка. Подтверждает направление сигнала (+5 к скору).
                         """)
         
         # === ТРИ ТАЙМФРЕЙМА ===
@@ -3491,7 +3529,7 @@ elif page == "📊 Парная торговля":
 
 elif page == "📊 Скринер акций":
     st.title("📊 Скринер акций")
-    st.caption("SuperTrend + ADX + Choppiness + ATR")
+    st.caption("Комбинированный сигнал (HI2 + ADX + тренд)")
     
     # === ТЕМПЕРАТУРА РЫНКА АКЦИЙ ===
     with st.expander("🌡️ Температура рынка (акции)", expanded=True):
@@ -3646,22 +3684,22 @@ elif page == "📊 Скринер акций":
         st.markdown("""
 **🎯 На что смотреть в первую очередь:**
 1. **Режим** — можно ли вообще входить?
-   - 🚀 Тренд (ADX>25, Chop<38) → рынок движется, сигналы SuperTrend надёжны
+   - 🚀 Тренд (ADX>25, Chop<38) → рынок движется, сигналы надёжны
    - ⚠️ Переходный → неопределённость, сигналы могут быть ложными
    - 🔄 Флэт (ADX<20, Chop>62) → рынок в боковике, не входить
-2. **SuperTrend** — направление: LONG (покупка) или SHORT (продажа)
+2. **Комбинированный сигнал** — направление: LONG (покупка) или SHORT (продажа)
 3. **HI2** — концентрация позиций:
    - Высокая/Экстремальная (>150) → крупные игроки активны, движение может быть сильным
    - Низкая/Средняя (<150) → позиции распылены, движение может быть вялым
 
 **📊 Как интерпретировать:**
-- **🚀 Тренд + SuperTrend SHORT + HI2 высокий** → надёжный сигнал на продажу
-- **🚀 Тренд + SuperTrend LONG + HI2 высокий** → надёжный сигнал на покупку
+- **🚀 Тренд + Сигнал SHORT + HI2 высокий** → надёжный сигнал на продажу
+- **🚀 Тренд + Сигнал LONG + HI2 высокий** → надёжный сигнал на покупку
 - **⚠️ Переходный** → ждать, когда рынок определится
 - **🔄 Флэт** → не торговать, ждать пробоя
 
 **⚡ Примеры:**
-- VTBR: 🚀 Тренд (ADX 73, Chop 17) — сильный тренд, SuperTrend SHORT надёжен
+- VTBR: 🚀 Тренд (ADX 73, Chop 17) — сильный тренд, Сигнал SHORT надёжен
 - SBER: ⚠️ Переходный (ADX 7, Chop 41) — тренда нет, сигнал SHORT ненадёжен
 - ROSN: 🚀 Тренд (ADX 34, Chop 20) + HI2 низкий (58) — тренд есть, но позиции распылены
 
@@ -3678,7 +3716,7 @@ elif page == "📊 Скринер акций":
 | Режим | 35% | 🚀 Тренд = 35, ⚠️ Переход = 15, 🔄 Флэт = 0 |
 | ADX | 25% | >40 = 25, >25 = 20, >20 = 10, <20 = 0 |
 | HI2 | 25% | Экстр. (>500) = 25, Высокая = 20, Средняя = 10, Низкая = 5 |
-| SuperTrend | 15% | Есть сигнал = 15, нет = 0 |
+| Комбинированный сигнал | 15% | Есть сигнал = 15, нет = 0 |
 
 **Уровни сигнала:**
 - 🔥 95-100 — идеальный: все факторы на максимуме, лучший момент для входа
@@ -3872,10 +3910,22 @@ elif page == "📊 Скринер акций":
             if _sector_result:
                 _rel_str = _sector_result.get('relative_strength', 1.0)
             
+            # Volume spike
+            _vol_sp2 = False
+            try:
+                from My_Indicators.volume_analyzer import VolumeAnomalyDetector
+                _vd_s2 = VolumeAnomalyDetector()
+                if 'volume' in df_d1.columns and len(df_d1) > 25:
+                    _sp2 = _vd_s2.detect_spikes(df_d1['volume'])
+                    _vol_sp2 = bool(_sp2['spikes'].iloc[-1])
+            except:
+                pass
+
             _stock_verdict = get_stock_scanner_verdict(
                 df_d1.copy(), _df_4h.copy() if _df_4h is not None else None, _df_1h.copy() if _df_1h is not None else None,
                 _hi2_val, _garch_vol, sector_trend=_sector_trend,
-                chop_val=_chop_val, adx_val=_adx_val, atr_pct=_atr_pct, relative_strength=_rel_str
+                chop_val=_chop_val, adx_val=_adx_val, atr_pct=_atr_pct, relative_strength=_rel_str,
+                volume_spike=_vol_sp2
             )
             
             _sec_trend = _sector_result.get('sector_trend') if _sector_result else None
@@ -3888,7 +3938,7 @@ elif page == "📊 Скринер акций":
                     'Тикер': ticker,
                     'Цена': result['close'],
                     'Вердикт': '',  # Заполним ниже
-                    'SuperTrend': result['supertrend'],
+                    'Сигнал': _stock_verdict.get('combo_signal', '—'),
                     '1D': _stock_verdict['signals']['1D']['signal'],
                     '4H': _stock_verdict['signals']['4H']['signal'],
                     '1H': _stock_verdict['signals']['1H']['signal'],
@@ -3921,7 +3971,7 @@ elif page == "📊 Скринер акций":
             elif 'SHORT' in str(val): return 'background-color: rgba(255,0,0,0.2); color: #ff4444; font-weight: bold'
             return ''
         
-        styled = df_scr.style.map(color_supertrend, subset=['SuperTrend'])
+        styled = df_scr.style
         st.dataframe(styled, use_container_width=True, hide_index=True)
         
         with st.expander("🔍 Как формируется вердикт и скор?"):
