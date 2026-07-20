@@ -40,7 +40,7 @@ def get_stock_tf_signal(df, tf_name):
     }
 
 
-def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, sector_trend=None, chop_val=None, adx_val=None, atr_pct=1.0, relative_strength=1.0):
+def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, sector_trend=None, chop_val=None, adx_val=None, atr_pct=1.0, relative_strength=1.0, volume_spike=False):
     """
     Объединённый вердикт для акций по трём ТФ.
     """
@@ -149,7 +149,36 @@ def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, 
         strength_mod = 0
         strength_note = f"⚪ Нейтрально к сектору (RS={relative_strength:.3f})"
     
-    final_score = tf_score + hi2_penalty + garch_penalty + sector_mod + regime_mod + atr_mod + strength_mod
+    # Volume Spike модификатор
+    volume_mod = 0
+    volume_note = ""
+    if volume_spike:
+        if tf_weighted > 0:
+            volume_mod = +5
+            volume_note = "📊 Volume Spike! Аномальный объём подтверждает LONG (+5)"
+        elif tf_weighted < 0:
+            volume_mod = +5
+            volume_note = "📊 Volume Spike! Аномальный объём подтверждает SHORT (+5)"
+        else:
+            volume_mod = +3
+            volume_note = "📊 Volume Spike! Аномальный объём — возможно движение (+3)"
+
+    # === КОМБИНИРОВАННЫЙ СИГНАЛ (HI2 + ADX + тренд) ===
+    combo_signal = "⚪ —"
+    try:
+        _combo_score = 0
+        if hi2_value and hi2_value > 500: _combo_score -= 1
+        if adx_val and adx_val > 25: _combo_score += 1
+        if tf_weighted > 0: _combo_score += 1
+        if tf_weighted < 0: _combo_score -= 1
+        if _combo_score >= 2:
+            combo_signal = "🟢 LONG"
+        elif _combo_score <= -1:
+            combo_signal = "🔴 SHORT"
+    except:
+        pass
+
+    final_score = tf_score + hi2_penalty + garch_penalty + sector_mod + regime_mod + atr_mod + strength_mod + volume_mod
     final_score = max(0, min(100, final_score))
     
     if garch_vol > 35:
@@ -171,6 +200,7 @@ def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, 
     
     return {
         'decision': decision,
+        'combo_signal': combo_signal,
         'score': round(final_score),
         'confidence': confidence,
         'signals': {
@@ -186,6 +216,7 @@ def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, 
             'regime_mod': regime_mod, 'regime_note': regime_note,
             'atr_mod': atr_mod, 'atr_note': atr_note,
             'strength_mod': strength_mod, 'strength_note': strength_note,
+        'volume_mod': volume_mod, 'volume_note': volume_note,
             'hi2_penalty': hi2_penalty,
             'garch_penalty': garch_penalty,
         }
