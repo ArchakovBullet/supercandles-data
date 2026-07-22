@@ -205,13 +205,27 @@ def get_ticker_verdict(ticker):
         except:
             pass
 
+        # RVI для кризисного режима
+        _rvi_val = None
+        try:
+            _rvi_file = DATA_ROOT / 'sector_indices' / 'RVI_D1.parquet'
+            if not _rvi_file.exists():
+                _rvi_file = DATA_ROOT / 'candles' / 'RVI_D1.parquet'
+            if _rvi_file.exists():
+                _rvi_df = pd.read_parquet(_rvi_file)
+                if len(_rvi_df) > 0:
+                    _rvi_val = _rvi_df['close'].iloc[-1]
+        except:
+            pass
+
         _scanner_result = get_unified_scanner_verdict(
             df_analytics, _df_4h, _df_1h,
             d1_trend_up=_trend_up, d1_trend_down=_trend_down,
             hi2_value=hi2_info['value'] if hi2_info else None,
             garch_vol=_garch_vol,
             ofi=_ofi, cum_delta=_cd,
-            volume_spike=_vol_spike
+            volume_spike=_vol_spike,
+            rvi_val=_rvi_val
         )
 
         # Вердикт (с HI2-штрафом)
@@ -235,6 +249,7 @@ def get_ticker_verdict(ticker):
         return {
             'ticker': ticker,
             'decision': _uni['decision'],
+            'crisis_mode': _scanner_result.get('crisis_mode', False),
             'long_score': _uni['long_score'],
             'short_score': _uni['short_score'],
             'confidence': _uni['confidence'],
@@ -2918,6 +2933,9 @@ collect_tradestats(_code, "RFUD")
         # === ВЕРДИКТ ===
         _dec_emoji = "🟢" if scanner['decision'] == 'LONG' else "🔴" if scanner['decision'] == 'SHORT' else "⚪"
         _dec_text = "ВХОД В ЛОНГ" if scanner['decision'] == 'LONG' else "ВХОД В ШОРТ" if scanner['decision'] == 'SHORT' else "НЕ ВХОДИТЬ"
+        if scanner.get('crisis_mode'):
+            _dec_emoji = "🌪️"
+            _dec_text += " | КРИЗИС-РЕЖИМ: приоритет 4H/1H, позиция 25%, стоп 2×"
         _long_s = scanner['score'] if scanner['decision'] == 'LONG' else (100 - scanner['score']) if scanner['decision'] == 'SHORT' else 50
         _short_s = 100 - _long_s
 
