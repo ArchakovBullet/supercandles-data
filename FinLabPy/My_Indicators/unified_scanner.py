@@ -230,6 +230,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
         final_score = max(0, min(100, final_score))
     
     # === РЕШЕНИЕ ===
+    confidence = None
     if garch_vol > 35:
         decision = 'WAIT'
         confidence = 'BLOCKED'
