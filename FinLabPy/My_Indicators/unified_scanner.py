@@ -78,7 +78,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     
     # КРИЗИСНЫЙ РЕЖИМ (определяем ДО расчёта весов ТФ)
     crisis_mode = False
-    if (garch_vol > 35) or (rvi_val is not None and rvi_val > 40):
+    if (garch_vol > 35) or (rvi_val is not None and rvi_val > 70):
         crisis_mode = True
 
     # Взвешенный ТФ-скор (веса зависят от режима)
@@ -241,13 +241,14 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     else:
         decision = 'WAIT'
     
-    # Уверенность
-    if final_score >= 80:
-        confidence = 'высокая'
-    elif final_score >= 55:
-        confidence = 'средняя'
-    else:
-        confidence = 'низкая'
+    # Уверенность (не переопределяем BLOCKED)
+    if confidence != 'BLOCKED':
+        if final_score >= 80:
+            confidence = 'высокая'
+        elif final_score >= 55:
+            confidence = 'средняя'
+        else:
+            confidence = 'низкая'
     
     # Рекомендация
     if decision == 'LONG' and confidence == 'высокая':
