@@ -76,8 +76,16 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     val_4h = sig_to_val(sig_4h)
     val_1h = sig_to_val(sig_1h)
     
-    # Взвешенный ТФ-скор
-    tf_weighted = val_d1 * 0.50 + val_4h * 0.30 + val_1h * 0.20
+    # КРИЗИСНЫЙ РЕЖИМ (определяем ДО расчёта весов ТФ)
+    crisis_mode = False
+    if (garch_vol > 35) or (rvi_val is not None and rvi_val > 40):
+        crisis_mode = True
+
+    # Взвешенный ТФ-скор (веса зависят от режима)
+    if crisis_mode:
+        tf_weighted = val_d1 * 0.20 + val_4h * 0.50 + val_1h * 0.30
+    else:
+        tf_weighted = val_d1 * 0.50 + val_4h * 0.30 + val_1h * 0.20
     tf_score = 50 + abs(tf_weighted) * 50  # 0-100, используем абсолютное значение
     
     # === 2. HI2 — штраф за концентрацию (15%) ===
@@ -112,8 +120,6 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
         garch_note = f"✅ GARCH={garch_vol:.1f}% — норма"
 
     # КРИЗИСНЫЙ РЕЖИМ
-    crisis_mode = False
-    if (garch_vol > 35) or (rvi_val is not None and rvi_val > 40):
         crisis_mode = True
     
     # === 4. Тренд D1 — модификатор (10%) ===
@@ -213,14 +219,20 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             volume_note = "📊 Volume Spike! Аномальный объём — возможно движение (+3)"
 
     # === ИТОГОВЫЙ СКОР ===
+    # При GARCH>35% или Zweig BLOCKED — игнорируем zweig_mod
+    if garch_vol > 35 or (zweig_signal is not None and zweig_signal == 'BLOCKED'):
+        zweig_mod = -100  # Полная блокировка
     total_mod = hi2_penalty + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod
     final_score = tf_score + total_mod
-    final_score = max(0, min(100, final_score))
+    if garch_vol > 35 or (zweig_signal is not None and zweig_signal == 'BLOCKED'):
+        final_score = 0
+    else:
+        final_score = max(0, min(100, final_score))
     
     # === РЕШЕНИЕ ===
     if garch_vol > 35:
         decision = 'WAIT'
-        confidence = 'низкая'
+        confidence = 'BLOCKED'
         recommendation = f'⛔ GARCH={garch_vol:.1f}% > 35% — вход заблокирован. Ждать снижения волатильности.'
     elif tf_weighted >= 0.4 and final_score >= (80 if crisis_mode else 60):
         decision = 'LONG'
@@ -281,6 +293,8 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             'hpi_mod': hpi_mod, 'hpi_note': hpi_note,
             'zweig_mod': zweig_mod, 'zweig_note': zweig_note,
             'volume_mod': volume_mod, 'volume_note': volume_note,
+            'crisis_mode': crisis_mode,
+            'rvi_val': rvi_val,
             'total_mod': total_mod,
         }
     }
