@@ -48,7 +48,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
                                  d1_trend_up=False, d1_trend_down=False,
                                  hi2_value=None, garch_vol=0,
                                  ofi=None, cum_delta=None,
-                                 is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None, volume_spike=False):
+                                 is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None, volume_spike=False, rvi_val=None):
     """
     Объединённый вердикт по трём таймфреймам + рыночные факторы.
     
@@ -110,6 +110,11 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
         garch_note = f"⚪ GARCH={garch_vol:.1f}% (повышенная) — штраф {garch_penalty}"
     else:
         garch_note = f"✅ GARCH={garch_vol:.1f}% — норма"
+
+    # КРИЗИСНЫЙ РЕЖИМ
+    crisis_mode = False
+    if (garch_vol > 35) or (rvi_val is not None and rvi_val > 40):
+        crisis_mode = True
     
     # === 4. Тренд D1 — модификатор (10%) ===
     trend_mod = 0
@@ -217,9 +222,9 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
         decision = 'WAIT'
         confidence = 'низкая'
         recommendation = f'⛔ GARCH={garch_vol:.1f}% > 35% — вход заблокирован. Ждать снижения волатильности.'
-    elif tf_weighted >= 0.4 and final_score >= 60:
+    elif tf_weighted >= 0.4 and final_score >= (80 if crisis_mode else 60):
         decision = 'LONG'
-    elif tf_weighted <= -0.4 and final_score >= 40:
+    elif tf_weighted <= -0.4 and final_score >= (80 if crisis_mode else 40):
         decision = 'SHORT'
     else:
         decision = 'WAIT'
@@ -251,6 +256,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     
     return {
         'decision': decision,
+        'crisis_mode': crisis_mode,
         'score': round(final_score),
         'confidence': confidence,
         'recommendation': recommendation,
