@@ -119,8 +119,6 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     else:
         garch_note = f"✅ GARCH={garch_vol:.1f}% — норма"
 
-    # КРИЗИСНЫЙ РЕЖИМ
-        crisis_mode = True
     
     # === 4. Тренд D1 — модификатор (10%) ===
     trend_mod = 0

@@ -2919,6 +2919,17 @@ collect_tradestats(_code, "RFUD")
         # Zweig Filter
         _session_scan = get_session_status()
         _zweig_scan = get_zweig_signal(None, None, _session_scan, _garch_vol)
+        _rvi_val2 = None
+        try:
+            _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
+            if not _rvi_file.exists():
+                _rvi_file = DATA_ROOT / "candles" / "RVI_D1.parquet"
+            if _rvi_file.exists():
+                _rvi_df = pd.read_parquet(_rvi_file)
+                if len(_rvi_df) > 0:
+                    _rvi_val2 = _rvi_df["close"].iloc[-1]
+        except:
+            pass
         
         scanner = get_unified_scanner_verdict(
             df_analytics, df_4h, df_1h, 
@@ -2930,6 +2941,7 @@ collect_tradestats(_code, "RFUD")
             hpi_signal=_hpi_result['hpi_signal'] if _hpi_result else None,
             hpi_divergence=_hpi_result['divergence'] if _hpi_result else False,
             zweig_signal=_zweig_scan['signal'] if '_zweig_scan' in dir() else None,
+            rvi_val=_rvi_val2,
         )
         
         # === ВЕРДИКТ ===
