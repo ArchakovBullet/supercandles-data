@@ -1,4 +1,4 @@
-"""
+﻿"""
 Объединённый сканер фьючерсов — вердикт на основе 1D + 4H + 1H.
 Учитывает: fiz_buy_ratio, HI2, GARCH, тренд, OFI, CumDelta, дистрибуцию/аккумуляцию.
 
@@ -7,6 +7,7 @@
 
 import pandas as pd
 import numpy as np
+from My_Indicators.volume_analyzer import VolumeAnomalyDetector
 
 
 def get_tf_signal(df, tf_name):
@@ -47,7 +48,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
                                  d1_trend_up=False, d1_trend_down=False,
                                  hi2_value=None, garch_vol=0,
                                  ofi=None, cum_delta=None,
-                                 is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None):
+                                 is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None, volume_spike=False, rvi_val=None):
     """
     Объединённый вердикт по трём таймфреймам + рыночные факторы.
     
@@ -109,6 +110,11 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
         garch_note = f"⚪ GARCH={garch_vol:.1f}% (повышенная) — штраф {garch_penalty}"
     else:
         garch_note = f"✅ GARCH={garch_vol:.1f}% — норма"
+
+    # КРИЗИСНЫЙ РЕЖИМ
+    crisis_mode = False
+    if (garch_vol > 35) or (rvi_val is not None and rvi_val > 40):
+        crisis_mode = True
     
     # === 4. Тренд D1 — модификатор (10%) ===
     trend_mod = 0
@@ -192,8 +198,22 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     else:
         zweig_note = "Zweig: нет данных"
     
+    # === 8. VOLUME SPIKE — модификатор ===
+    volume_mod = 0
+    volume_note = ""
+    if volume_spike:
+        if tf_weighted > 0:
+            volume_mod = +5
+            volume_note = "📊 Volume Spike! Аномальный объём подтверждает LONG (+5)"
+        elif tf_weighted < 0:
+            volume_mod = +5
+            volume_note = "📊 Volume Spike! Аномальный объём подтверждает SHORT (+5)"
+        else:
+            volume_mod = +3
+            volume_note = "📊 Volume Spike! Аномальный объём — возможно движение (+3)"
+
     # === ИТОГОВЫЙ СКОР ===
-    total_mod = hi2_penalty + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod
+    total_mod = hi2_penalty + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod
     final_score = tf_score + total_mod
     final_score = max(0, min(100, final_score))
     
@@ -202,9 +222,9 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
         decision = 'WAIT'
         confidence = 'низкая'
         recommendation = f'⛔ GARCH={garch_vol:.1f}% > 35% — вход заблокирован. Ждать снижения волатильности.'
-    elif tf_weighted >= 0.4 and final_score >= 60:
+    elif tf_weighted >= 0.4 and final_score >= (80 if crisis_mode else 60):
         decision = 'LONG'
-    elif tf_weighted <= -0.4 and final_score >= 40:
+    elif tf_weighted <= -0.4 and final_score >= (80 if crisis_mode else 40):
         decision = 'SHORT'
     else:
         decision = 'WAIT'
@@ -236,6 +256,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     
     return {
         'decision': decision,
+        'crisis_mode': crisis_mode,
         'score': round(final_score),
         'confidence': confidence,
         'recommendation': recommendation,
@@ -259,6 +280,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             'distr_note': distr_note,
             'hpi_mod': hpi_mod, 'hpi_note': hpi_note,
             'zweig_mod': zweig_mod, 'zweig_note': zweig_note,
+            'volume_mod': volume_mod, 'volume_note': volume_note,
             'total_mod': total_mod,
         }
     }
