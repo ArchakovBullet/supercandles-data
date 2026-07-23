@@ -2997,6 +2997,10 @@ collect_tradestats(_code, "RFUD")
             # GARCH
             if _factors.get('garch_penalty', 0) < 0:
                 _warnings.append("🟡 Волатильность повышена — стоп шире обычного")
+            # RVI
+            _rvi_val_factor = _factors.get('rvi_val')
+            if _rvi_val_factor is not None:
+                _warnings.append(f"📊 RVI={_rvi_val_factor:.1f} — индекс волатильности рынка")
             
             if _warnings:
                 for _w in _warnings:
