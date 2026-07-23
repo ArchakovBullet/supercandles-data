@@ -3958,6 +3958,8 @@ elif page == "📊 Скринер акций":
                     _sp2 = _vd_s2.detect_spikes(df_d1['volume'])
                     _vol_sp2 = bool(_sp2['spikes'].iloc[-1])
             except:
+            _sec_trend = _sector_result.get('sector_trend') if _sector_result else None
+            _trin_val = _trin['trin'] if _trin and _trin['trin'] > 0 else None
                 pass
 
             _stock_verdict = get_stock_scanner_verdict(
@@ -3967,9 +3969,7 @@ elif page == "📊 Скринер акций":
                 volume_spike=_vol_sp2, trin_value=_trin_val
             )
             
-            _sec_trend = _sector_result.get('sector_trend') if _sector_result else None
             _rel_str = _sector_result.get('relative_strength', 1.0) if _sector_result else 1.0
-            _trin_val = _trin['trin'] if _trin and _trin['trin'] > 0 else None
             result = screen_stocks(ticker, df_d1, df_hi2, sector_trend=_sec_trend, relative_strength=_rel_str, trin_value=_trin_val)
             if result:
                 # Новый порядок: важные колонки слева
