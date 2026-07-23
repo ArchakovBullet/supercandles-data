@@ -2543,6 +2543,19 @@ elif page == "📊 Сканер фьючерсов":
                         _found.append(_row[_secid_idx])
                 
                 if _found:
+                    # Сортируем по дате экспирации, берём ближайший активный
+                    _today = datetime.now().strftime('%Y-%m-%d')
+                    _lastdate_idx = _cols.index('LASTTRADEDATE') if 'LASTTRADEDATE' in _cols else None
+                    if _lastdate_idx is not None:
+                        # Фильтруем: дата > сегодня (активные контракты)
+                        _active_contracts = []
+                        for _row in _rows:
+                            if _row[_sectype_idx].upper() == sectype_code.upper():
+                                if _row[_lastdate_idx] > _today:
+                                    _active_contracts.append((_row[_lastdate_idx], _row[_secid_idx]))
+                        if _active_contracts:
+                            _active_contracts.sort()
+                            return _active_contracts[0][1]
                     return _found[0]
             except:
                 pass
@@ -2682,10 +2695,10 @@ elif page == "📊 Сканер фьючерсов":
                         _base / 'futoi_4h_aggregator.py': _new_ticker,
                         _base / 'futoi_daily_aggregator.py': _new_ticker,
                         _base / 'hi2_collector.py': _full_code,
-                        _base / 'candles_collector.py': _new_ticker,
+                        _base / 'candles_collector.py': _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker,
                     }
                     if not _skip_futoi:
-                        _collectors[_base / 'futoi_collector.py'] = _new_ticker
+                        _collectors[_base / 'futoi_collector.py'] = _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker
                     _updated = []
                     for _conf_path, _code in _collectors.items():
                         if _conf_path.exists():
