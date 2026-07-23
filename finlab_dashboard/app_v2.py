@@ -2695,10 +2695,10 @@ elif page == "📊 Сканер фьючерсов":
                         _base / 'futoi_4h_aggregator.py': _new_ticker,
                         _base / 'futoi_daily_aggregator.py': _new_ticker,
                         _base / 'hi2_collector.py': _full_code,
-                        _base / 'candles_collector.py': _new_ticker,
+                        _base / 'candles_collector.py': _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker,
                     }
                     if not _skip_futoi:
-                        _collectors[_base / 'futoi_collector.py'] = _new_ticker
+                        _collectors[_base / 'futoi_collector.py'] = _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker
                     _updated = []
                     for _conf_path, _code in _collectors.items():
                         if _conf_path.exists():

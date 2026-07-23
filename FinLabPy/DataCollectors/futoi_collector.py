@@ -17,7 +17,7 @@ from FinLabPy.Utils import setup_logger
 logger = setup_logger('futoi_collector')
 
 # Только реально торгуемые фьючерсы MOEX (VTBRF и LKOHF не торгуются)
-TICKERS = ['GLDRUBF', 'SBERF', 'GAZPF', 'IMOEXF', 'CNYRUBF']
+TICKERS = ['GNU6', 'GLDRUBF', 'SBERF', 'GAZPF', 'IMOEXF', 'CNYRUBF']
 DATA_DIR = project_root / 'data' / 'futoi'
 LOOKBACK_DAYS = 5
 
