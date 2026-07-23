@@ -3001,6 +3001,9 @@ collect_tradestats(_code, "RFUD")
             _rvi_val_factor = _factors.get('rvi_val')
             if _rvi_val_factor is not None:
                 _warnings.append(f"📊 RVI={_rvi_val_factor:.1f} — индекс волатильности рынка")
+            # Volume Spike
+            if _factors.get('volume_mod', 0) > 0:
+                _warnings.append(f"📊 Volume Spike! Аномальный объём (+{_factors['volume_mod']} к скору)")
             
             if _warnings:
                 for _w in _warnings:
