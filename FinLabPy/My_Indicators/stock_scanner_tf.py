@@ -211,6 +211,7 @@ def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, 
         'combo_signal': combo_signal,
         'score': round(final_score),
         'confidence': confidence,
+        'crisis_mode': crisis_mode,
         'signals': {
             '1D': {'signal': sig_d1, 'score': score_d1},
             '4H': {'signal': sig_4h, 'score': score_4h},
