@@ -3964,7 +3964,7 @@ elif page == "📊 Скринер акций":
                 df_d1.copy(), _df_4h.copy() if _df_4h is not None else None, _df_1h.copy() if _df_1h is not None else None,
                 _hi2_val, _garch_vol, sector_trend=_sector_trend,
                 chop_val=_chop_val, adx_val=_adx_val, atr_pct=_atr_pct, relative_strength=_rel_str,
-                volume_spike=_vol_sp2
+                volume_spike=_vol_sp2, trin_value=_trin_val
             )
             
             _sec_trend = _sector_result.get('sector_trend') if _sector_result else None
@@ -3991,6 +3991,9 @@ elif page == "📊 Скринер акций":
                 _old_score = result['score']  # Старый скор с прогресс-баром
                 _decision = _stock_verdict['decision']
                 _dec_emoji = "🟢" if _decision == 'LONG' else "🔴" if _decision == 'SHORT' else "⚪"
+                if _stock_verdict.get('crisis_mode'):
+                    _dec_emoji = "🌪️"
+                    _decision += " КРИЗИС"
                 _row['Вердикт'] = f"{_old_score} {_dec_emoji} {_decision}"
                 
                 rows.append(_row)
