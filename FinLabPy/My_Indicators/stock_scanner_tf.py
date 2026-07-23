@@ -55,6 +55,11 @@ def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, 
     val_4h = sig_to_val(sig_4h)
     val_1h = sig_to_val(sig_1h)
     
+    # КРИЗИСНЫЙ РЕЖИМ для акций (GARCH > 35% или TRIN экстремальный)
+    crisis_mode = False
+    if garch_vol > 35 or (trin_value is not None and (trin_value < 0.5 or trin_value > 1.5)):
+        crisis_mode = True
+
     if crisis_mode:
         tf_weighted = val_d1 * 0.20 + val_4h * 0.50 + val_1h * 0.30
     else:
@@ -92,11 +97,6 @@ def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, 
     else:
         garch_note = f"GARCH={garch_vol:.1f}% — норма"
     
-    # КРИЗИСНЫЙ РЕЖИМ для акций (GARCH > 35% или TRIN экстремальный)
-    crisis_mode = False
-    if garch_vol > 35 or (trin_value is not None and (trin_value < 0.5 or trin_value > 1.5)):
-        crisis_mode = True
-
     # Предварительное решение (для сектора)
     if tf_weighted >= 0.2:
         tf_decision = 'LONG'
