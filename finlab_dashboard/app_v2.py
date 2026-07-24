@@ -2688,33 +2688,7 @@ elif page == "📊 Сканер фьючерсов":
                     else:
                         _status['Свечи H4'] = '⚠️ нет H1 для агрегации'
                     
-                    # 3. Обновляем тикеры во всех сборщиках
-                    _base = Path('/root/finlab/FinLabPy/DataCollectors')
-                    _collectors = {
-                        _base / 'futoi_1h_aggregator.py': _new_ticker,
-                        _base / 'futoi_4h_aggregator.py': _new_ticker,
-                        _base / 'futoi_daily_aggregator.py': _new_ticker,
-                        _base / 'hi2_collector.py': _full_code,
-                        _base / 'candles_collector.py': _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker,
-                    }
-                    if not _skip_futoi:
-                        _collectors[_base / 'futoi_collector.py'] = _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker
-                    _updated = []
-                    for _conf_path, _code in _collectors.items():
-                        if _conf_path.exists():
-                            try:
-                                with open(_conf_path) as f:
-                                    _txt = f.read()
-                                _code_in = _code in _txt
-                                if not _code_in:
-                                    _txt = _txt.replace("TICKERS = [", f"TICKERS = ['{_code}', ")
-                                    with open(_conf_path, 'w') as f:
-                                        f.write(_txt)
-                                    _updated.append(_conf_path.name)
-                                _status[_conf_path.name] = '✅ уже в конфиге' if _code_in else '✅ добавлен в конфиг'
-                            except Exception as e:
-                                _status[_conf_path.name] = f'❌ {str(e)[:50]}'
-                    
+                    _futoi_failed = False
                     # 4. Запускаем сборщик FutOI
                     env = os.environ.copy()
                     env['PYTHONPATH'] = '/root/finlab/FinLabPy'
@@ -2737,17 +2711,57 @@ else:
 '''],
                             env=env, capture_output=True, text=True, timeout=120
                         )
-                        if result.returncode == 0 and 'OK' in result.stdout:
-                            _status['FutOI сбор'] = '✅'
-                        else:
-                            _err_msg = result.stderr[:80] if result.stderr else 'EMPTY'
-                            if 'EMPTY' in _err_msg:
-                                _status['FutOI сбор'] = '⚠️ нет данных (не поддерживается MOEX)'
+                        # Проверяем, создался ли файл с данными
+                        _futoi_file = DATA_ROOT / 'futoi' / f'{_full_code}_futoi.parquet'
+                        if _futoi_file.exists():
+                            _futoi_df = pd.read_parquet(_futoi_file)
+                            if len(_futoi_df) > 0:
+                                _status['FutOI сбор'] = f'✅ ({len(_futoi_df)} записей)'
                             else:
-                                _status['FutOI сбор'] = f'⚠️ {_err_msg}'
+                                _status['FutOI сбор'] = '❌ нет данных FutOI (актив не поддерживается MOEX)'
+                                _futoi_failed = True
+                        else:
+                            _status['FutOI сбор'] = '❌ нет данных FutOI (файл не создан)'
+                            _futoi_failed = True
                     except Exception as e:
                         _status['FutOI сбор'] = f'❌ {str(e)[:50]}'
                     
+                    # Если FutOI пустой — блокируем добавление
+                    if _futoi_failed:
+                        _status['⚠️ ИТОГ'] = '❌ Актив не добавлен: нет данных FutOI. Попробуйте другой тикер.'
+                        with st.expander('📊 Статус добавления', expanded=True):
+                            for k, v in _status.items():
+                                st.caption(f'{k}: {v}')
+                        if st.button('🔄 Сбросить и вернуться', key='reset_futoi_fail'):
+                            st.session_state.pop('add_ticker_error', None)
+                            st.session_state['ticker_input_counter'] = st.session_state.get('ticker_input_counter', 0) + 1
+                            st.rerun()
+
+                    # 3. Обновляем тикеры во всех сборщиках (только после успешного сбора!)
+                    _base = Path('/root/finlab/FinLabPy/DataCollectors')
+                    _collectors = {
+                        _base / 'futoi_1h_aggregator.py': _new_ticker,
+                        _base / 'futoi_4h_aggregator.py': _new_ticker,
+                        _base / 'futoi_daily_aggregator.py': _new_ticker,
+                        _base / 'hi2_collector.py': _full_code,
+                        _base / 'candles_collector.py': _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker,
+                    }
+                    if not _skip_futoi:
+                        _collectors[_base / 'futoi_collector.py'] = _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker
+                    for _conf_path, _code in _collectors.items():
+                        if _conf_path.exists():
+                            try:
+                                with open(_conf_path) as f:
+                                    _txt = f.read()
+                                _code_in = _code in _txt
+                                if not _code_in:
+                                    _txt = _txt.replace("TICKERS = [", f"TICKERS = ['{_code}', ")
+                                    with open(_conf_path, 'w') as f:
+                                        f.write(_txt)
+                                _status[_conf_path.name] = '✅ уже в конфиге' if _code_in else '✅ добавлен в конфиг'
+                            except Exception as e:
+                                _status[_conf_path.name] = f'❌ {str(e)[:50]}'
+
                     # 5. Запускаем сборщик HI2 (если не индекс)
                     if not _skip_futoi:
                         try:
