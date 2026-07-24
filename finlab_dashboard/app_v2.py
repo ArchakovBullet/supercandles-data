@@ -2738,15 +2738,18 @@ else:
 '''],
                             env=env, capture_output=True, text=True, timeout=120
                         )
-                        if result.returncode == 0 and 'OK' in result.stdout:
-                            _status['FutOI сбор'] = '✅'
-                        else:
-                            _err_msg = result.stderr[:80] if result.stderr else 'EMPTY'
-                            if 'EMPTY' in _err_msg:
+                        # Проверяем, создался ли файл с данными
+                        _futoi_file = DATA_ROOT / 'futoi' / f'{_full_code}_futoi.parquet'
+                        if _futoi_file.exists():
+                            _futoi_df = pd.read_parquet(_futoi_file)
+                            if len(_futoi_df) > 0:
+                                _status['FutOI сбор'] = f'✅ ({len(_futoi_df)} записей)'
+                            else:
                                 _status['FutOI сбор'] = '❌ нет данных FutOI (актив не поддерживается MOEX)'
                                 _futoi_failed = True
-                            else:
-                                _status['FutOI сбор'] = f'⚠️ {_err_msg}'
+                        else:
+                            _status['FutOI сбор'] = '❌ нет данных FutOI (файл не создан)'
+                            _futoi_failed = True
                     except Exception as e:
                         _status['FutOI сбор'] = f'❌ {str(e)[:50]}'
                     
