@@ -2736,7 +2736,6 @@ else:
                             st.session_state.pop('add_ticker_error', None)
                             st.session_state['ticker_input_counter'] = st.session_state.get('ticker_input_counter', 0) + 1
                             st.rerun()
-                        st.stop()
 
                     # 3. Обновляем тикеры во всех сборщиках (только после успешного сбора!)
                     _base = Path('/root/finlab/FinLabPy/DataCollectors')
