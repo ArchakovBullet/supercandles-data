@@ -2715,6 +2715,7 @@ elif page == "📊 Сканер фьючерсов":
                             except Exception as e:
                                 _status[_conf_path.name] = f'❌ {str(e)[:50]}'
                     
+                    _futoi_failed = False
                     # 4. Запускаем сборщик FutOI
                     env = os.environ.copy()
                     env['PYTHONPATH'] = '/root/finlab/FinLabPy'
@@ -2742,12 +2743,21 @@ else:
                         else:
                             _err_msg = result.stderr[:80] if result.stderr else 'EMPTY'
                             if 'EMPTY' in _err_msg:
-                                _status['FutOI сбор'] = '⚠️ нет данных (не поддерживается MOEX)'
+                                _status['FutOI сбор'] = '❌ нет данных FutOI (актив не поддерживается MOEX)'
+                                _futoi_failed = True
                             else:
                                 _status['FutOI сбор'] = f'⚠️ {_err_msg}'
                     except Exception as e:
                         _status['FutOI сбор'] = f'❌ {str(e)[:50]}'
                     
+                    # Если FutOI пустой — блокируем добавление
+                    if _futoi_failed:
+                        _status['⚠️ ИТОГ'] = '❌ Актив не добавлен: нет данных FutOI. Попробуйте другой тикер.'
+                        with st.expander('📊 Статус добавления', expanded=True):
+                            for k, v in _status.items():
+                                st.caption(f'{k}: {v}')
+                        st.stop()
+
                     # 5. Запускаем сборщик HI2 (если не индекс)
                     if not _skip_futoi:
                         try:
