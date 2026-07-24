@@ -2759,6 +2759,9 @@ else:
                         with st.expander('📊 Статус добавления', expanded=True):
                             for k, v in _status.items():
                                 st.caption(f'{k}: {v}')
+                        if st.button('🔄 Сбросить и вернуться', key='reset_futoi_fail'):
+                            st.session_state.pop('add_ticker_error', None)
+                            st.rerun()
                         st.stop()
 
                     # 5. Запускаем сборщик HI2 (если не индекс)
