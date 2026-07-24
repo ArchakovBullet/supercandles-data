@@ -2764,6 +2764,31 @@ else:
                             st.rerun()
                         st.stop()
 
+                    # 3. Обновляем тикеры во всех сборщиках (только после успешного сбора!)
+                    _base = Path('/root/finlab/FinLabPy/DataCollectors')
+                    _collectors = {
+                        _base / 'futoi_1h_aggregator.py': _new_ticker,
+                        _base / 'futoi_4h_aggregator.py': _new_ticker,
+                        _base / 'futoi_daily_aggregator.py': _new_ticker,
+                        _base / 'hi2_collector.py': _full_code,
+                        _base / 'candles_collector.py': _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker,
+                    }
+                    if not _skip_futoi:
+                        _collectors[_base / 'futoi_collector.py'] = _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker
+                    for _conf_path, _code in _collectors.items():
+                        if _conf_path.exists():
+                            try:
+                                with open(_conf_path) as f:
+                                    _txt = f.read()
+                                _code_in = _code in _txt
+                                if not _code_in:
+                                    _txt = _txt.replace("TICKERS = [", f"TICKERS = ['{_code}', ")
+                                    with open(_conf_path, 'w') as f:
+                                        f.write(_txt)
+                                _status[_conf_path.name] = '✅ уже в конфиге' if _code_in else '✅ добавлен в конфиг'
+                            except Exception as e:
+                                _status[_conf_path.name] = f'❌ {str(e)[:50]}'
+
                     # 5. Запускаем сборщик HI2 (если не индекс)
                     if not _skip_futoi:
                         try:
