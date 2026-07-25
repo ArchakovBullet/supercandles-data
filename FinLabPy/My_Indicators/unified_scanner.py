@@ -1,4 +1,4 @@
-﻿"""
+"""
 Объединённый сканер фьючерсов — вердикт на основе 1D + 4H + 1H.
 Учитывает: fiz_buy_ratio, HI2, GARCH, тренд, OFI, CumDelta, дистрибуцию/аккумуляцию.
 
@@ -46,7 +46,7 @@ def get_tf_signal(df, tf_name):
 
 def get_unified_scanner_verdict(df_d1, df_4h, df_1h, 
                                  d1_trend_up=False, d1_trend_down=False,
-                                 hi2_value=None, garch_vol=0,
+                                 hi2_value=None, garch_vol=None,
                                  ofi=None, cum_delta=None,
                                  is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None, volume_spike=False, rvi_val=None):
     """
@@ -65,13 +65,23 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     """
     
     # === 0. Проверка наличия критических данных ===
+    missing = []
     if df_d1 is None or (isinstance(df_d1, pd.DataFrame) and len(df_d1) < 3):
+        missing.append('свечи D1')
+    if df_4h is None or (isinstance(df_4h, pd.DataFrame) and len(df_4h) < 3):
+        missing.append('свечи 4H')
+    if df_1h is None or (isinstance(df_1h, pd.DataFrame) and len(df_1h) < 3):
+        missing.append('свечи 1H')
+    if garch_vol is None:
+        missing.append('GARCH')
+    
+    if missing:
         return {
             'decision': 'WAIT',
             'crisis_mode': False,
             'score': 0,
             'confidence': 'нет данных',
-            'recommendation': '⏳ Недостаточно данных для вердикта. Дождитесь обновления.',
+            f'recommendation': f'⏳ Нет данных: {", ".join(missing)}. Дождитесь обновления.',
             'weighted_val': 0,
             'trend': '—',
             'signals': {'1D': {'signal': '—', 'score': 0, 'details': {}}, '4H': {'signal': '—', 'score': 0, 'details': {}}, '1H': {'signal': '—', 'score': 0, 'details': {}}},
