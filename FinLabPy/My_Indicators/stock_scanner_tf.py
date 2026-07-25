@@ -44,6 +44,18 @@ def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, 
     """
     Объединённый вердикт для акций по трём ТФ.
     """
+    # === 0. Проверка наличия критических данных ===
+    if df_d1 is None or len(df_d1) < 5:
+        return {
+            'decision': 'WAIT',
+            'crisis_mode': False,
+            'combo_signal': '—',
+            'score': 0,
+            'confidence': 'нет данных',
+            'signals': {'1D': {'signal': '—', 'score': 0}, '4H': {'signal': '—', 'score': 0}, '1H': {'signal': '—', 'score': 0}},
+            'factors': {'tf_score': 0, 'hi2_note': 'Нет данных', 'garch_note': 'Нет данных', 'sector_mod': 0, 'sector_note': '—', 'regime_mod': 0, 'regime_note': '—', 'atr_mod': 0, 'atr_note': '—', 'strength_mod': 0, 'strength_note': '—', 'volume_mod': 0, 'crisis_mode': False, 'trin_value': None, 'volume_note': '—', 'hi2_penalty': 0, 'garch_penalty': 0},
+        }
+
     sig_d1, score_d1, det_d1 = get_stock_tf_signal(df_d1, '1D')
     sig_4h, score_4h, det_4h = get_stock_tf_signal(df_4h, '4H')
     sig_1h, score_1h, det_1h = get_stock_tf_signal(df_1h, '1H')

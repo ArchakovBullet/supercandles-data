@@ -2739,6 +2739,22 @@ else:
                         st.stop()
 
                     # 3. Обновляем тикеры во всех сборщиках (только после успешного сбора!)
+                    # Сначала обновляем единый конфиг
+                    _config_path = Path('/root/finlab/FinLabPy/DataCollectors/tickers_config.json')
+                    if _config_path.exists():
+                        import json
+                        with open(_config_path) as f:
+                            _tcfg = json.load(f)
+                        if _asset_type == 'Срочный фьючерс' or _asset_type == 'Вечный фьючерс':
+                            if _new_ticker not in _tcfg.get('futures', []):
+                                _tcfg['futures'].append(_new_ticker)
+                        else:
+                            if _new_ticker not in _tcfg.get('stocks', []):
+                                _tcfg['stocks'].append(_new_ticker)
+                        with open(_config_path, 'w') as f:
+                            json.dump(_tcfg, f, indent=2, ensure_ascii=False)
+                        _status['tickers_config.json'] = '✅ обновлён'
+
                     _base = Path('/root/finlab/FinLabPy/DataCollectors')
                     _collectors = {
                         _base / 'futoi_1h_aggregator.py': _new_ticker,
@@ -4007,7 +4023,7 @@ elif page == "📊 Скринер акций":
             _sector_file = None
             _stock_to_sector = {'GMKN': 'MOEXMM', 'PLZL': 'MOEXMM', 'SBER': 'MOEXFN', 'VTBR': 'MOEXFN', 'T': 'MOEXFN',
                               'GAZP': 'MOEXOG', 'LKOH': 'MOEXOG', 'ROSN': 'MOEXOG', 'TATN': 'MOEXOG',
-                              'HYDR': 'MOEXEU', 'IRAO': 'MOEXEU', 'AFKS': 'MOEXTL'}
+                              'HYDR': 'MOEXEU', 'IRAO': 'MOEXEU', 'AFKS': 'MOEXTL', 'AFLT': 'MOEXTL'}
             if ticker in _stock_to_sector:
                 _sector_file = DATA_ROOT / "sector_indices" / f"{_stock_to_sector[ticker]}_D1.parquet"
                 if _sector_file.exists():
@@ -4046,7 +4062,18 @@ elif page == "📊 Скринер акций":
             _rel_str = _sector_result.get('relative_strength', 1.0) if _sector_result else 1.0
             _trin_val = _trin['trin'] if _trin and _trin['trin'] > 0 else None
 
-            _stock_verdict = get_stock_scanner_verdict(
+            # Проверка: если HI2 нет → вердикт не выносим
+            if _hi2_val is None:
+                _stock_verdict = {
+                    'decision': 'WAIT',
+                    'crisis_mode': False,
+                    'combo_signal': '⏳',
+                    'score': 0,
+                    'confidence': 'нет данных HI2',
+                    'signals': {'1D': {'signal': '—', 'score': 0}, '4H': {'signal': '—', 'score': 0}, '1H': {'signal': '—', 'score': 0}},
+                }
+            else:
+                _stock_verdict = get_stock_scanner_verdict(
                 df_d1.copy(), _df_4h.copy() if _df_4h is not None else None, _df_1h.copy() if _df_1h is not None else None,
                 _hi2_val, _garch_vol, sector_trend=_sector_trend,
                 chop_val=_chop_val, adx_val=_adx_val, atr_pct=_atr_pct, relative_strength=_rel_str,
