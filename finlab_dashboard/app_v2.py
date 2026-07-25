@@ -4046,7 +4046,18 @@ elif page == "📊 Скринер акций":
             _rel_str = _sector_result.get('relative_strength', 1.0) if _sector_result else 1.0
             _trin_val = _trin['trin'] if _trin and _trin['trin'] > 0 else None
 
-            _stock_verdict = get_stock_scanner_verdict(
+            # Проверка: если HI2 нет → вердикт не выносим
+            if _hi2_val is None:
+                _stock_verdict = {
+                    'decision': 'WAIT',
+                    'crisis_mode': False,
+                    'combo_signal': '⏳',
+                    'score': 0,
+                    'confidence': 'нет данных HI2',
+                    'signals': {'1D': {'signal': '—', 'score': 0}, '4H': {'signal': '—', 'score': 0}, '1H': {'signal': '—', 'score': 0}},
+                }
+            else:
+                _stock_verdict = get_stock_scanner_verdict(
                 df_d1.copy(), _df_4h.copy() if _df_4h is not None else None, _df_1h.copy() if _df_1h is not None else None,
                 _hi2_val, _garch_vol, sector_trend=_sector_trend,
                 chop_val=_chop_val, adx_val=_adx_val, atr_pct=_atr_pct, relative_strength=_rel_str,
