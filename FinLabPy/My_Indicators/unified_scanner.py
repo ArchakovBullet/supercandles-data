@@ -64,6 +64,20 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     - factors: детализация вклада каждого фактора
     """
     
+    # === 0. Проверка наличия критических данных ===
+    if df_d1 is None or (isinstance(df_d1, pd.DataFrame) and len(df_d1) < 3):
+        return {
+            'decision': 'WAIT',
+            'crisis_mode': False,
+            'score': 0,
+            'confidence': 'нет данных',
+            'recommendation': '⏳ Недостаточно данных для вердикта. Дождитесь обновления.',
+            'weighted_val': 0,
+            'trend': '—',
+            'signals': {'1D': {'signal': '—', 'score': 0, 'details': {}}, '4H': {'signal': '—', 'score': 0, 'details': {}}, '1H': {'signal': '—', 'score': 0, 'details': {}}},
+            'factors': {'tf_score': 0, 'tf_weighted': 0, 'hi2_penalty': 0, 'hi2_note': 'Нет данных', 'garch_penalty': 0, 'garch_note': 'Нет данных', 'trend_mod': 0, 'trend_note': '—', 'distr_mod': 0, 'distr_note': '—', 'hpi_mod': 0, 'hpi_note': '—', 'zweig_mod': 0, 'zweig_note': '—', 'volume_mod': 0, 'volume_note': '—', 'crisis_mode': False, 'rvi_val': None, 'total_mod': 0},
+        }
+
     # === 1. Сигналы по ТФ (БАЗА — 60%) ===
     sig_d1, score_d1, det_d1 = get_tf_signal(df_d1, '1D')
     sig_4h, score_4h, det_4h = get_tf_signal(df_4h, '4H')
