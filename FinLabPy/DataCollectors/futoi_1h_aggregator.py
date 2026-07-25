@@ -23,7 +23,7 @@ DATA_OUT = Path("/root/finlab/data/futoi_1h")
 DATA_OUT.mkdir(exist_ok=True)
 OUTPUT_FILE = DATA_OUT / "futoi_1h.parquet"
 
-TICKERS = ["CNYRUBF", "GAZPF", "GLDRUBF", "IMOEXF", "SBERF"]
+TICKERS = ['CE', 'CNYRUBF', 'GAZPF', 'GLDRUBF', 'IMOEXF', 'SBERF', 'USDRUBF', 'EURRUBF', 'BR', 'GD', 'MX', 'OJ', 'PD', 'PT', 'RI', 'SI', 'SV', 'VI', 'W4']
 
 
 def load_raw_futoi():

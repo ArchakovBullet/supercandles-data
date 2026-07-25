@@ -16,7 +16,7 @@ logger = setup_logger('futoi_aggregator')
 DATA_DIR = project_root / 'data' / 'futoi'
 DAILY_FILE = project_root / 'data' / 'futoi_daily.parquet'
 
-TICKERS = ['GLDRUBF', 'SBERF', 'GAZPF', 'IMOEXF', 'CNYRUBF']
+TICKERS = ['CE', 'CNYRUBF', 'GAZPF', 'GLDRUBF', 'IMOEXF', 'SBERF', 'USDRUBF', 'EURRUBF', 'BR', 'GD', 'MX', 'OJ', 'PD', 'PT', 'RI', 'SI', 'SV', 'VI', 'W4']
 
 
 def aggregate_daily(ticker: str) -> pl.DataFrame:
