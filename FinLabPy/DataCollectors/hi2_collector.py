@@ -24,7 +24,7 @@ class HI2Collector:
     """Сборщик HI2 для списка тикеров."""
     
     TICKERS = {
-        'SBER': 'stocks', 'GAZP': 'stocks', 'GMKN': 'stocks', 'YNDX': 'stocks', 'LKOH': 'stocks',
+        'AFLT': 'stocks', 'SBER': 'stocks', 'GAZP': 'stocks', 'GMKN': 'stocks', 'YNDX': 'stocks', 'LKOH': 'stocks', 'HYDR': 'stocks', 'IRAO': 'stocks', 'PLZL': 'stocks', 'ROSN': 'stocks', 'TATN': 'stocks', 'VTBR': 'stocks', 'AFKS': 'stocks', 'T': 'stocks',
         'GLDRUBF': 'futures', 'CNYRUBF': 'futures', 'SBERF': 'futures', 'GAZPF': 'futures', 'IMOEXF': 'futures',
     }
     
