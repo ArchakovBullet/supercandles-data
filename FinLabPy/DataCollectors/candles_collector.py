@@ -29,6 +29,7 @@ FUTURES = {
 }
 
 STOCKS = {
+    'AFLT': 'TQBR',
     'SBER': 'TQBR',
     'GAZP': 'TQBR',
     'GMKN': 'TQBR',
