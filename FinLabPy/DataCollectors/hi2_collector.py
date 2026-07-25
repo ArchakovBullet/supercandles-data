@@ -23,10 +23,23 @@ logger = setup_logger('hi2_collector')
 class HI2Collector:
     """Сборщик HI2 для списка тикеров."""
     
-    TICKERS = {
-        'AFLT': 'stocks', 'SBER': 'stocks', 'GAZP': 'stocks', 'GMKN': 'stocks', 'YNDX': 'stocks', 'LKOH': 'stocks', 'HYDR': 'stocks', 'IRAO': 'stocks', 'PLZL': 'stocks', 'ROSN': 'stocks', 'TATN': 'stocks', 'VTBR': 'stocks', 'AFKS': 'stocks', 'T': 'stocks',
-        'GLDRUBF': 'futures', 'CNYRUBF': 'futures', 'SBERF': 'futures', 'GAZPF': 'futures', 'IMOEXF': 'futures',
-    }
+    @staticmethod
+    def _load_tickers():
+        import json
+        cfg_path = Path(__file__).parent / 'tickers_config.json'
+        if cfg_path.exists():
+            with open(cfg_path) as f:
+                cfg = json.load(f)
+            tickers = {}
+            for t in cfg.get('stocks', []):
+                tickers[t] = 'stocks'
+            for t in cfg.get('futures', []):
+                tickers[t] = 'futures'
+            return tickers
+        # Fallback
+        return {'SBER': 'stocks', 'GAZP': 'stocks', 'GLDRUBF': 'futures'}
+
+    TICKERS = _load_tickers.__func__()
     
     def __init__(self, api, data_dir: Path = None):
         self.api = api

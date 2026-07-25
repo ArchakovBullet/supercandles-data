@@ -2739,6 +2739,22 @@ else:
                         st.stop()
 
                     # 3. Обновляем тикеры во всех сборщиках (только после успешного сбора!)
+                    # Сначала обновляем единый конфиг
+                    _config_path = Path('/root/finlab/FinLabPy/DataCollectors/tickers_config.json')
+                    if _config_path.exists():
+                        import json
+                        with open(_config_path) as f:
+                            _tcfg = json.load(f)
+                        if _asset_type == 'Срочный фьючерс' or _asset_type == 'Вечный фьючерс':
+                            if _new_ticker not in _tcfg.get('futures', []):
+                                _tcfg['futures'].append(_new_ticker)
+                        else:
+                            if _new_ticker not in _tcfg.get('stocks', []):
+                                _tcfg['stocks'].append(_new_ticker)
+                        with open(_config_path, 'w') as f:
+                            json.dump(_tcfg, f, indent=2, ensure_ascii=False)
+                        _status['tickers_config.json'] = '✅ обновлён'
+
                     _base = Path('/root/finlab/FinLabPy/DataCollectors')
                     _collectors = {
                         _base / 'futoi_1h_aggregator.py': _new_ticker,
