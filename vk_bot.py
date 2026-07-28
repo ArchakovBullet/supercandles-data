@@ -101,6 +101,19 @@ def get_funding_rates():
     except Exception as e:
         return f"❌ Ошибка чтения фандинга: {e}"
 
+def get_close_price(ticker):
+    """Получить последнюю цену закрытия"""
+    try:
+        f = DATA_ROOT / "candles" / f"{ticker}_D1.parquet"
+        if not f.exists():
+            return None
+        df = pd.read_parquet(f)
+        if len(df) == 0:
+            return None
+        return df["close"].iloc[-1]
+    except:
+        return None
+
 def get_trend_for_ticker(ticker):
     """Определяет текущий тренд тикера: LONG/SHORT/NEUTRAL"""
     try:
@@ -171,7 +184,9 @@ def check_trend_changes(vk):
         
         if prev_trend and prev_trend != current_trend:
             emoji = "🟢" if current_trend == "LONG" else ("🔴" if current_trend == "SHORT" else "⚪")
-            changes.append(f"{emoji} {ticker}: {prev_trend} → {current_trend}")
+            price = get_close_price(ticker)
+            price_str = f" ({price:.1f}₽)" if price is not None else ""
+            changes.append(f"{emoji} {ticker}{price_str}: {prev_trend} → {current_trend}")
     
     save_state(prev_state)
     
