@@ -2989,8 +2989,8 @@ collect_tradestats(_code, "RFUD")
         )
         
         # === ВЕРДИКТ ===
-        _dec_emoji = "🟢" if scanner['decision'] == 'LONG' else "🔴" if scanner['decision'] == 'SHORT' else "⚪"
-        _dec_text = "ВХОД В ЛОНГ" if scanner['decision'] == 'LONG' else "ВХОД В ШОРТ" if scanner['decision'] == 'SHORT' else "НЕ ВХОДИТЬ"
+        _dec_emoji = "🟢" if scanner['decision'] == 'LONG' else "🔴" if scanner['decision'] == 'SHORT' else ("⚠️" if scanner.get('confidence') == 'нет данных' else "⚪")
+        _dec_text = "ВХОД В ЛОНГ" if scanner['decision'] == 'LONG' else "ВХОД В ШОРТ" if scanner['decision'] == 'SHORT' else ("⚠️ ВЕРДИКТ НЕ АКТУАЛЕН" if scanner.get('confidence') == 'нет данных' else "НЕ ВХОДИТЬ")
         if scanner.get('crisis_mode'):
             _dec_emoji = "🌪️"
             _dec_text += " | КРИЗИС-РЕЖИМ: приоритет 4H/1H, позиция 25%, стоп 2×"
