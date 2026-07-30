@@ -25,7 +25,20 @@ FUTURES = {
     'GLDRUBF': 'RFUD',
     'IMOEXF': 'RFUD',
     'SBERF': 'RFUD',
-    'USDRUBF': 'RFUD'
+    'USDRUBF': 'RFUD',
+    # Срочные фьючерсы
+    'BR': 'RFUD',
+    'CE': 'RFUD',
+    'GD': 'RFUD',
+    'MX': 'RFUD',
+    'OJ': 'RFUD',
+    'PD': 'RFUD',
+    'PT': 'RFUD',
+    'RI': 'RFUD',
+    'SI': 'RFUD',
+    'SV': 'RFUD',
+    'VI': 'RFUD',
+    'W4': 'RFUD'
 }
 
 STOCKS = {
@@ -40,7 +53,9 @@ STOCKS = {
     'VTBR': 'TQBR',
     'HYDR': 'TQBR',
     'IRAO': 'TQBR',
-    'YNDX': 'TQBR'
+    'YNDX': 'TQBR',
+    'AFKS': 'TQBR',
+    'T': 'TQBR'
 }
 
 CORRELATIONS = {
