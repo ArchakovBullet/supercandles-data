@@ -51,7 +51,8 @@ class HI2Collector:
         logger.info(f'Начало сбора HI2 за {date.today()}')
         total_new = 0
         
-        for ticker, engine in self.TICKERS.items():
+        tickers = self._load_tickers()
+        for ticker, engine in tickers.items():
             try:
                 new_rows = self._collect_one(ticker, engine)
                 total_new += new_rows
