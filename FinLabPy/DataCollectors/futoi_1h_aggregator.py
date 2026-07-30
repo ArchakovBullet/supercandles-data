@@ -23,7 +23,16 @@ DATA_OUT = Path("/root/finlab/data/futoi_1h")
 DATA_OUT.mkdir(exist_ok=True)
 OUTPUT_FILE = DATA_OUT / "futoi_1h.parquet"
 
-TICKERS = ['CE', 'CNYRUBF', 'GAZPF', 'GLDRUBF', 'IMOEXF', 'SBERF', 'USDRUBF', 'EURRUBF', 'BR', 'GD', 'MX', 'OJ', 'PD', 'PT', 'RI', 'SI', 'SV', 'VI', 'W4']
+def _load_tickers():
+    import json
+    cfg_path = Path(__file__).parent / 'tickers_config.json'
+    if cfg_path.exists():
+        with open(cfg_path) as f:
+            cfg = json.load(f)
+        return cfg.get('futures', ['GLDRUBF', 'SBERF', 'GAZPF', 'IMOEXF', 'CNYRUBF'])
+    return ['GLDRUBF', 'SBERF', 'GAZPF', 'IMOEXF', 'CNYRUBF']
+
+TICKERS = _load_tickers()
 
 
 def load_raw_futoi():

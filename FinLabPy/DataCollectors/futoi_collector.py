@@ -17,7 +17,16 @@ from FinLabPy.Utils import setup_logger
 logger = setup_logger('futoi_collector')
 
 # Только реально торгуемые фьючерсы MOEX (VTBRF и LKOHF не торгуются)
-TICKERS = ['CE', 'CNYRUBF', 'GAZPF', 'GLDRUBF', 'IMOEXF', 'SBERF', 'USDRUBF', 'EURRUBF', 'BR', 'GD', 'MX', 'OJ', 'PD', 'PT', 'RI', 'SI', 'SV', 'VI', 'W4']
+def _load_tickers():
+    import json
+    cfg_path = Path(__file__).parent / 'tickers_config.json'
+    if cfg_path.exists():
+        with open(cfg_path) as f:
+            cfg = json.load(f)
+        return cfg.get('futures', ['GLDRUBF', 'SBERF', 'GAZPF', 'IMOEXF', 'CNYRUBF'])
+    return ['GLDRUBF', 'SBERF', 'GAZPF', 'IMOEXF', 'CNYRUBF']
+
+TICKERS = _load_tickers()
 DATA_DIR = project_root / 'data' / 'futoi'
 LOOKBACK_DAYS = 5
 
