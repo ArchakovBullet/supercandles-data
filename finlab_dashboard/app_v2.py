@@ -4100,11 +4100,16 @@ elif page == "📊 Скринер акций":
                 
                 # Старый скор (проверенный) + новый вердикт (информативно)
                 _old_score = result['score']  # Старый скор с прогресс-баром
-                _decision = _stock_verdict['decision']
-                _dec_emoji = "🟢" if _decision == 'LONG' else "🔴" if _decision == 'SHORT' else "⚪"
-                if _stock_verdict.get('crisis_mode'):
-                    _dec_emoji = "🌪️"
-                    _decision += " КРИЗИС"
+                _decision = _stock_verdict["decision"]
+                if _stock_verdict.get("confidence") == "нет данных":
+                    _dec_emoji = "⚠️"
+                    _decision = "ВЕРДИКТ НЕ АКТУАЛЕН"
+                else:
+                    _dec_emoji = "🟢" if _decision == "LONG" else "🔴" if _decision == "SHORT" else "⚪"
+                    if _stock_verdict.get("crisis_mode"):
+                        _dec_emoji = "🌪️"
+                        _decision += " КРИЗИС"
+                _row["Вердикт"] = f"{_old_score} {_dec_emoji} {_decision}"
                 _row['Вердикт'] = f"{_old_score} {_dec_emoji} {_decision}"
                 
                 rows.append(_row)
