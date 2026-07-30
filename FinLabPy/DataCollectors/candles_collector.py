@@ -1,4 +1,4 @@
-﻿"""
+"""
 Сборщик свечей через MOEXPy для фьючерсов, акций и индексов
 Сохраняет в Parquet по таймфреймам M10, H1, D1
 """
@@ -60,6 +60,45 @@ TIMEFRAMES = {
 DATA_DIR = Path('/root/finlab/data/candles')
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
+
+def get_full_code(short_code):
+    import json, requests
+    from datetime import datetime
+    from pathlib import Path
+    try:
+        cache_file = Path(__file__).parent / "contract_cache.json"
+        cache = {}
+        if cache_file.exists():
+            with open(cache_file) as f:
+                cache = json.load(f)
+        today = datetime.now().strftime("%Y-%m-%d")
+        if short_code in cache and cache[short_code].get("date") == today:
+            return cache[short_code]["code"]
+        url = "https://iss.moex.com/iss/engines/futures/markets/forts/securities.json"
+        r = requests.get(url, timeout=10)
+        if r.status_code != 200:
+            return short_code
+        data = r.json()["securities"]
+        cols = data["columns"]
+        rows = data["data"]
+        secid_idx = cols.index("SECID")
+        sectype_idx = cols.index("SECTYPE")
+        date_idx = cols.index("LASTTRADEDATE")
+        active = []
+        for row in rows:
+            if row[sectype_idx].upper() == short_code.upper():
+                if row[date_idx] > today:
+                    active.append((row[date_idx], row[secid_idx]))
+        if active:
+            active.sort()
+            full_code = active[0][1]
+            cache[short_code] = {"code": full_code, "date": today}
+            with open(cache_file, "w") as f:
+                json.dump(cache, f)
+            return full_code
+    except:
+        pass
+    return short_code
 def main():
     print("=" * 60)
     print(f"СБОРЩИК СВЕЧЕЙ | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -92,7 +131,8 @@ def main():
                 continue
             
             try:
-                result = moex.get_candles(board, ticker, dt_from, dt_till, interval)
+                api_ticker = get_full_code(ticker) if board == "RFUD" else ticker
+                result = moex.get_candles(board, api_ticker, dt_from, dt_till, interval)
                 
                 if result is None or 'candles' not in result or len(result['candles']['data']) == 0:
                     print("нет данных")
