@@ -140,31 +140,32 @@ def main():
                 df = pd.DataFrame(data, columns=columns)
                 
                 # Переименовываем колонки
-                col_map = {
-                    'open': 'open',
-                    'close': 'close',
-                    'high': 'high',
-                    'low': 'low',
-                    'value': 'value',
-                    'volume': 'volume',
-                    'begin': 'begin',
-                    'end': 'end'
-                }
+                col_map = {'open':'open','close':'close','high':'high','low':'low','value':'value','volume':'volume','begin':'begin','end':'end'}
                 df = df.rename(columns=col_map)
-                
-                # Сохраняем
+                df['begin'] = pd.to_datetime(df['begin'])
+
                 if file_path.exists():
                     existing = pd.read_parquet(file_path)
-                    combined = pd.concat([existing, df], ignore_index=True)
-                    combined = combined.drop_duplicates(subset=['begin'])
+                    existing['begin'] = pd.to_datetime(existing['begin'])
+                    
+                    existing_begins = set(existing['begin'])
+                    new_rows = ~df['begin'].isin(existing_begins)
+                    new_df = df[new_rows]
+                    
+                    if len(new_df) == 0:
+                        print("нет новых данных")
+                        continue
+                    
+                    combined = pd.concat([existing, new_df], ignore_index=True)
                     combined = combined.sort_values('begin')
+                    combined = combined.drop_duplicates(subset=['begin'])
                     combined.to_parquet(file_path, index=False)
+                    print(f"+{len(new_df)} свечей")
+                    total += len(new_df)
                 else:
                     df.to_parquet(file_path, index=False)
-                
-                print(f"+{len(df)} свечей")
-                total += len(df)
-                
+                    print(f"+{len(df)} свечей")
+                    total += len(df)
             except Exception as e:
                 print(f"ошибка: {e}")
     
