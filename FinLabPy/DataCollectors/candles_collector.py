@@ -97,7 +97,7 @@ def main():
     print("=" * 60)
     print(f"СБОРЩИК СВЕЧЕЙ | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
-    
+        
     moex = MOEXPy()
     total = 0
     
