@@ -66,14 +66,15 @@ def get_folder_stats(folder_path: Path) -> dict:
                 max_age_days = age_days
         except Exception as e:
             st.warning(f"Ошибка чтения {f.name}: {e}")
-    # Определяем статус по возрасту
-    if max_age_days > 7:
+    # Определяем статус по возрасту (по последнему обновлению, а не самому старому файлу)
+    age_of_newest = (now - datetime.fromtimestamp(last_modified)).days if last_modified else 999
+    if age_of_newest > 3:
         status = "🔴"
-    elif max_age_days > 2:
+    elif age_of_newest > 1:
         status = "🟡"
     else:
         status = "✅"
-    return {"status": status, "files": len(parquet_files), "total_rows": total_rows, "last_modified": last_modified, "max_age_days": max_age_days}
+    return {"status": status, "files": len(parquet_files), "total_rows": total_rows, "last_modified": last_modified, "age_days": age_of_newest}
 def get_last_log_info(collector_name: str) -> tuple:
     if not LOGS_ROOT.exists():
         return None, "нет логов"
