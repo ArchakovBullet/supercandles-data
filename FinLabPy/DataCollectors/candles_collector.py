@@ -111,8 +111,10 @@ def main():
             file_path = DATA_DIR / f"{ticker}_{tf_name}.parquet"
             if file_path.exists():
                 existing = pd.read_parquet(file_path)
+                if 'begin' in existing.columns:
+                    existing['begin'] = pd.to_datetime(existing['begin'])
                 if not existing.empty:
-                    dt_from = pd.to_datetime(existing['begin'].max())
+                    dt_from = existing['begin'].max()
                 else:
                     dt_from = datetime.now() - timedelta(days=365)
             else:
