@@ -51,6 +51,8 @@ def get_folder_stats(folder_path: Path) -> dict:
         return {"status": "⚠️", "files": 0, "total_rows": 0, "last_modified": None}
     total_rows = 0
     last_modified = None
+    max_age_days = 0
+    now = datetime.now()
     for f in parquet_files:
         try:
             df = pd.read_parquet(f)
@@ -58,9 +60,20 @@ def get_folder_stats(folder_path: Path) -> dict:
             mtime = os.path.getmtime(f)
             if last_modified is None or mtime > last_modified:
                 last_modified = mtime
+            # Проверяем возраст файла
+            age_days = (now - datetime.fromtimestamp(mtime)).days
+            if age_days > max_age_days:
+                max_age_days = age_days
         except Exception as e:
             st.warning(f"Ошибка чтения {f.name}: {e}")
-    return {"status": "✅", "files": len(parquet_files), "total_rows": total_rows, "last_modified": last_modified}
+    # Определяем статус по возрасту
+    if max_age_days > 7:
+        status = "🔴"
+    elif max_age_days > 2:
+        status = "🟡"
+    else:
+        status = "✅"
+    return {"status": status, "files": len(parquet_files), "total_rows": total_rows, "last_modified": last_modified, "max_age_days": max_age_days}
 def get_last_log_info(collector_name: str) -> tuple:
     if not LOGS_ROOT.exists():
         return None, "нет логов"
