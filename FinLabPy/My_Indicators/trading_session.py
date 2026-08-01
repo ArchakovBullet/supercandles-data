@@ -21,7 +21,7 @@ def get_session_status():
     weekday = now.weekday()  # 0=Пн, 6=Вс
     
     # Выходные
-    if weekday >= 5:
+    if weekday >= 6:
         return {
             'status': 'CLOSED',
             'label': '🔴 Выходной',
