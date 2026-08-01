@@ -86,6 +86,17 @@ def get_last_log_info(collector_name: str) -> tuple:
     return None, "нет логов"
 # ========== ЗАГРУЗКА ДАННЫХ ==========
 @st.cache_data
+
+def load_stock_tickers():
+    """Загрузить список акций из tickers_config.json"""
+    import json
+    cfg_path = Path('/root/finlab/FinLabPy/DataCollectors/tickers_config.json')
+    if cfg_path.exists():
+        with open(cfg_path, 'r', encoding='utf-8') as f:
+            cfg = json.load(f)
+        return cfg.get('stocks', ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'AFKS', 'T', 'AFLT', 'YDEX'])
+    return ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'AFKS', 'T', 'AFLT', 'YDEX']
+
 def load_futoi_data():
     futoi_path = DATA_ROOT / "futoi"
     if not futoi_path.exists():
@@ -1217,7 +1228,7 @@ if page == "📊 Сводка":
     st.markdown("---")
     st.subheader("📊 Акции — сигналы на вход")
 
-    _stock_tickers = ['SBER', 'GAZP', 'GMKN', 'YDEX', 'LKOH', 'HYDR', 'IRAO', 'AFKS', 'TATN', 'VTBR', 'PLZL', 'ROSN', 'T', 'AFLT']
+    _stock_tickers = load_stock_tickers()
     _stock_rows = []
 
     for _st in _stock_tickers:
@@ -3724,7 +3735,7 @@ elif page == "📊 Скринер акций":
         
         # === ИНДЕКС АРМСА (TRIN) ===
         # Собираем все тикеры для TRIN (стандартные + кастомные)
-        _all_tickers = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'AFKS', 'T', 'AFLT', 'YDEX']
+        _all_tickers = load_stock_tickers()
         _custom_f = DATA_ROOT / "custom_stocks.txt"
         if _custom_f.exists():
             with open(_custom_f) as f:
@@ -3879,7 +3890,7 @@ elif page == "📊 Скринер акций":
         """)
     
     # Стандартный список + пользовательские тикеры
-    _default_stocks = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'AFKS', 'T', 'AFLT', 'YDEX']
+    _default_stocks = load_stock_tickers()
     
     # Загружаем пользовательские тикеры из файла
     _custom_file = DATA_ROOT / "custom_stocks.txt"
