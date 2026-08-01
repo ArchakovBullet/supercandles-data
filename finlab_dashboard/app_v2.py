@@ -1217,7 +1217,7 @@ if page == "📊 Сводка":
     st.markdown("---")
     st.subheader("📊 Акции — сигналы на вход")
 
-    _stock_tickers = ['SBER', 'GAZP', 'GMKN', 'YDEX', 'LKOH', 'HYDR', 'IRAO', 'AFKS', 'TATN', 'VTBR', 'PLZL', 'ROSN', 'T']
+    _stock_tickers = ['SBER', 'GAZP', 'GMKN', 'YDEX', 'LKOH', 'HYDR', 'IRAO', 'AFKS', 'TATN', 'VTBR', 'PLZL', 'ROSN', 'T', 'AFLT']
     _stock_rows = []
 
     for _st in _stock_tickers:
@@ -3724,7 +3724,7 @@ elif page == "📊 Скринер акций":
         
         # === ИНДЕКС АРМСА (TRIN) ===
         # Собираем все тикеры для TRIN (стандартные + кастомные)
-        _all_tickers = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'AFKS', 'T']
+        _all_tickers = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'AFKS', 'T', 'AFLT', 'YDEX']
         _custom_f = DATA_ROOT / "custom_stocks.txt"
         if _custom_f.exists():
             with open(_custom_f) as f:
