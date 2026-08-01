@@ -19,6 +19,7 @@ def aggregate():
     df = pd.read_parquet(DATA_1H)
     df['hour'] = pd.to_datetime(df['hour'])
     df['block'] = df['hour'].dt.floor('4h')
+    df['hour'] = df['block']
     
     agg = df.groupby(['ticker', 'block']).agg({
         'fiz_long': 'last', 'fiz_short': 'last',
@@ -27,6 +28,9 @@ def aggregate():
         'fiz_buy_ratio': 'mean', 'yur_buy_ratio': 'mean',
         'fiz_ratio_delta': 'sum', 'yur_ratio_delta': 'sum'
     }).reset_index()
+    
+    # Добавляем колонку hour (совместимость с дашбордом)
+    agg['hour'] = agg['block']
     
     agg.to_parquet(DATA_4H, index=False)
     logger.info(f"FutOI 4H: {len(agg)} строк, последняя: {agg['block'].max()}")
