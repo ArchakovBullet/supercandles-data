@@ -1217,7 +1217,7 @@ if page == "📊 Сводка":
     st.markdown("---")
     st.subheader("📊 Акции — сигналы на вход")
 
-    _stock_tickers = ['SBER', 'GAZP', 'GMKN', 'YNDX', 'LKOH', 'HYDR', 'IRAO', 'AFKS', 'TATN', 'VTBR', 'PLZL', 'ROSN', 'T']
+    _stock_tickers = ['SBER', 'GAZP', 'GMKN', 'YDEX', 'LKOH', 'HYDR', 'IRAO', 'AFKS', 'TATN', 'VTBR', 'PLZL', 'ROSN', 'T', 'AFLT']
     _stock_rows = []
 
     for _st in _stock_tickers:
@@ -3724,7 +3724,7 @@ elif page == "📊 Скринер акций":
         
         # === ИНДЕКС АРМСА (TRIN) ===
         # Собираем все тикеры для TRIN (стандартные + кастомные)
-        _all_tickers = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'AFKS', 'T']
+        _all_tickers = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'AFKS', 'T', 'AFLT', 'YDEX']
         _custom_f = DATA_ROOT / "custom_stocks.txt"
         if _custom_f.exists():
             with open(_custom_f) as f:
@@ -3879,7 +3879,7 @@ elif page == "📊 Скринер акций":
         """)
     
     # Стандартный список + пользовательские тикеры
-    _default_stocks = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR']
+    _default_stocks = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'AFKS', 'T', 'AFLT', 'YDEX']
     
     # Загружаем пользовательские тикеры из файла
     _custom_file = DATA_ROOT / "custom_stocks.txt"
@@ -4037,7 +4037,7 @@ elif page == "📊 Скринер акций":
             _sector_file = None
             _stock_to_sector = {'GMKN': 'MOEXMM', 'PLZL': 'MOEXMM', 'SBER': 'MOEXFN', 'VTBR': 'MOEXFN', 'T': 'MOEXFN',
                               'GAZP': 'MOEXOG', 'LKOH': 'MOEXOG', 'ROSN': 'MOEXOG', 'TATN': 'MOEXOG',
-                              'HYDR': 'MOEXEU', 'IRAO': 'MOEXEU', 'AFKS': 'MOEXTL', 'AFLT': 'MOEXTL'}
+                              'HYDR': 'MOEXEU', 'IRAO': 'MOEXEU', 'AFKS': 'MOEXTL', 'AFLT': 'MOEXTL', 'YDEX': 'MOEXTL'}
             if ticker in _stock_to_sector:
                 _sector_file = DATA_ROOT / "sector_indices" / f"{_stock_to_sector[ticker]}_D1.parquet"
                 if _sector_file.exists():
