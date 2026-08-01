@@ -81,18 +81,22 @@ def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, 
     # HI2
     hi2_penalty = 0
     hi2_note = ""
+    # Для акций HI2 обновляется редко (ограничение MOEX API)
     if hi2_value is not None:
+        hi2_note = f"HI2={hi2_value:.0f} (данные могут быть устаревшими) — " if hi2_value else "HI2: нет данных — "
         if hi2_value > 500:
-            hi2_penalty = -15
-            hi2_note = f"HI2={hi2_value:.0f} (>500) — штраф -15"
+            hi2_penalty = -10  # Сниженный штраф для акций (данные неактуальны)
+            hi2_note += "штраф -10"
         elif hi2_value > 300:
-            hi2_penalty = -8
-            hi2_note = f"HI2={hi2_value:.0f} (>300) — штраф -8"
+            hi2_penalty = -5
+            hi2_note += "штраф -5"
         elif hi2_value > 150:
-            hi2_penalty = -3
-            hi2_note = f"HI2={hi2_value:.0f} (>150) — штраф -3"
+            hi2_penalty = -2
+            hi2_note += "штраф -2"
         else:
-            hi2_note = f"HI2={hi2_value:.0f} — норма"
+            hi2_note += "норма"
+    else:
+
     
     # GARCH
     garch_penalty = 0

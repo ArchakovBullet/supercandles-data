@@ -4119,7 +4119,7 @@ elif page == "📊 Скринер акций":
                     '1H': _stock_verdict['signals']['1H']['signal'],
                     'Режим': result['regime'],
                     'vs Сектор': _sector_signal,
-                    'HI2': result['hi2'],
+                    'HI2': f"{result['hi2']} ⚠️ устаревшие" if result.get('hi2') else '—',
                     'ATR': result['atr'],
                 }
                 
