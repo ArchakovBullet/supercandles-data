@@ -95,7 +95,6 @@ def get_stock_scanner_verdict(df_d1, df_4h, df_1h, hi2_value=None, garch_vol=0, 
             hi2_note += "штраф -2"
         else:
             hi2_note += "норма"
-    else:
 
     
     # GARCH
