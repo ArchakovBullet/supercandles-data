@@ -34,7 +34,11 @@
     "SI",
     "SV",
     "VI",
-    "W4"
+    "W4",
+    "ED",
+    "FF",
+    "GN",
+    "SA"
   ],
   "futures_boards": {
     "CE": "RFUD",
