@@ -3879,7 +3879,7 @@ elif page == "📊 Скринер акций":
         """)
     
     # Стандартный список + пользовательские тикеры
-    _default_stocks = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR']
+    _default_stocks = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'AFKS', 'T', 'AFLT', 'YDEX']
     
     # Загружаем пользовательские тикеры из файла
     _custom_file = DATA_ROOT / "custom_stocks.txt"
