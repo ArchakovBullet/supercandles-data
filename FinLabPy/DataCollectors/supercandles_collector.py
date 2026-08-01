@@ -18,7 +18,16 @@ from FinLabPy.Utils import setup_logger
 logger = setup_logger('supercandles_collector')
 
 # 10 ликвидных акций из разных секторов
-TICKERS = ['SBER', 'LKOH', 'ROSN', 'VTBR', 'TATN', 'HYDR', 'IRAO', 'GMKN', 'PLZL', 'YNDX']
+def _load_tickers():
+    import json
+    cfg_path = Path(__file__).parent / 'tickers_config.json'
+    if cfg_path.exists():
+        with open(cfg_path) as f:
+            cfg = json.load(f)
+        return cfg.get('stocks', ['SBER', 'LKOH', 'ROSN', 'VTBR', 'TATN', 'HYDR', 'IRAO', 'GMKN', 'PLZL', 'YDEX'])
+    return ['SBER', 'LKOH', 'ROSN', 'VTBR', 'TATN', 'HYDR', 'IRAO', 'GMKN', 'PLZL', 'YDEX']
+
+TICKERS = _load_tickers()
 DATA_DIR = project_root / 'data' / 'supercandles'
 LOOKBACK_DAYS = 5  # собираем последние 5 дней
 
