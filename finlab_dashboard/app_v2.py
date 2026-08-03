@@ -3,6 +3,7 @@ import streamlit as st
 from pathlib import Path
 import pandas as pd
 import os
+import json
 from datetime import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -3927,6 +3928,16 @@ elif page == "📊 Скринер акций":
                                 f = DATA_ROOT / "candles" / f"{_new_ticker}_D1.parquet"
                                 df_new.to_parquet(f, index=False)
                                 
+                                # Добавляем в tickers_config.json
+                                _cfg_path = Path('/root/finlab/FinLabPy/DataCollectors/tickers_config.json')
+                                if _cfg_path.exists():
+                                    with open(_cfg_path) as cf:
+                                        _cfg = json.load(cf)
+                                    if _new_ticker not in _cfg.get('stocks', []):
+                                        _cfg['stocks'].append(_new_ticker)
+                                        with open(_cfg_path, 'w') as cf:
+                                            json.dump(_cfg, cf, indent=2, ensure_ascii=False)
+
                                 # Добавляем в custom_stocks
                                 _custom_stocks.append(_new_ticker)
                                 with open(_custom_file, 'w') as f_out:
@@ -3953,27 +3964,6 @@ elif page == "📊 Скринер акций":
                         st.error(f"❌ Ошибка: {e}")
                 elif _new_ticker in STOCK_TICKERS:
                     st.warning(f"⚠️ {_new_ticker} уже в скринере")
-        
-        with col_btn2:
-            if st.button("📈 Добавить в HI2", key="add_hi2"):
-                if _new_ticker:
-                    try:
-                        hi2_config = Path('/root/finlab/FinLabPy/DataCollectors/hi2_collector.py')
-                        with open(hi2_config) as f:
-                            hi2_content = f.read()
-                        
-                        if f"'{_new_ticker}': 'stocks'" not in hi2_content:
-                            hi2_content = hi2_content.replace(
-                                "'SBER': 'stocks'",
-                                f"'{_new_ticker}': 'stocks', 'SBER': 'stocks'"
-                            )
-                            with open(hi2_config, 'w') as f:
-                                f.write(hi2_content)
-                            st.success(f"✅ {_new_ticker} добавлен в HI2-сборщик!")
-                        else:
-                            st.warning(f"⚠️ {_new_ticker} уже в HI2-сборщике")
-                    except Exception as e:
-                        st.error(f"❌ Ошибка: {e}")
     
     with col_del:
         if _custom_stocks:
