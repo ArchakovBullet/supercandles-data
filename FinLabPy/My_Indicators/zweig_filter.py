@@ -78,7 +78,10 @@ def get_zweig_signal(market_regime, trin_value, session_status, garch_vol):
         }
     
     # === ВСЁ ЧИСТО ===
-    reasons.append(f"🚀 Режим {market_regime['regime']} — можно торговать")
+    if market_regime:
+        reasons.append(f"🚀 Режим {market_regime['regime']} — можно торговать")
+    else:
+        reasons.append("🚀 Режим: нет данных")
     reasons.append(f"📊 TRIN={trin_value:.1f} — норма" if trin_value else "📊 TRIN: нет данных")
     reasons.append(f"📈 GARCH={garch_vol:.1f}% — норма" if garch_vol else "📈 GARCH: нет данных")
     
