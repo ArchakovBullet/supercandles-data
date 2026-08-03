@@ -69,15 +69,26 @@ def calculate_trin(data_dir=None, tickers=None):
             continue
     
     if declining == 0 or dec_volume == 0:
+        if advancing > 0 and declining == 0:
+            level = '🟢 Все акции выросли'
+            note = 'Бычий сигнал — все акции в плюсе'
+            signal = 'BULLISH'
+        elif advancing == 0 and declining > 0:
+            level = '🔴 Все акции упали'
+            note = 'Медвежий сигнал — все акции в минусе'
+        else:
+            level = 'Нет данных'
+            note = 'Недостаточно данных для расчёта'
+            signal = 'NEUTRAL'
         return {
             'trin': 0,
             'advancing': advancing,
             'declining': declining,
             'adv_volume': int(adv_volume),
             'dec_volume': int(dec_volume),
-            'signal': 'NEUTRAL',
-            'level': 'Нет данных',
-            'note': 'Недостаточно данных для расчёта'
+            'signal': signal,
+            'level': level,
+            'note': note
         }
     
     # TRIN
