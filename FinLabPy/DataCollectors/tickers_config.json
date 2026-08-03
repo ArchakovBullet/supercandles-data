@@ -39,7 +39,8 @@
     "ED",
     "FF",
     "GN",
-    "SA"
+    "SA",
+    "CR"
   ],
   "futures_boards": {
     "CE": "RFUD",
@@ -60,6 +61,7 @@
     "SI": "RFUD",
     "SV": "RFUD",
     "VI": "RFUD",
-    "W4": "RFUD"
+    "W4": "RFUD",
+    "CR": "RFUD"
   }
 }

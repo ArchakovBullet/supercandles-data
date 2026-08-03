@@ -2737,7 +2737,7 @@ else:
                             env=env, capture_output=True, text=True, timeout=120
                         )
                         # Проверяем, создался ли файл с данными
-                        _futoi_file = DATA_ROOT / 'futoi' / f'{_full_code}_futoi.parquet'
+                        _futoi_file = DATA_ROOT / 'futoi' / f'{_new_ticker}_futoi.parquet'
                         if _futoi_file.exists():
                             _futoi_df = pd.read_parquet(_futoi_file)
                             if len(_futoi_df) > 0:

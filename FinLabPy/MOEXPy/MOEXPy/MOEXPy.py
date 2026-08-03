@@ -281,15 +281,21 @@ class MOEXPy:
         params = dict(date=date)
         return self.check_result(get(url, params=params, headers=self.headers))
 
-    def get_hi2(self, engine: Literal['stock', 'futures', 'currency'], ticker, date):
-        """РРЅРґРµРєСЃ СЂС‹РЅРѕС‡РЅРѕР№ РєРѕРЅС†РµРЅС‚СЂР°С†РёРё (РҐРµСЂС„РёРЅРґР°Р»СЏ-РҐРёСЂС€РјР°РЅР°) РїРѕ РёРЅСЃС‚СЂСѓРјРµРЅС‚Сѓ
-
-        :param Literal['stock', 'futures', 'currency'] engine: РўРѕСЂРіРѕРІР°СЏ РїР»РѕС‰Р°РґРєР° Р°РєС†РёР№/С„СЊСЋС‡РµСЂСЃРѕРІ/РІР°Р»СЋС‚
-        :param str ticker: РўРёРєРµСЂ
-        :param date date: Р”Р°С‚Р° С‚РѕСЂРіРѕРІ
+    def get_hi2(self, engine: Literal['stock', 'futures', 'currency'], ticker, date=None, from_date=None, till_date=None):
+        """Индекс концентрации (Херфиндаля-Хиршмана) по инструменту
+        :param engine: Торговая площадка
+        :param ticker: Тикер
+        :param date: Дата торгов (для обратной совместимости)
+        :param from_date: Начало диапазона
+        :param till_date: Конец диапазона
         """
-        url = f'{self.api_server}/datashop/algopack/{self.engine_map[engine]}/hi2/{ticker}.json'  # URL Р·Р°РїСЂРѕСЃР°
-        params = dict(date=date)
+        url = f'{self.api_server}/datashop/algopack/{self.engine_map[engine]}/hi2/{ticker}.json'
+        params = {}
+        if from_date and till_date:
+            params['from'] = str(from_date)
+            params['till'] = str(till_date)
+        elif date:
+            params['date'] = str(date)
         return self.check_result(get(url, params=params, headers=self.headers))
 
     # Mega Alerts - https://moexalgo.github.io/docs/api/mega-alerts

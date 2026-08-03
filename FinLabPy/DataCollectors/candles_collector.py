@@ -108,8 +108,13 @@ def main():
             print(f"  {tf_name}...", end=' ')
             
             # Определяем дату начала
-            file_path = DATA_DIR / f"{ticker}_{tf_name}.parquet"
-            if file_path.exists():
+            api_ticker = get_full_code(ticker) if board == "RFUD" else ticker
+            file_path = DATA_DIR / f"{api_ticker}_{tf_name}.parquet"
+            # Ищем существующий файл (может быть с коротким или полным кодом)
+            existing_files = list(DATA_DIR.glob(f"{ticker}_*.parquet")) + list(DATA_DIR.glob(f"{api_ticker}_*.parquet"))
+            existing_files = [f for f in existing_files if f.stem.endswith(tf_name)]
+            if existing_files:
+                file_path = existing_files[0]  # Берём первый найденный
                 existing = pd.read_parquet(file_path)
                 if 'begin' in existing.columns:
                     existing['begin'] = pd.to_datetime(existing['begin'])
@@ -118,7 +123,7 @@ def main():
                 else:
                     dt_from = datetime.now() - timedelta(days=365)
             else:
-                dt_from = datetime.now() - timedelta(days=365)
+                dt_from = datetime.now() - timedelta(days=30)
             
             dt_till = datetime.now()
             
@@ -127,7 +132,6 @@ def main():
                 continue
             
             try:
-                api_ticker = get_full_code(ticker) if board == "RFUD" else ticker
                 result = moex.get_candles(board, api_ticker, dt_from, dt_till, interval)
                 
                 if result is None or 'candles' not in result or len(result['candles']['data']) == 0:
