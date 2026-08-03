@@ -103,7 +103,7 @@ class HI2Collector:
     def _collect_one(self, ticker: str, engine: str) -> int:
         """Собрать HI2 для одного тикера."""
         from datetime import timedelta
-        start = date.today() - timedelta(days=365)
+        start = date.today() - timedelta(days=30)
         api_ticker = self._resolve_full_code(ticker) if engine == "futures" else ticker
         raw = self.api.get_hi2(engine, api_ticker, from_date=start, till_date=date.today())
         
