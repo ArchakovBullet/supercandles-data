@@ -14,6 +14,8 @@ project_root = Path(__file__).parent.parent.parent if '__file__' in dir() else P
 sys.path.insert(0, str(project_root))
 
 import polars as pl
+import requests, json
+from datetime import datetime
 from MOEXPy.MOEXPy import MOEXPy
 from FinLabPy.Utils import setup_logger
 
@@ -62,9 +64,48 @@ class HI2Collector:
         
         logger.info(f'Готово! Всего новых записей: {total_new}')
     
+
+    @staticmethod
+    def _resolve_full_code(short_code):
+        """Получить полный код фьючерса (ближайший активный контракт)."""
+        cache_file = Path(__file__).parent / "contract_cache.json"
+        cache = {}
+        if cache_file.exists():
+            with open(cache_file) as f:
+                cache = json.load(f)
+        today = datetime.now().strftime("%Y-%m-%d")
+        if short_code in cache and cache[short_code].get("date") == today:
+            return cache[short_code]["code"]
+        try:
+            url = "https://iss.moex.com/iss/engines/futures/markets/forts/securities.json"
+            r = requests.get(url, timeout=10)
+            data = r.json()["securities"]
+            cols = data["columns"]
+            rows = data["data"]
+            secid_idx = cols.index("SECID")
+            sectype_idx = cols.index("SECTYPE")
+            date_idx = cols.index("LASTTRADEDATE")
+            active = []
+            for row in rows:
+                if row[sectype_idx].upper() == short_code.upper() and row[date_idx] > today:
+                    active.append((row[date_idx], row[secid_idx]))
+            if active:
+                active.sort()
+                full_code = active[0][1]
+                cache[short_code] = {"code": full_code, "date": today}
+                with open(cache_file, "w") as f:
+                    json.dump(cache, f)
+                return full_code
+        except:
+            pass
+        return short_code
+
     def _collect_one(self, ticker: str, engine: str) -> int:
         """Собрать HI2 для одного тикера."""
-        raw = self.api.get_hi2(engine, ticker, date.today())
+        from datetime import timedelta
+        start = date.today() - timedelta(days=365)
+        api_ticker = self._resolve_full_code(ticker) if engine == "futures" else ticker
+        raw = self.api.get_hi2(engine, api_ticker, from_date=start, till_date=date.today())
         
         if not raw or 'data' not in raw or 'data' not in raw['data']:
             return 0
