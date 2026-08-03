@@ -4048,7 +4048,7 @@ elif page == "📊 Скринер акций":
             _sector_file = None
             _stock_to_sector = {'GMKN': 'MOEXMM', 'PLZL': 'MOEXMM', 'SBER': 'MOEXFN', 'VTBR': 'MOEXFN', 'T': 'MOEXFN',
                               'GAZP': 'MOEXOG', 'LKOH': 'MOEXOG', 'ROSN': 'MOEXOG', 'TATN': 'MOEXOG',
-                              'HYDR': 'MOEXEU', 'IRAO': 'MOEXEU', 'AFKS': 'MOEXTL', 'AFLT': 'MOEXTL', 'YDEX': 'MOEXTL'}
+                              'HYDR': 'MOEXEU', 'IRAO': 'MOEXEU', 'AFKS': 'MOEXTL', 'AFLT': 'MOEXTL', 'YDEX': 'MOEXTL', 'RUAL': 'MOEXMM'}
             if ticker in _stock_to_sector:
                 _sector_file = DATA_ROOT / "sector_indices" / f"{_stock_to_sector[ticker]}_D1.parquet"
                 if _sector_file.exists():
