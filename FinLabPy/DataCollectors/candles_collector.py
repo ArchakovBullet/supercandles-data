@@ -118,7 +118,7 @@ def main():
                 else:
                     dt_from = datetime.now() - timedelta(days=365)
             else:
-                dt_from = datetime.now() - timedelta(days=365)
+                dt_from = datetime.now() - timedelta(days=30)
             
             dt_till = datetime.now()
             

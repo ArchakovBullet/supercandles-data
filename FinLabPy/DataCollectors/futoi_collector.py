@@ -31,13 +31,49 @@ DATA_DIR = project_root / 'data' / 'futoi'
 LOOKBACK_DAYS = 5
 
 
+def _resolve_full_code(short_code):
+    import json, requests
+    cache_file = Path(__file__).parent / "contract_cache.json"
+    cache = {}
+    if cache_file.exists():
+        with open(cache_file) as f:
+            cache = json.load(f)
+    today = datetime.now().strftime("%Y-%m-%d")
+    if short_code in cache and cache[short_code].get("date") == today:
+        return cache[short_code]["code"]
+    try:
+        url = "https://iss.moex.com/iss/engines/futures/markets/forts/securities.json"
+        r = requests.get(url, timeout=10)
+        data = r.json()["securities"]
+        cols = data["columns"]
+        rows = data["data"]
+        secid_idx = cols.index("SECID")
+        sectype_idx = cols.index("SECTYPE")
+        date_idx = cols.index("LASTTRADEDATE")
+        active = []
+        for row in rows:
+            if row[sectype_idx].upper() == short_code.upper() and row[date_idx] > today:
+                active.append((row[date_idx], row[secid_idx]))
+        if active:
+            active.sort()
+            full_code = active[0][1]
+            cache[short_code] = {"code": full_code, "date": today}
+            with open(cache_file, "w") as f:
+                json.dump(cache, f)
+            return full_code
+    except:
+        pass
+    return short_code
+
+
 def collect_futoi(ticker: str, api: MOEXPy) -> pl.DataFrame:
     """Собрать данные FutOI за LOOKBACK_DAYS"""
     dt_till = datetime.now()
     dt_from = dt_till - timedelta(days=LOOKBACK_DAYS)
 
     try:
-        raw_data = api.get_futoi(ticker, dt_from, dt_till)
+        api_ticker = _resolve_full_code(ticker) if ticker not in ['CNYRUBF', 'USDRUBF', 'EURRUBF', 'GLDRUBF', 'GAZPF', 'SBERF', 'IMOEXF'] else ticker
+        raw_data = api.get_futoi(api_ticker, dt_from, dt_till)
 
         data_rows = raw_data.get('futoi', {}).get('data', [])
         columns = raw_data.get('futoi', {}).get('columns', [])

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Агрегатор Super Candles в 4-часовые свечи (H4).
 Группирует 5-минутные свечи в 4-часовые блоки: 07:00-11:00, 11:00-15:00, 15:00-19:00.
 Запускается после ежедневного сбора Super Candles.
@@ -8,7 +8,7 @@
 """
 import sys
 from pathlib import Path
-from datetime import date
+from datetime import date, timedelta
 
 project_root = Path(__file__).parent.parent.parent if '__file__' in globals() else Path('.').absolute()
 sys.path.insert(0, str(project_root))
@@ -39,6 +39,7 @@ def aggregate_all():
         return
 
     today = str(date.today())
+    lookback_dates = [(date.today() - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(3)]
     all_h4_rows = []
 
     for f in sorted(DATA_DIR.glob('*_supercandles.parquet')):
@@ -49,7 +50,7 @@ def aggregate_all():
             continue
 
         # Фильтруем только сегодняшние данные
-        df_today = df.filter(pl.col('tradedate') == today)
+        df_today = df.filter(pl.col('tradedate').is_in(lookback_dates))
 
         if df_today.is_empty():
             continue
@@ -73,7 +74,7 @@ def aggregate_all():
             # Агрегируем в OHLCV + специфичные метрики
             h4_row = {
                 'ticker': ticker,
-                'tradedate': today,
+                'tradedate': df_today['tradedate'][0] if len(df_today) > 0 else today,
                 'block': label,
                 'pr_open': block_df['pr_open'].first(),
                 'pr_high': block_df['pr_high'].max(),
