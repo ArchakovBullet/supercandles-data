@@ -63,6 +63,13 @@ class HI2Collector:
                 logger.error(f'  {ticker}: ОШИБКА — {e}')
         
         logger.info(f'Готово! Всего новых записей: {total_new}')
+
+        # Автообновление hi2_daily
+        try:
+            from DataCollectors.hi2_daily_aggregator import aggregate_all
+            aggregate_all()
+        except Exception:
+            pass
     
 
     @staticmethod
