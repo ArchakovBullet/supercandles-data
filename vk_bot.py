@@ -169,6 +169,31 @@ def auto_cleanup(vk, peer_id):
     except:
         pass
 
+
+def check_data_freshness():
+    from datetime import datetime
+    now = datetime.now()
+    problems = []
+    checks = {
+        "FutOI": (DATA_ROOT / "futoi", 1),
+        "HI2": (DATA_ROOT / "hi2", 2),
+        "Super Candles": (DATA_ROOT / "supercandles", 1),
+        "TradeStats": (DATA_ROOT / "tradestats", 2),
+    }
+    for name, (dir_path, max_days) in checks.items():
+        if not dir_path.exists():
+            problems.append(f"❌ {name}: папка не найдена")
+            continue
+        files = list(dir_path.glob("*.parquet"))
+        if not files:
+            problems.append(f"⚠️ {name}: нет файлов")
+            continue
+        last_mod = datetime.fromtimestamp(max(f.stat().st_mtime for f in files))
+        days_old = (now - last_mod).days
+        if days_old > max_days:
+            problems.append(f"🔴 {name}: {days_old} дн. назад ({last_mod.strftime("%d.%m.%Y %H:%M")})")
+    return problems
+
 def check_trend_changes(vk):
     """Проверяет смену трендов и отправляет уведомления"""
     prev_state = load_state()
@@ -259,7 +284,13 @@ def main():
                     elif text in ['funding', '/funding']:
                         response = get_funding_rates()
                     elif text in ['help', '/help']:
-                        response = "📋 Доступные команды:\nstatus — статус сборщиков\nfutoi — сигналы FutOI\nfunding — ставки фандинга"
+                        response = "📋 Доступные команды:\nstatus — статус сборщиков\nfutoi — сигналы FutOI\nfunding — ставки фандинга\nstale — проверка свежести"
+                    elif msg == "stale":
+                        problems = check_data_freshness()
+                        if problems:
+                            response = "🔴 Проблемы со свежестью данных:\n" + "\n".join(problems)
+                        else:
+                            response = "✅ Все данные свежие"
                     else:
                         response = "Неизвестная команда. Используйте help для списка команд."
 
