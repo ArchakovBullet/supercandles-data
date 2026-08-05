@@ -72,8 +72,7 @@ def collect_futoi(ticker: str, api: MOEXPy) -> pl.DataFrame:
     dt_from = dt_till - timedelta(days=LOOKBACK_DAYS)
 
     try:
-        api_ticker = _resolve_full_code(ticker) if ticker not in ['CNYRUBF', 'USDRUBF', 'EURRUBF', 'GLDRUBF', 'GAZPF', 'SBERF', 'IMOEXF'] else ticker
-        raw_data = api.get_futoi(api_ticker, dt_from, dt_till)
+        raw_data = api.get_futoi(ticker, dt_from, dt_till)
 
         data_rows = raw_data.get('futoi', {}).get('data', [])
         columns = raw_data.get('futoi', {}).get('columns', [])
