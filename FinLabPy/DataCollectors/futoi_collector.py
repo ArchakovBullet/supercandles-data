@@ -1,4 +1,4 @@
-﻿"""
+"""
 Ежедневный сборщик данных FutOI (открытые позиции физ/юр лиц)
 Сохраняет в Parquet для компактности и скорости
 """
@@ -52,8 +52,13 @@ def _resolve_full_code(short_code):
         date_idx = cols.index("LASTTRADEDATE")
         active = []
         for row in rows:
-            if row[sectype_idx].upper() == short_code.upper() and row[date_idx] > today:
-                active.append((row[date_idx], row[secid_idx]))
+            if row[sectype_idx].upper() == short_code.upper():
+                try:
+                    last_trade = datetime.strptime(str(row[date_idx])[:10], '%Y-%m-%d').strftime('%Y-%m-%d')
+                    if last_trade > today:
+                        active.append((last_trade, row[secid_idx]))
+                except ValueError:
+                    continue
         if active:
             active.sort()
             full_code = active[0][1]
@@ -61,8 +66,10 @@ def _resolve_full_code(short_code):
             with open(cache_file, "w") as f:
                 json.dump(cache, f)
             return full_code
-    except:
-        pass
+    except requests.exceptions.RequestException as e:
+        logger.warning(f'Ошибка запроса контракта {short_code}: {e}')
+    except (KeyError, IndexError) as e:
+        logger.warning(f'Ошибка парсинга контракта {short_code}: {e}')
     return short_code
 
 
@@ -131,6 +138,9 @@ def main():
     logger.info(f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     token = os.getenv('MOEX_TOKEN')
+    if not token:
+        logger.error('MOEX_TOKEN не установлен')
+        return
     api = MOEXPy(token=token)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
