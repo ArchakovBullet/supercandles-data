@@ -17,10 +17,16 @@ def aggregate():
         return
     
     df = pd.read_parquet(DATA_1H)
+    required = ['ticker', 'hour', 'fiz_long', 'fiz_short', 'yur_long', 'yur_short']
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        logger.error(f'Отсутствуют колонки: {missing}')
+        return
     df['hour'] = pd.to_datetime(df['hour'])
     df['block'] = df['hour'].dt.floor('4h')
     df['hour'] = df['block']
     
+    df = df.drop_duplicates(subset=['ticker', 'hour'])
     agg = df.groupby(['ticker', 'block']).agg({
         'fiz_long': 'last', 'fiz_short': 'last',
         'yur_long': 'last', 'yur_short': 'last',
