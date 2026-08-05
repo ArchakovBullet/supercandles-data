@@ -85,17 +85,18 @@ def aggregate_to_1h(df):
         
         # Объединяем
         merged = fiz.merge(yur, on='hour', how='outer')
+        merged[['fiz_long', 'fiz_short', 'yur_long', 'yur_short']] = merged[['fiz_long', 'fiz_short', 'yur_long', 'yur_short']].fillna(0).astype(int)
         merged['ticker'] = ticker
         
         # Считаем ratio
         merged['fiz_total'] = merged['fiz_long'] + merged['fiz_short']
         merged['yur_total'] = merged['yur_long'] + merged['yur_short']
-        merged['fiz_buy_ratio'] = (merged['fiz_long'] / merged['fiz_total'] * 100).round(2)
-        merged['yur_buy_ratio'] = (merged['yur_long'] / merged['yur_total'] * 100).round(2)
+        merged['fiz_buy_ratio'] = ((merged['fiz_long'] / merged['fiz_total'] * 100).round(2)).fillna(0)
+        merged['yur_buy_ratio'] = ((merged['yur_long'] / merged['yur_total'] * 100).round(2)).fillna(0)
         
         # Дельта за 1 час (изменение ratio)
-        merged['fiz_ratio_delta'] = merged['fiz_buy_ratio'].diff().round(2)
-        merged['yur_ratio_delta'] = merged['yur_buy_ratio'].diff().round(2)
+        merged['fiz_ratio_delta'] = merged.groupby('ticker')['fiz_buy_ratio'].diff().round(2).fillna(0)
+        merged['yur_ratio_delta'] = merged.groupby('ticker')['yur_buy_ratio'].diff().round(2).fillna(0)
         
         result.append(merged)
     
