@@ -178,7 +178,7 @@ def check_data_freshness():
         "FutOI": (DATA_ROOT / "futoi", 1),
         "HI2": (DATA_ROOT / "hi2", 2),
         "Super Candles": (DATA_ROOT / "supercandles", 1),
-        "TradeStats": (DATA_ROOT / "tradestats", 2),
+        "TradeStats": (DATA_ROOT / "tradestats", 1),
         "H4 фьючерсов": (DATA_ROOT / "candles", 1),
     }
     for name, (dir_path, max_days) in checks.items():
