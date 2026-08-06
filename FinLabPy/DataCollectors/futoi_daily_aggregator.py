@@ -66,7 +66,7 @@ def aggregate_daily(ticker: str) -> pl.DataFrame:
     result = fiz.join(yur, on=['ticker', 'tradedate'], how='full')
 
     result = result.with_columns([
-        (pl.col('phys_net') - pl.col('phys_net').shift(1)).alias('phys_change'),
+        (pl.col('phys_net') - pl.col('phys_net').shift(1).over('ticker')).alias('phys_change'),
     ])
 
     return result.sort(['ticker', 'tradedate'])
