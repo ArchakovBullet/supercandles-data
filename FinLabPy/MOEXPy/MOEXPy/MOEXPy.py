@@ -562,7 +562,11 @@ class MOEXPy:
             response = get(url, params=params, headers=self.headers)
             content = loads(response.content.decode('utf-8'))
 
-            rows = content['data']['data']
+            # Поддержка нового формата (metadata + columns + data) для срочных фьючерсов
+            if isinstance(content['data']['data'], dict) and 'data' in content['data']['data']:
+                rows = content['data']['data']['data']
+            else:
+                rows = content['data']['data']
             total = content['data.cursor']['data'][0][1] if content['data.cursor']['data'] else 0
 
             if all_data is None:

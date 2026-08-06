@@ -1,4 +1,4 @@
-﻿"""
+"""
 Сборщик TradeStats для вертикального профиля объёма (Volume Profile)
 Сохраняет агрегированные объёмы по ценовым уровням
 """
@@ -19,13 +19,47 @@ logger = setup_logger('tradestats_collector')
 
 # ========== КОНФИГ ==========
 # Вечные фьючерсы (те, что уже есть в проекте)
-FUTURES = ['CNYRUBF', 'EURRUBF', 'GAZPF', 'GLDRUBF', 'IMOEXF', 'SBERF', 'USDRUBF']
+FUTURES = ['CNYRUBF', 'EURRUBF', 'GAZPF', 'GLDRUBF', 'IMOEXF', 'SBERF', 'USDRUBF', 'BR', 'CE', 'CR', 'ED', 'FF', 'GD', 'MX', 'OJ', 'PD', 'PT', 'RI', 'SI', 'SV', 'VI', 'W4']
 
 # Акции (для которых есть Super Candles)
 STOCKS = ['SBER', 'GAZP', 'GMKN', 'LKOH', 'PLZL', 'ROSN', 'TATN', 'VTBR', 'HYDR', 'IRAO']
 
 DATA_DIR = Path('/root/finlab/data/tradestats')
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+def _resolve_full_code(short_code):
+    import json, requests
+    cache_file = Path(__file__).parent / "contract_cache.json"
+    cache = {}
+    if cache_file.exists():
+        with open(cache_file) as f:
+            cache = json.load(f)
+    today = datetime.now().strftime("%Y-%m-%d")
+    if short_code in cache and cache[short_code].get("date") == today:
+        return cache[short_code]["code"]
+    try:
+        url = "https://iss.moex.com/iss/engines/futures/markets/forts/securities.json"
+        r = requests.get(url, timeout=10)
+        data = r.json()["securities"]
+        cols = data["columns"]
+        rows = data["data"]
+        secid_idx = cols.index("SECID")
+        sectype_idx = cols.index("SECTYPE")
+        date_idx = cols.index("LASTTRADEDATE")
+        active = []
+        for row in rows:
+            if row[sectype_idx].upper() == short_code.upper() and row[date_idx] > today:
+                active.append((row[date_idx], row[secid_idx]))
+        if active:
+            active.sort()
+            full_code = active[0][1]
+            cache[short_code] = {"code": full_code, "date": today}
+            with open(cache_file, "w") as f:
+                json.dump(cache, f)
+            return full_code
+    except:
+        pass
+    return short_code
 
 def collect_tradestats(ticker, board):
     """Собрать TradeStats для одного тикера"""
@@ -38,9 +72,10 @@ def collect_tradestats(ticker, board):
     dt_from = dt_till - timedelta(days=30)
     
     try:
-        result = moex.get_tradestats(ticker, dt_from, dt_till, board)
+        api_ticker = _resolve_full_code(ticker) if ticker not in ['CNYRUBF', 'USDRUBF', 'EURRUBF', 'GLDRUBF', 'GAZPF', 'SBERF', 'IMOEXF'] else ticker
+        result = moex.get_tradestats(api_ticker, dt_from, dt_till, board)
         
-        if result is None or 'data' not in result or len(result['data']) == 0:
+        if result is None or 'data' not in result:
             print("нет данных")
             return 0
         
