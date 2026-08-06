@@ -191,12 +191,14 @@ def get_ticker_verdict(ticker):
         _atr = atr_info['atr'] if atr_info else None
         _close = df_d1['close'].iloc[-1]
         
-        # GARCH
+        # RVI из секторов
         _garch_vol = 0
         try:
-            from My_Indicators.garch_indicator import calculate_garch_for_ticker
-            _gr = calculate_garch_for_ticker(df_d1, ticker)
-            _garch_vol = _gr.get('garch_vol', 0)
+            _rvi_f = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
+            if _rvi_f.exists():
+                _rvi_df = pd.read_parquet(_rvi_f)
+                if len(_rvi_df) > 0 and 'close' in _rvi_df.columns:
+                    _garch_vol = _rvi_df['close'].iloc[-1]  # Приводим к процентам
         except:
             pass
         
@@ -1016,24 +1018,19 @@ if page == "📊 Сводка":
                     _sector_count += 1
         _avg_sector_change = _sector_change / _sector_count if _sector_count > 0 else 0
 
-        # Собираем данные для определения режима
+        # RVI из секторов (единый для всех)
         _garch_vals = []
         _adx_vals = []
         _chop_vals = []
         _rvi_val = None
-        
-        _all_futures = load_futoi_data()[1] if load_futoi_data()[1] else ['CNYRUBF', 'GAZPF', 'GLDRUBF']
-        for _t in _all_futures:
-            _d1f = DATA_ROOT / "candles" / f"{_t}_D1.parquet"
-            if _d1f.exists():
-                _df = pd.read_parquet(_d1f)
-                if len(_df) >= 20:
-                    try:
-                        _gr = calculate_garch_for_ticker(_df, _t)
-                        _garch_vals.append(_gr.get('garch_vol', 0))
-                    except:
-                        pass
-        
+
+        _rvi_f = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
+        if _rvi_f.exists():
+            _rvi_df = pd.read_parquet(_rvi_f)
+            if len(_rvi_df) > 0 and 'close' in _rvi_df.columns:
+                _rvi_val = _rvi_df['close'].iloc[-1]
+                _garch_vals.append(_rvi_val)
+
         _avg_garch = sum(_garch_vals) / len(_garch_vals) if _garch_vals else 0
         
         # Собираем ADX/Choppiness по фьючерсам
@@ -1074,7 +1071,7 @@ if page == "📊 Сводка":
         with col_t2:
             st.metric("Уровень риска", f"{_regime['risk_level']}/100")
         with col_t3:
-            st.metric("RVI (индекс волатильности)", f"{_avg_garch:.1f}%")
+            st.metric("RVI (индекс волатильности, пункты)", f"{_avg_garch:.1f} п.")
         
         _session = get_session_status()
         st.caption(f"📊 Сессия: {_session['label']} | Ликвидность: {_session['liquidity']:.0%}")
@@ -3693,7 +3690,12 @@ elif page == "📊 Скринер акций":
         
         _avg_adx_s = sum(_stock_adx) / len(_stock_adx) if _stock_adx else 0
         _avg_chop_s = sum(_stock_chop) / len(_stock_chop) if _stock_chop else 50
-        _avg_garch_s = sum(_stock_garch) / len(_stock_garch) if _stock_garch else 0
+        _rvi_f = DATA_ROOT / 'sector_indices' / 'RVI_D1.parquet'
+        if _rvi_f.exists():
+            _rvi_df_s = pd.read_parquet(_rvi_f)
+            _avg_garch_s = _rvi_df_s['close'].iloc[-1] if len(_rvi_df_s) > 0 else 0
+        else:
+            _avg_garch_s = 0
         
         _df_idx_s = pd.DataFrame({'adx': [_avg_adx_s], 'choppiness': [_avg_chop_s]})
         _regime_s = get_market_regime(df_indices=_df_idx_s, garch_vol=_avg_garch_s)
@@ -3706,7 +3708,7 @@ elif page == "📊 Скринер акций":
         with col_s2:
             st.metric("Уровень риска", f"{_regime_s['risk_level']}/100")
         with col_s3:
-            st.metric("RVI (индекс волатильности)", f"{_avg_garch_s:.1f}%")
+            st.metric("RVI (индекс волатильности, пункты)", f"{_avg_garch_s:.1f} п.")
         
         _session_s = get_session_status()
         st.caption(f"📊 Сессия: {_session_s['label']} | Ликвидность: {_session_s['liquidity']:.0%}")

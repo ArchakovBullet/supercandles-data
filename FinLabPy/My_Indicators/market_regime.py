@@ -55,7 +55,7 @@ def get_market_regime(df_indices=None, garch_vol=None, rvi_val=None, imoex_trend
     crisis = False
     if garch_vol is not None and garch_vol > 40:
         crisis = True
-        reasons.append(f"RVI={garch_vol:.1f}% > 30% — экстремальная волатильность")
+        reasons.append(f"RVI={garch_vol:.1f} п. > 30% — экстремальная волатильность")
     if rvi_val is not None and rvi_val > 40:
         crisis = True
         reasons.append(f"RVI={rvi_val:.1f} > 40 — паника на рынке")

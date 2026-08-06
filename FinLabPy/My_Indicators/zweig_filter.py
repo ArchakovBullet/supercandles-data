@@ -25,7 +25,7 @@ def get_zweig_signal(market_regime, trin_value, session_status, garch_vol):
     
     # === 1. КРИЗИС — полная блокировка ===
     if market_regime and market_regime['regime'] == 'CRISIS':
-        blocks.append(f"🌪️ Режим CRISIS (RVI={garch_vol:.1f}%) — вход запрещён")
+        blocks.append(f"🌪️ Режим CRISIS (RVI={garch_vol:.1f} п.) — вход запрещён")
         return {
             'signal': 'BLOCKED',
             'emoji': '🔴',
@@ -64,7 +64,7 @@ def get_zweig_signal(market_regime, trin_value, session_status, garch_vol):
     
     # === 5. Высокий RVI — предупреждение ===
     if garch_vol and garch_vol > 25:
-        warnings.append(f"🟡 RVI={garch_vol:.1f}% — высокая волатильность")
+        warnings.append(f"🟡 RVI={garch_vol:.1f} п. — высокая волатильность")
     
     # === ИТОГ ===
     if warnings:
@@ -83,7 +83,7 @@ def get_zweig_signal(market_regime, trin_value, session_status, garch_vol):
     else:
         reasons.append("🚀 Режим: нет данных")
     reasons.append(f"📊 TRIN={trin_value:.1f} — норма" if trin_value else "📊 TRIN: нет данных")
-    reasons.append(f"📈 RVI={garch_vol:.1f}% — норма" if garch_vol else "📈 RVI: нет данных")
+    reasons.append(f"📈 RVI={garch_vol:.1f} п. — норма" if garch_vol else "📈 RVI: нет данных")
     
     return {
         'signal': 'APPROVED',
