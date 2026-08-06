@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from datetime import date
 
-project_root = Path(__file__).parent.parent.parent if '__file__' in dir() else Path('.').absolute()
+project_root = Path(__file__).parent.parent.parent if '__file__' in globals() else Path('.').absolute()
 sys.path.insert(0, str(project_root))
 
 import polars as pl
