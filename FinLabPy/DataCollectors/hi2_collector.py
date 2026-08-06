@@ -1,4 +1,4 @@
-﻿"""
+"""
 Сборщик истории HI2 (индекс концентрации Херфиндаля-Хиршмана) через MOEX API.
 Запускается раз в день через cron, накапливает историю в parquet.
 
@@ -41,7 +41,6 @@ class HI2Collector:
         # Fallback
         return {'SBER': 'stocks', 'GAZP': 'stocks', 'GLDRUBF': 'futures'}
 
-    TICKERS = _load_tickers.__func__()
     
     def __init__(self, api, data_dir: Path = None):
         self.api = api
@@ -155,6 +154,9 @@ class HI2Collector:
         
         df_combined.write_parquet(file_path)
         return len(df_new)
+
+
+HI2Collector.TICKERS = HI2Collector._load_tickers()
 
 
 if __name__ == '__main__':
