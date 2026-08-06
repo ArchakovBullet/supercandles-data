@@ -191,12 +191,14 @@ def get_ticker_verdict(ticker):
         _atr = atr_info['atr'] if atr_info else None
         _close = df_d1['close'].iloc[-1]
         
-        # GARCH
+        # RVI из секторов
         _garch_vol = 0
         try:
-            from My_Indicators.garch_indicator import calculate_garch_for_ticker
-            _gr = calculate_garch_for_ticker(df_d1, ticker)
-            _garch_vol = _gr.get('garch_vol', 0)
+            _rvi_f = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
+            if _rvi_f.exists():
+                _rvi_df = pd.read_parquet(_rvi_f)
+                if len(_rvi_df) > 0 and 'close' in _rvi_df.columns:
+                    _garch_vol = _rvi_df['close'].iloc[-1]  # Приводим к процентам
         except:
             pass
         
@@ -979,7 +981,7 @@ if page == "📊 Сводка":
     
     # === ТЕМПЕРАТУРА РЫНКА ===
     with st.expander("🌡️ Температура рынка (фьючерсы)", expanded=True):
-        st.caption("IMOEX + RVI + RGBI + сектора + GARCH/ADX/Choppiness фьючерсов")
+        st.caption("IMOEX + RVI + RGBI + сектора + RVI/ADX/Choppiness фьючерсов")
         # === 1. IMOEX ===
         _imoex_trend = None
         _imoex_file = DATA_ROOT / "sector_indices" / "IMOEX_D1.parquet"
@@ -1016,24 +1018,19 @@ if page == "📊 Сводка":
                     _sector_count += 1
         _avg_sector_change = _sector_change / _sector_count if _sector_count > 0 else 0
 
-        # Собираем данные для определения режима
+        # RVI из секторов (единый для всех)
         _garch_vals = []
         _adx_vals = []
         _chop_vals = []
         _rvi_val = None
-        
-        _all_futures = load_futoi_data()[1] if load_futoi_data()[1] else ['CNYRUBF', 'GAZPF', 'GLDRUBF']
-        for _t in _all_futures:
-            _d1f = DATA_ROOT / "candles" / f"{_t}_D1.parquet"
-            if _d1f.exists():
-                _df = pd.read_parquet(_d1f)
-                if len(_df) >= 20:
-                    try:
-                        _gr = calculate_garch_for_ticker(_df, _t)
-                        _garch_vals.append(_gr.get('garch_vol', 0))
-                    except:
-                        pass
-        
+
+        _rvi_f = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
+        if _rvi_f.exists():
+            _rvi_df = pd.read_parquet(_rvi_f)
+            if len(_rvi_df) > 0 and 'close' in _rvi_df.columns:
+                _rvi_val = _rvi_df['close'].iloc[-1]
+                _garch_vals.append(_rvi_val)
+
         _avg_garch = sum(_garch_vals) / len(_garch_vals) if _garch_vals else 0
         
         # Собираем ADX/Choppiness по фьючерсам
@@ -1058,13 +1055,13 @@ if page == "📊 Сводка":
         
         # RVI
         _rvi_val = None
-        _rvi_file = DATA_ROOT / "candles" / "RVI_D1.parquet"
+        _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
         if _rvi_file.exists():
             _rvi_df = pd.read_parquet(_rvi_file)
             if len(_rvi_df) > 0:
                 _rvi_val = _rvi_df['close'].iloc[-1]
         
-        _regime = get_market_regime(df_indices=_df_indices, garch_vol=_avg_garch, rvi_val=_rvi_val, imoex_trend=_imoex_trend, rgbi_change=_rgbi_change, avg_sector_change=_avg_sector_change)
+        _regime = get_market_regime(df_indices=_df_indices, garch_vol=_rvi_val if _rvi_val else 15, rvi_val=_rvi_val, imoex_trend=_imoex_trend, rgbi_change=_rgbi_change, avg_sector_change=_avg_sector_change)
         
         _emoji = "🚀" if _regime['regime'] == 'TREND' else "🔄" if _regime['regime'] == 'FLAT' else "🌪️" if _regime['regime'] == 'CRISIS' else "⚠️"
         
@@ -1074,7 +1071,7 @@ if page == "📊 Сводка":
         with col_t2:
             st.metric("Уровень риска", f"{_regime['risk_level']}/100")
         with col_t3:
-            st.metric("GARCH средний", f"{_avg_garch:.1f}%")
+            st.metric("RVI (индекс волатильности, пункты)", f"{_avg_garch:.1f} п.")
         
         _session = get_session_status()
         st.caption(f"📊 Сессия: {_session['label']} | Ликвидность: {_session['liquidity']:.0%}")
@@ -1120,13 +1117,13 @@ if page == "📊 Сводка":
 - **RVI** — индекс волатильности (>40 = паника)
 - **RGBI** — индекс облигаций (переток капитала)
 - **Сектора** — MOEXOG, MOEXFN, MOEXMM, MOEXEU, MOEXTL
-- **GARCH** — средняя волатильность вечных фьючерсов
+- **RVI** — индекс волатильности рынка
 - **ADX / Choppiness** — сила и направленность тренда
 
 **Три режима:**
 - 🚀 **TREND** — можно торговать по сигналам
 - 🔄 **FLAT** — не входить, ждать пробоя
-- 🌪️ **CRISIS** — GARCH>35% или RVI>70. Запрет входа. Подробнее в сканере фьючерсов (🌪️ Что такое КРИЗИС-РЕЖИМ?)
+- 🌪️ **CRISIS** — RVI>40%. Запрет входа. Подробнее в сканере фьючерсов (🌪️ Что такое КРИЗИС-РЕЖИМ?)
 
 **Уровень риска:** 0 = безопасно, 100 = максимальный риск.
             """)
@@ -2320,7 +2317,7 @@ elif page == "FUTOI_1H":
             if not _agree and _sig_1h != "NEUTRAL":
                 _warnings.append("1H противоречит D1 — осторожно!")
             if _garch_1h_vol > 25:
-                _warnings.append(f"GARCH экстремальный ({_garch_1h_vol:.1f}%)")
+                _warnings.append(f"RVI экстремальный ({_garch_1h_vol:.1f}%)")
             if _warnings:
                 st.warning("⚠️ " + " | ".join(_warnings))
             
@@ -2993,7 +2990,7 @@ collect_tradestats(_code, "RFUD")
         try:
             _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
             if not _rvi_file.exists():
-                _rvi_file = DATA_ROOT / "candles" / "RVI_D1.parquet"
+                _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
             if _rvi_file.exists():
                 _rvi_df = pd.read_parquet(_rvi_file)
                 if len(_rvi_df) > 0:
@@ -3154,7 +3151,7 @@ collect_tradestats(_code, "RFUD")
 **КРИЗИС-РЕЖИМ** — особый режим торговли при экстремальной волатильности.
 
 **Триггеры (для фьючерсов):**
-- **GARCH > 35%** — волатильность выше критического порога
+- **RVI > 40%** — волатильность выше критического порога
 - **RVI > 70** — индекс волатильности рынка превысил норму
 
 **Что меняется:**
@@ -3668,7 +3665,7 @@ elif page == "📊 Скринер акций":
     
     # === ТЕМПЕРАТУРА РЫНКА АКЦИЙ ===
     with st.expander("🌡️ Температура рынка (акции)", expanded=True):
-        st.caption("На основе средних ADX, Choppiness, GARCH по акциям")
+        st.caption("На основе средних ADX, Choppiness, RVI по акциям")
         
         _stock_adx = []
         _stock_chop = []
@@ -3693,7 +3690,12 @@ elif page == "📊 Скринер акций":
         
         _avg_adx_s = sum(_stock_adx) / len(_stock_adx) if _stock_adx else 0
         _avg_chop_s = sum(_stock_chop) / len(_stock_chop) if _stock_chop else 50
-        _avg_garch_s = sum(_stock_garch) / len(_stock_garch) if _stock_garch else 0
+        _rvi_f = DATA_ROOT / 'sector_indices' / 'RVI_D1.parquet'
+        if _rvi_f.exists():
+            _rvi_df_s = pd.read_parquet(_rvi_f)
+            _avg_garch_s = _rvi_df_s['close'].iloc[-1] if len(_rvi_df_s) > 0 else 0
+        else:
+            _avg_garch_s = 0
         
         _df_idx_s = pd.DataFrame({'adx': [_avg_adx_s], 'choppiness': [_avg_chop_s]})
         _regime_s = get_market_regime(df_indices=_df_idx_s, garch_vol=_avg_garch_s)
@@ -3706,7 +3708,7 @@ elif page == "📊 Скринер акций":
         with col_s2:
             st.metric("Уровень риска", f"{_regime_s['risk_level']}/100")
         with col_s3:
-            st.metric("GARCH средний", f"{_avg_garch_s:.1f}%")
+            st.metric("RVI (индекс волатильности, пункты)", f"{_avg_garch_s:.1f} п.")
         
         _session_s = get_session_status()
         st.caption(f"📊 Сессия: {_session_s['label']} | Ликвидность: {_session_s['liquidity']:.0%}")
@@ -3809,7 +3811,7 @@ elif page == "📊 Скринер акций":
 **КРИЗИС-РЕЖИМ** — особый режим торговли, когда рынок находится в состоянии экстремальной волатильности.
 
 **Триггеры включения:**
-- **GARCH > 35%** — волатильность акции/рынка превысила критический порог
+- **RVI > 40%** — волатильность акции/рынка превысила критический порог
 - **TRIN < 0.5 или > 1.5** (только для акций) — экстремальная перекупленность/перепроданность рынка
 - **RVI > 70** (только для фьючерсов) — индекс волатильности выше критического уровня
 
