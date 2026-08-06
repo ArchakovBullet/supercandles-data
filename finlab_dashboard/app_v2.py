@@ -979,7 +979,7 @@ if page == "📊 Сводка":
     
     # === ТЕМПЕРАТУРА РЫНКА ===
     with st.expander("🌡️ Температура рынка (фьючерсы)", expanded=True):
-        st.caption("IMOEX + RVI + RGBI + сектора + GARCH/ADX/Choppiness фьючерсов")
+        st.caption("IMOEX + RVI + RGBI + сектора + RVI/ADX/Choppiness фьючерсов")
         # === 1. IMOEX ===
         _imoex_trend = None
         _imoex_file = DATA_ROOT / "sector_indices" / "IMOEX_D1.parquet"
@@ -1058,13 +1058,13 @@ if page == "📊 Сводка":
         
         # RVI
         _rvi_val = None
-        _rvi_file = DATA_ROOT / "candles" / "RVI_D1.parquet"
+        _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
         if _rvi_file.exists():
             _rvi_df = pd.read_parquet(_rvi_file)
             if len(_rvi_df) > 0:
                 _rvi_val = _rvi_df['close'].iloc[-1]
         
-        _regime = get_market_regime(df_indices=_df_indices, garch_vol=_avg_garch, rvi_val=_rvi_val, imoex_trend=_imoex_trend, rgbi_change=_rgbi_change, avg_sector_change=_avg_sector_change)
+        _regime = get_market_regime(df_indices=_df_indices, garch_vol=_rvi_val if _rvi_val else 15, rvi_val=_rvi_val, imoex_trend=_imoex_trend, rgbi_change=_rgbi_change, avg_sector_change=_avg_sector_change)
         
         _emoji = "🚀" if _regime['regime'] == 'TREND' else "🔄" if _regime['regime'] == 'FLAT' else "🌪️" if _regime['regime'] == 'CRISIS' else "⚠️"
         
@@ -1074,7 +1074,7 @@ if page == "📊 Сводка":
         with col_t2:
             st.metric("Уровень риска", f"{_regime['risk_level']}/100")
         with col_t3:
-            st.metric("GARCH средний", f"{_avg_garch:.1f}%")
+            st.metric("RVI (индекс волатильности)", f"{_avg_garch:.1f}%")
         
         _session = get_session_status()
         st.caption(f"📊 Сессия: {_session['label']} | Ликвидность: {_session['liquidity']:.0%}")
@@ -1120,13 +1120,13 @@ if page == "📊 Сводка":
 - **RVI** — индекс волатильности (>40 = паника)
 - **RGBI** — индекс облигаций (переток капитала)
 - **Сектора** — MOEXOG, MOEXFN, MOEXMM, MOEXEU, MOEXTL
-- **GARCH** — средняя волатильность вечных фьючерсов
+- **RVI** — индекс волатильности рынка
 - **ADX / Choppiness** — сила и направленность тренда
 
 **Три режима:**
 - 🚀 **TREND** — можно торговать по сигналам
 - 🔄 **FLAT** — не входить, ждать пробоя
-- 🌪️ **CRISIS** — GARCH>35% или RVI>70. Запрет входа. Подробнее в сканере фьючерсов (🌪️ Что такое КРИЗИС-РЕЖИМ?)
+- 🌪️ **CRISIS** — RVI>40%. Запрет входа. Подробнее в сканере фьючерсов (🌪️ Что такое КРИЗИС-РЕЖИМ?)
 
 **Уровень риска:** 0 = безопасно, 100 = максимальный риск.
             """)
@@ -2320,7 +2320,7 @@ elif page == "FUTOI_1H":
             if not _agree and _sig_1h != "NEUTRAL":
                 _warnings.append("1H противоречит D1 — осторожно!")
             if _garch_1h_vol > 25:
-                _warnings.append(f"GARCH экстремальный ({_garch_1h_vol:.1f}%)")
+                _warnings.append(f"RVI экстремальный ({_garch_1h_vol:.1f}%)")
             if _warnings:
                 st.warning("⚠️ " + " | ".join(_warnings))
             
@@ -2993,7 +2993,7 @@ collect_tradestats(_code, "RFUD")
         try:
             _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
             if not _rvi_file.exists():
-                _rvi_file = DATA_ROOT / "candles" / "RVI_D1.parquet"
+                _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
             if _rvi_file.exists():
                 _rvi_df = pd.read_parquet(_rvi_file)
                 if len(_rvi_df) > 0:
@@ -3154,7 +3154,7 @@ collect_tradestats(_code, "RFUD")
 **КРИЗИС-РЕЖИМ** — особый режим торговли при экстремальной волатильности.
 
 **Триггеры (для фьючерсов):**
-- **GARCH > 35%** — волатильность выше критического порога
+- **RVI > 40%** — волатильность выше критического порога
 - **RVI > 70** — индекс волатильности рынка превысил норму
 
 **Что меняется:**
@@ -3668,7 +3668,7 @@ elif page == "📊 Скринер акций":
     
     # === ТЕМПЕРАТУРА РЫНКА АКЦИЙ ===
     with st.expander("🌡️ Температура рынка (акции)", expanded=True):
-        st.caption("На основе средних ADX, Choppiness, GARCH по акциям")
+        st.caption("На основе средних ADX, Choppiness, RVI по акциям")
         
         _stock_adx = []
         _stock_chop = []
@@ -3706,7 +3706,7 @@ elif page == "📊 Скринер акций":
         with col_s2:
             st.metric("Уровень риска", f"{_regime_s['risk_level']}/100")
         with col_s3:
-            st.metric("GARCH средний", f"{_avg_garch_s:.1f}%")
+            st.metric("RVI (индекс волатильности)", f"{_avg_garch_s:.1f}%")
         
         _session_s = get_session_status()
         st.caption(f"📊 Сессия: {_session_s['label']} | Ликвидность: {_session_s['liquidity']:.0%}")
@@ -3809,7 +3809,7 @@ elif page == "📊 Скринер акций":
 **КРИЗИС-РЕЖИМ** — особый режим торговли, когда рынок находится в состоянии экстремальной волатильности.
 
 **Триггеры включения:**
-- **GARCH > 35%** — волатильность акции/рынка превысила критический порог
+- **RVI > 40%** — волатильность акции/рынка превысила критический порог
 - **TRIN < 0.5 или > 1.5** (только для акций) — экстремальная перекупленность/перепроданность рынка
 - **RVI > 70** (только для фьючерсов) — индекс волатильности выше критического уровня
 
