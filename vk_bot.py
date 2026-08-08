@@ -11,7 +11,7 @@ import threading
 
 # ========== КОНФИГ ==========
 TOKEN = "vk1.a.SlI9YR5W8dTnTYhVLlhNxXEmgDo6rImtWM1jEIpsZKb9KR8EB_x325YDm_Piu1QZffsffqKethgXWlBH3G0e_6h9DUmZEVzbCmXajTm3jW33hE1F49dUOVtjHGRLYN_5pYOnLN0ZiFpdu_DVVqPHLfShNWDBN1prFS7Yf1ec-PE75C_hhs5Mo7SANbnE_uWzA3dGP3_l3So8HfcUVW3f8A"
-GROUP_ID = 238639379
+GROUP_ID = 238639379; ADMIN_ID = 497763452
 DATA_ROOT = Path("/root/finlab/data")
 STATE_FILE = Path("/root/finlab/logs/trend_state.json")
 
@@ -233,11 +233,11 @@ def check_trend_changes(vk):
     if changes:
         msg = "🔄 Смена тренда:\n" + "\n".join(changes)
         try:
-            vk.messages.send(
-                peer_id=GROUP_ID,
-                message=msg,
-                random_id=random.randint(1, 2**31 - 1)
-            )
+            vk.method('messages.send', {
+                'peer_id': ADMIN_ID,
+                'message': msg,
+                'random_id': random.randint(1, 2**31 - 1)
+            })
             print(f"📤 Уведомление о смене тренда: {len(changes)} тикеров")
             auto_cleanup(vk, GROUP_ID)
         except Exception as e:
@@ -274,11 +274,11 @@ def main():
 
             if connection_lost:
                 try:
-                    vk.messages.send(
-                        peer_id=GROUP_ID,
-                        message="✅ Связь с сервером VK восстановлена. Бот работает.",
-                        random_id=random.randint(1, 2**31 - 1)
-                    )
+                    vk.method('messages.send', {
+                        'peer_id': ADMIN_ID,
+                        'message': "✅ Связь с сервером VK восстановлена. Бот работает.",
+                        'random_id': random.randint(1, 2**31 - 1)
+                    })
                 except:
                     pass
                 connection_lost = False
@@ -310,11 +310,11 @@ def main():
                         response = "Неизвестная команда. Используйте help для списка команд."
 
                     try:
-                        vk.messages.send(
-                            peer_id=peer_id,
-                            message=response[:4096],
-                            random_id=random.randint(1, 2**31 - 1)
-                        )
+                        vk.method('messages.send', {
+                            'peer_id': peer_id,
+                            'message': response[:4096],
+                            'random_id': random.randint(1, 2**31 - 1)
+                        })
                         print(f"✅ Ответ отправлен на /{text}")
                     except Exception as e:
                         print(f"❌ Ошибка отправки: {e}")
