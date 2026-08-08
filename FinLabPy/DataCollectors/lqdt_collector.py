@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from MOEXPy.MOEXPy import MOEXPy
 import os
 
-api = MOEXPy(token=os.getenv('MOEX_TOKEN'))
+api = MOEXPy(token=os.getenv('MOEX_TOKEN') or __import__('dotenv').load_dotenv('/root/finlab/.env') or os.getenv('MOEX_TOKEN'))
 OUT = Path('/root/finlab/data/candles/LQDT_D1.parquet')
 
 # Собрать M10 свечи

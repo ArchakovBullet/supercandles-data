@@ -137,7 +137,12 @@ def main():
     logger.info("ЗАПУСК СБОРЩИКА FutOI")
     logger.info(f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
+    # Читаем токен из .env если нет в окружении
     token = os.getenv('MOEX_TOKEN')
+    if not token:
+        from dotenv import load_dotenv
+        load_dotenv('/root/finlab/.env')
+        token = os.getenv('MOEX_TOKEN')
     if not token:
         logger.error('MOEX_TOKEN не установлен')
         return

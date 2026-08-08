@@ -160,6 +160,6 @@ HI2Collector.TICKERS = HI2Collector._load_tickers()
 
 
 if __name__ == '__main__':
-    api = MOEXPy(token=os.getenv('MOEX_TOKEN'))
+    api = MOEXPy(token=os.getenv('MOEX_TOKEN') or __import__('dotenv').load_dotenv('/root/finlab/.env') or os.getenv('MOEX_TOKEN'))
     collector = HI2Collector(api)
     collector.collect_all()

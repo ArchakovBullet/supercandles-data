@@ -102,7 +102,7 @@ def main():
     logger.info("ЗАПУСК СБОРЩИКА Super Candles")
     logger.info(f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    token = os.getenv('MOEX_TOKEN')
+    token = os.getenv('MOEX_TOKEN') or __import__('dotenv').load_dotenv('/root/finlab/.env') or os.getenv('MOEX_TOKEN')
     api = MOEXPy(token=token)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
