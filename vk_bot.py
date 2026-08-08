@@ -1,3 +1,4 @@
+import os
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 import pandas as pd
@@ -174,6 +175,19 @@ def check_data_freshness():
     from datetime import datetime
     now = datetime.now()
     problems = []
+    
+    # Проверка MOEX_TOKEN
+    token = os.getenv('MOEX_TOKEN')
+    if not token:
+        try:
+            from dotenv import load_dotenv
+            load_dotenv('/root/finlab/.env')
+            token = os.getenv('MOEX_TOKEN')
+        except:
+            pass
+    if not token:
+        problems.append("❌ MOEX_TOKEN не установлен — сборщики не работают")
+    
     checks = {
         "FutOI": (DATA_ROOT / "futoi", 1),
         "HI2": (DATA_ROOT / "hi2", 2),
