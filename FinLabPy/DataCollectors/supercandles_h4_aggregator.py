@@ -74,7 +74,7 @@ def aggregate_all():
             # Агрегируем в OHLCV + специфичные метрики
             h4_row = {
                 'ticker': ticker,
-                'tradedate': df_today['tradedate'][0] if len(df_today) > 0 else today,
+                'tradedate': today,
                 'block': label,
                 'pr_open': block_df['pr_open'].first(),
                 'pr_high': block_df['pr_high'].max(),
