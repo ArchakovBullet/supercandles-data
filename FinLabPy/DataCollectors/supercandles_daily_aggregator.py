@@ -58,19 +58,12 @@ def aggregate_daily(ticker: str) -> pl.DataFrame:
         pl.col('vol').sum().alias('vol_total_for_disb'),
     ])
 
-    # Вычисляем производные
+    # Безопасные вычисления
     daily = daily.with_columns([
-        # VWAP
-        (pl.col('vwap_b_sum') / pl.col('vol_buy')).alias('vwap_buy'),
-        (pl.col('vwap_s_sum') / pl.col('vol_sell')).alias('vwap_sell'),
-
-        # Средневзвешенный дисбаланс
-        (pl.col('disb_weighted') / pl.col('vol_total_for_disb')).alias('disb'),
-
-        # Buy ratio (доля покупок в объёме)
-        (pl.col('vol_buy') / (pl.col('vol_buy') + pl.col('vol_sell'))).alias('buy_ratio'),
-
-        # Нетто-объём (покупки - продажи)
+        pl.when(pl.col('vol_buy') > 0).then(pl.col('vwap_b_sum') / pl.col('vol_buy')).otherwise(None).alias('vwap_buy'),
+        pl.when(pl.col('vol_sell') > 0).then(pl.col('vwap_s_sum') / pl.col('vol_sell')).otherwise(None).alias('vwap_sell'),
+        pl.when(pl.col('vol_total_for_disb') > 0).then(pl.col('disb_weighted') / pl.col('vol_total_for_disb')).otherwise(None).alias('disb'),
+        pl.when((pl.col('vol_buy') + pl.col('vol_sell')) > 0).then(pl.col('vol_buy') / (pl.col('vol_buy') + pl.col('vol_sell'))).otherwise(None).alias('buy_ratio'),
         (pl.col('vol_buy') - pl.col('vol_sell')).alias('net_vol'),
     ])
 

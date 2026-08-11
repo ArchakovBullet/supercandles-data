@@ -20,9 +20,13 @@ OUTPUT_FILE.parent.mkdir(exist_ok=True)
 def collect_trin():
     logger.info("Сбор TRIN...")
     
-    result = calculate_trin(data_dir=DATA_DIR / 'candles')
+    try:
+        result = calculate_trin(data_dir=DATA_DIR / 'candles')
+    except Exception as e:
+        logger.error(f"Ошибка расчёта TRIN: {e}")
+        return
     
-    if result['trin'] == 0:
+    if result.get('trin', 0) == 0:
         logger.warning("TRIN = 0, данные не собраны")
         return
     
@@ -46,8 +50,16 @@ def collect_trin():
     else:
         df_all = df_new
     
-    df_all.to_parquet(OUTPUT_FILE, index=False)
-    logger.info(f"TRIN={result['trin']} сохранён. Всего записей: {len(df_all)}")
+    # Атомарная запись
+    temp_file = OUTPUT_FILE.with_suffix('.tmp')
+    try:
+        df_all.to_parquet(temp_file, index=False)
+        temp_file.replace(OUTPUT_FILE)
+        logger.info(f"TRIN={result['trin']} сохранён. Всего записей: {len(df_all)}")
+    except Exception as e:
+        logger.error(f"Ошибка записи: {e}")
+        if temp_file.exists():
+            temp_file.unlink()
 
 if __name__ == '__main__':
     collect_trin()

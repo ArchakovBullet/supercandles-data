@@ -8,6 +8,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import pandas as pd
 import json
+import requests
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -28,7 +29,6 @@ DATA_DIR = Path('/root/finlab/data/tradestats')
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 def _resolve_full_code(short_code):
-    import json, requests
     cache_file = Path(__file__).parent / "contract_cache.json"
     cache = {}
     if cache_file.exists():
@@ -95,7 +95,7 @@ def collect_tradestats(ticker, board):
         if file_path.exists():
             existing = pd.read_parquet(file_path)
             combined = pd.concat([existing, df], ignore_index=True)
-            combined = combined.drop_duplicates()
+            combined = combined.drop_duplicates(subset=['tradedate', 'tradetime'])
             combined.to_parquet(file_path, index=False)
         else:
             df.to_parquet(file_path, index=False)
