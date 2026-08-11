@@ -32,7 +32,7 @@ daily = daily[['open','close','high','low','value','volume','begin','end']]
 if OUT.exists():
     old = pd.read_parquet(OUT)
     old['begin'] = pd.to_datetime(old['begin'])
-    combined = pd.concat([old, daily]).drop_duplicates('begin').sort_values('begin')
+    combined = pd.concat([old, daily]).drop_duplicates('begin', keep='last').sort_values('begin')
 else:
     combined = daily
 
