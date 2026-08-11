@@ -52,7 +52,8 @@ def collect_index(ticker, filename):
             return 0
         
         df = pd.DataFrame(rows, columns=cols)
-        df = df.rename(columns={'open':'open','close':'close','high':'high','low':'low','value':'value','volume':'volume','begin':'begin','end':'end'})
+        cols_lower = [c.lower() for c in cols]
+        df = pd.DataFrame(rows, columns=cols_lower)
         df['begin'] = pd.to_datetime(df['begin'])
         
         filepath = DATA_DIR / filename
