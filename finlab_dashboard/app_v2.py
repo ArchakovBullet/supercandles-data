@@ -3912,7 +3912,7 @@ elif page == "📊 Скринер акций":
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
             if st.button("📊 Добавить в скринер", key="add_screener"):
-                if _new_ticker and _new_ticker not in STOCK_TICKERS:
+                if _new_ticker and _new_ticker not in _default_stocks:
                     # Собираем D1-свечи
                     try:
                         import requests
@@ -3964,7 +3964,7 @@ elif page == "📊 Скринер акций":
                             st.error(f"❌ {_new_ticker}: не найден на MOEX")
                     except Exception as e:
                         st.error(f"❌ Ошибка: {e}")
-                elif _new_ticker in STOCK_TICKERS:
+                elif _new_ticker in _default_stocks:
                     st.warning(f"⚠️ {_new_ticker} уже в скринере")
     
     with col_del:
