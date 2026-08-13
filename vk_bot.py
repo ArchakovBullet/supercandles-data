@@ -243,6 +243,25 @@ def check_trend_changes(vk):
         except Exception as e:
             print(f"❌ Ошибка отправки уведомления: {e}")
 
+
+def auto_stale_check(vk):
+    """Автоматическая проверка свежести каждые 6 часов."""
+    import time as _time
+    while True:
+        problems = check_data_freshness()
+        if problems:
+            msg = "⚠️ Авто-проверка свежести:\n" + "\n".join(problems)
+            try:
+                vk.method('messages.send', {
+                    'peer_id': ADMIN_ID,
+                    'message': msg,
+                    'random_id': random.randint(1, 2**31 - 1)
+                })
+                print(f"Отправлено уведомление о свежести: {len(problems)} проблем(ы)")
+            except Exception as e:
+                print(f"Ошибка отправки: {e}")
+        _time.sleep(21600)
+
 def trend_monitor(vk):
     """Фоновый мониторинг трендов (каждые 10 минут)"""
     while True:
@@ -270,6 +289,10 @@ def main():
                 monitor_thread = threading.Thread(target=trend_monitor, args=(vk,), daemon=True)
                 monitor_thread.start()
                 monitor_started = True
+
+                # Авто-проверка свежести (каждые 6 часов)
+                stale_thread = threading.Thread(target=auto_stale_check, args=(vk,), daemon=True)
+                stale_thread.start()
                 print("📡 Мониторинг трендов запущен (каждые 10 мин)")
 
             if connection_lost:
