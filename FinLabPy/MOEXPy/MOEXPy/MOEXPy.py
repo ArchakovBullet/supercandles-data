@@ -31,7 +31,19 @@ class MOEXPy:
         :param str passcode: РџР°СЂРѕР»СЊ (ISS+)
         """
         if token is None:  # Р•СЃР»Рё С‚РѕСЂРіРѕРІС‹Р№ С‚РѕРєРµРЅ РЅРµ СѓРєР°Р·Р°РЅ (Р·Р°РїСЂРѕСЃС‹ ISS)
-            self.token = self.get_long_token_from_keyring('MOEXPy', 'token')  # С‚Рѕ РїРѕР»СѓС‡Р°РµРј РµРіРѕ РёР· Р·Р°С‰РёС‰РµРЅРЅРѕРіРѕ С…СЂР°РЅРёР»РёС‰Р° РїРѕ С‡Р°СЃС‚СЏРј
+            # РЎРЅР°С‡Р°Р»Р° РїСЂРѕР±СѓРµРј .env
+            try:
+                from dotenv import load_dotenv
+                load_dotenv('/root/finlab/.env')
+                token = __import__('os').getenv('MOEX_TOKEN')
+                self.token = token
+            except:
+                pass
+            if self.token is None:
+                try:
+                    self.token = self.get_long_token_from_keyring('MOEXPy', 'token')  # С‚Рѕ РїРѕР»СѓС‡Р°РµРј РµРіРѕ РёР· Р·Р°С‰РёС‰РµРЅРЅРѕРіРѕ С…СЂР°РЅРёР»РёС‰Р° РїРѕ С‡Р°СЃС‚СЏРј
+                except:
+                    self.token = None
         else:  # Р•СЃР»Рё СѓРєР°Р·Р°РЅ С‚РѕСЂРіРѕРІС‹Р№ С‚РѕРєРµРЅ
             self.token = token  # РўРѕСЂРіРѕРІС‹Р№ С‚РѕРєРµРЅ
             self.set_long_token_to_keyring('MOEXPy', 'token', self.token)  # РЎРѕС…СЂР°РЅСЏРµРј РµРіРѕ РІ Р·Р°С‰РёС‰РµРЅРЅРѕРµ С…СЂР°РЅРёР»РёС‰Рµ
