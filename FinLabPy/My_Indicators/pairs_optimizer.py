@@ -131,19 +131,9 @@ def calculate_pnl_metrics(trades):
     }
 
 
-def backtest_pair(df_a, df_b, window=20, entry_z=2.0, exit_z=0.5, use_filter=False, adx_threshold=25):
-    """Бэктест парной торговли с заданными параметрами"""
-    # Выравнивание по датам
-    if 'begin' in df_a.columns:
-        df_a = df_a.rename(columns={'begin': 'date'})
-    if 'begin' in df_b.columns:
-        df_b = df_b.rename(columns={'begin': 'date'})
-    
-    merged = pd.merge(
-        df_a[['date', 'close']].rename(columns={'close': 'price_a'}),
-        df_b[['date', 'close']].rename(columns={'close': 'price_b'}),
-        on='date', how='inner'
-    ).dropna()
+def backtest_pair(merged, window=20, entry_z=2.0, exit_z=0.5, use_filter=False, adx_threshold=25):
+    """Бэктест парной торговли с заданными параметрами.
+    Принимает merged DataFrame с колонками: begin, price_a, price_b"""
     
     if len(merged) < window + 1:
         return None
@@ -172,8 +162,8 @@ def backtest_pair(df_a, df_b, window=20, entry_z=2.0, exit_z=0.5, use_filter=Fal
             if z < -entry_z:
                 position = 1
                 trades.append({
-                    'entry_date': merged['date'].iloc[i],
-                    'entry_z': z,
+                    'entry_date': str(merged['begin'].iloc[i]),
+                    'entry_z': round(z, 2),
                     'direction': 'LONG_SPREAD',
                     'entry_price_a': merged['price_a'].iloc[i],
                     'entry_price_b': merged['price_b'].iloc[i]
@@ -181,15 +171,15 @@ def backtest_pair(df_a, df_b, window=20, entry_z=2.0, exit_z=0.5, use_filter=Fal
             elif z > entry_z:
                 position = -1
                 trades.append({
-                    'entry_date': merged['date'].iloc[i],
-                    'entry_z': z,
+                    'entry_date': str(merged['begin'].iloc[i]),
+                    'entry_z': round(z, 2),
                     'direction': 'SHORT_SPREAD',
                     'entry_price_a': merged['price_a'].iloc[i],
                     'entry_price_b': merged['price_b'].iloc[i]
                 })
         elif position == 1 and z > -exit_z:
-            trades[-1]['exit_date'] = merged['date'].iloc[i]
-            trades[-1]['exit_z'] = z
+            trades[-1]['exit_date'] = str(merged['begin'].iloc[i])
+            trades[-1]['exit_z'] = round(z, 2)
             trades[-1]['exit_price_a'] = merged['price_a'].iloc[i]
             trades[-1]['exit_price_b'] = merged['price_b'].iloc[i]
             # PnL для лонг спреда: покупаем A, продаём B
@@ -197,8 +187,8 @@ def backtest_pair(df_a, df_b, window=20, entry_z=2.0, exit_z=0.5, use_filter=Fal
                                  merged['price_b'].iloc[i] / trades[-1]['entry_price_b'])
             position = 0
         elif position == -1 and z < exit_z:
-            trades[-1]['exit_date'] = merged['date'].iloc[i]
-            trades[-1]['exit_z'] = z
+            trades[-1]['exit_date'] = str(merged['begin'].iloc[i])
+            trades[-1]['exit_z'] = round(z, 2)
             trades[-1]['exit_price_a'] = merged['price_a'].iloc[i]
             trades[-1]['exit_price_b'] = merged['price_b'].iloc[i]
             # PnL для шорт спреда: продаём A, покупаем B
@@ -208,8 +198,8 @@ def backtest_pair(df_a, df_b, window=20, entry_z=2.0, exit_z=0.5, use_filter=Fal
     
     # Закрыть открытую позицию
     if position != 0 and trades:
-        trades[-1]['exit_date'] = merged['date'].iloc[-1]
-        trades[-1]['exit_z'] = zscore.iloc[-1]
+        trades[-1]['exit_date'] = str(merged['begin'].iloc[-1])
+        trades[-1]['exit_z'] = round(zscore.iloc[-1], 2)
         trades[-1]['exit_price_a'] = merged['price_a'].iloc[-1]
         trades[-1]['exit_price_b'] = merged['price_b'].iloc[-1]
         if position == 1:
@@ -225,15 +215,10 @@ def backtest_pair(df_a, df_b, window=20, entry_z=2.0, exit_z=0.5, use_filter=Fal
 def optimize_pair(df_a, df_b, pair_name=""):
     """Оптимизация параметров пары с walk-forward подходом"""
     # Выравнивание по датам
-    if 'begin' in df_a.columns:
-        df_a = df_a.rename(columns={'begin': 'date'})
-    if 'begin' in df_b.columns:
-        df_b = df_b.rename(columns={'begin': 'date'})
-    
     merged = pd.merge(
-        df_a[['date', 'close']].rename(columns={'close': 'price_a'}),
-        df_b[['date', 'close']].rename(columns={'close': 'price_b'}),
-        on='date', how='inner'
+        df_a[['begin', 'close']].rename(columns={'close': 'price_a'}),
+        df_b[['begin', 'close']].rename(columns={'close': 'price_b'}),
+        on='begin', how='inner'
     ).dropna()
     
     if len(merged) < 100:
@@ -257,7 +242,7 @@ def optimize_pair(df_a, df_b, pair_name=""):
         for entry_z in entry_z_scores:
             for exit_z in exit_z_scores:
                 trades = backtest_pair(
-                    train_data, train_data, window=window, 
+                    train_data, window=window, 
                     entry_z=entry_z, exit_z=exit_z, 
                     use_filter=False
                 )
@@ -278,7 +263,7 @@ def optimize_pair(df_a, df_b, pair_name=""):
     
     # Тест на out-of-sample
     test_trades = backtest_pair(
-        test_data, test_data, 
+        test_data, 
         window=best_params['window'],
         entry_z=best_params['entry_z'],
         exit_z=best_params['exit_z'],
@@ -287,16 +272,55 @@ def optimize_pair(df_a, df_b, pair_name=""):
     
     test_metrics = calculate_pnl_metrics(test_trades) if test_trades else {}
     
-    # ADF-тест на полном спреде
+    # Если сделок меньше 5, считаем оптимизацию неудачной
+    if test_metrics.get('num_trades', 0) < 5:
+        # Пробуем другие параметры или возвращаем None
+        best_params = None
+        best_score = -np.inf
+        # Расширенный перебор с меньшим порогом входа
+        for window in [20, 25, 30, 40]:
+            for entry_z in [1.5, 2.0]:
+                for exit_z in [0.0, 0.5]:
+                    trades = backtest_pair(
+                        train_data, window=window,
+                        entry_z=entry_z, exit_z=exit_z,
+                        use_filter=False
+                    )
+                    if trades:
+                        metrics = calculate_pnl_metrics(trades)
+                        if metrics['num_trades'] >= 5:
+                            score = metrics['sharpe']
+                            if score > best_score:
+                                best_score = score
+                                best_params = {
+                                    'window': window,
+                                    'entry_z': entry_z,
+                                    'exit_z': exit_z
+                                }
+        
+        if best_params:
+            test_trades = backtest_pair(
+                test_data,
+                window=best_params['window'],
+                entry_z=best_params['entry_z'],
+                exit_z=best_params['exit_z'],
+                use_filter=False
+            )
+            test_metrics = calculate_pnl_metrics(test_trades) if test_trades else {}
+    
+    # ADF-тест на последних 252 днях (1 год)
     spread = np.log(merged['price_a']) - np.log(merged['price_b'])
-    adf_result = test_adf(spread)
+    # Используем последние 252 дня или весь период, если данных меньше
+    adf_window = min(252, len(spread))
+    spread_adf = spread.iloc[-adf_window:]
+    adf_result = test_adf(spread_adf)
     
     # Коинтеграция
     coint_result = test_cointegration(merged['price_a'], merged['price_b'])
     
     return {
         'pair_name': pair_name,
-        'best_params': best_params,
+        'best_params': best_params if best_params else {'window': 20, 'entry_z': 2.0, 'exit_z': 0.5},
         'train_score': round(best_score, 3),
         'test_metrics': test_metrics,
         'adf': adf_result,
