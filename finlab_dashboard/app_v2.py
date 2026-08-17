@@ -3581,83 +3581,195 @@ collect_tradestats(_code, "RFUD")
 
 elif page == "📊 Парная торговля":
     st.title("📊 Парная торговля")
-    st.caption("Статистический арбитраж: спред, Z-score, Spread Volatility")
+    st.caption("Статистический арбитраж: оптимизированные пары на M10/H1/H4/D1")
     
-    PAIRS = [
-        ("SBERF", "SBER", "Фьючерс ↔ Акция"),
-        ("GAZPF", "GAZP", "Фьючерс ↔ Акция"),
-        ("CNYRUBF", "USDRUBF", "Валютная пара"),
-        ("GLDRUBF", "IMOEXF", "Защитный ↔ Рисковый"),
-        ("SBER", "VTBR", "Банковский сектор"),
-        ("GAZP", "LKOH", "Нефтегазовый сектор"),
-    ]
-    
-    _pair_labels = [f"{a} ↔ {b} ({t})" for a, b, t in PAIRS]
-    _selected_pair = st.selectbox("Выберите пару", _pair_labels)
-    _idx = _pair_labels.index(_selected_pair)
-    _ticker_a, _ticker_b, _pair_type = PAIRS[_idx]
-    
-    # Загружаем D1-данные
-    _file_a = DATA_ROOT / "candles" / f"{_ticker_a}_D1.parquet"
-    _file_b = DATA_ROOT / "candles" / f"{_ticker_b}_D1.parquet"
-    
-    if _file_a.exists() and _file_b.exists():
-        _df_a = pd.read_parquet(_file_a)
-        _df_b = pd.read_parquet(_file_b)
-        
-        _result = analyze_pair(_df_a, _df_b)
-        
-        if _result:
-            st.markdown("---")
-            
-            # Основные метрики
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("Спред", f"{_result['spread']:.4f}")
-            with col2:
-                _z_emoji = "🔴" if abs(_result['zscore']) > 2 else "🟢" if abs(_result['zscore']) > 1 else "⚪"
-                st.metric("Z-score", f"{_result['zscore']:.2f}", delta=_z_emoji)
-            with col3:
-                st.metric("Корреляция", f"{_result['correlation']:.3f}")
-            with col4:
-                st.metric("Half-life (дней)", f"{_result['half_life']:.1f}")
-            
-            # Сигнал
-            st.markdown("---")
-            if _result['signal'] == "SHORT_SPREAD":
-                st.error(f"🎯 СИГНАЛ: 🔴 ШОРТ спреда — {_result['action']}")
-            elif _result['signal'] == "LONG_SPREAD":
-                st.success(f"🎯 СИГНАЛ: 🟢 ЛОНГ спреда — {_result['action']}")
-            else:
-                st.info(f"🎯 СИГНАЛ: ⚪ НЕЙТРАЛЬНО — {_result['action']}")
-            
-            # График Z-score
-            st.markdown("---")
-            st.subheader("📊 Z-score (история)")
-            _merged = _result['merged']
-            _zscore = _result['zscore_series']
-            
-            fig_z = go.Figure()
-            fig_z.add_trace(go.Scatter(x=_merged['date'], y=_zscore, mode='lines', name='Z-score', line=dict(color='#FFD700')))
-            fig_z.add_hline(y=2, line_dash="dash", line_color="red", annotation_text="+2")
-            fig_z.add_hline(y=-2, line_dash="dash", line_color="green", annotation_text="-2")
-            fig_z.add_hline(y=0, line_dash="dot", line_color="gray")
-            fig_z.update_layout(height=350, template='plotly_dark', title='Z-score спреда')
-            st.plotly_chart(fig_z, use_container_width=True)
-            
-            # График спреда
-            st.subheader("📊 Спред")
-            _spread = _result['spread_series']
-            fig_s = go.Figure()
-            fig_s.add_trace(go.Scatter(x=_merged['date'], y=_spread, mode='lines', name='Спред', line=dict(color='#00BFFF')))
-            _mean = _spread.mean()
-            fig_s.add_hline(y=_mean, line_dash="dash", line_color="white", annotation_text=f"Среднее: {_mean:.4f}")
-            fig_s.update_layout(height=300, template='plotly_dark')
-            st.plotly_chart(fig_s, use_container_width=True)
-        else:
-            st.warning("Недостаточно данных для анализа пары")
+    # Загрузка конфигурации пар
+    _config_path = Path("/root/finlab/FinLabPy/My_Indicators/pairs_config.json")
+    if _config_path.exists():
+        with open(_config_path, 'r') as f:
+            _pairs_config = json.load(f)
     else:
-        st.error(f"Нет данных: {_ticker_a if not _file_a.exists() else ''} {_ticker_b if not _file_b.exists() else ''}")
+        _pairs_config = {"pairs": {}}
+    
+    # Таймфреймы для выбора
+    TIMEFRAMES = ['M10', 'H1', 'H4', 'D1']
+    _selected_tf = st.selectbox("📅 Таймфрейм", TIMEFRAMES, index=0)
+    
+    # Собираем все пары для выбранного ТФ
+    _available_pairs = []
+    for _pair_name, _pair_data in _pairs_config.get('pairs', {}).items():
+        if _selected_tf == 'D1':
+            # Для D1 берем пары без суффикса и с _D1
+            if '_M10' not in _pair_name and '_H1' not in _pair_name and '_H4' not in _pair_name:
+                _available_pairs.append(_pair_name)
+        else:
+            if _pair_name.endswith(f"_{_selected_tf}"):
+                _available_pairs.append(_pair_name)
+    
+    if not _available_pairs:
+        st.warning(f"Нет оптимизированных пар для таймфрейма {_selected_tf}")
+    else:
+        # Сводная таблица
+        st.subheader("📊 Сводная таблица пар")
+        
+        _table_data = []
+        for _pair_name in sorted(_available_pairs):
+            _pair_data = _pairs_config['pairs'][_pair_name]
+            _test_metrics = _pair_data.get('test_metrics', {})
+            _adf = _pair_data.get('adf', {})
+            
+            # Определяем статус
+            _is_stationary = _adf.get('is_stationary', False)
+            _win_rate = _test_metrics.get('win_rate', 0)
+            _pnl = _test_metrics.get('total_pnl', 0)
+            _sharpe = _test_metrics.get('sharpe', 0)
+            _num_trades = _test_metrics.get('num_trades', 0)
+            
+            # Статус
+            _adf_pvalue = _adf.get('p_value', 1.0)
+            if _adf_pvalue < 0.05 and _win_rate > 0.55 and _pnl > 0:
+                _status = "🟢 Активна"
+            elif _win_rate > 0.55 and _pnl > 0:
+                _status = "🟡 Перспективна"
+            else:
+                _status = "🔴 Неактивна"
+            
+            _table_data.append({
+                'Пара': _pair_name.replace(f"_{_selected_tf}", ""),
+                'Статус': _status,
+                'Сделки': _num_trades,
+                'Win Rate': f"{_win_rate*100:.1f}%",
+                'PnL': f"{_pnl:.4f}",
+                'Sharpe': _sharpe,
+                'ADF p-value': _adf.get('p_value', 'N/A'),
+                'Стационарность': '✅' if _is_stationary else '❌',
+                'Параметры': f"w={_pair_data.get('best_params', {}).get('window', '?')}, "
+                           f"e={_pair_data.get('best_params', {}).get('entry_z', '?')}, "
+                           f"x={_pair_data.get('best_params', {}).get('exit_z', '?')}"
+            })
+        
+        if _table_data:
+            _df_table = pd.DataFrame(_table_data)
+            st.dataframe(_df_table, use_container_width=True, hide_index=True)
+        
+        # Выбор пары для детального анализа
+        st.markdown("---")
+        st.subheader("🔍 Детальный анализ пары")
+        
+        _selected_pair = st.selectbox("Выберите пару", sorted(_available_pairs))
+        
+        if _selected_pair:
+            _pair_data = _pairs_config['pairs'][_selected_pair]
+            _best_params = _pair_data.get('best_params', {})
+            _window = _best_params.get('window', 20)
+            _entry_z = _best_params.get('entry_z', 2.0)
+            _exit_z = _best_params.get('exit_z', 0.5)
+            
+            # Загружаем данные
+            _base_pair = _selected_pair
+            if _selected_tf == 'D1':
+                _base_pair = _selected_pair  # уже без суффикса
+            else:
+                _base_pair = _selected_pair.replace(f"_{_selected_tf}", "")
+            if '-' in _base_pair:
+                _ticker_a, _ticker_b = _base_pair.split('-')
+            else:
+                _ticker_a, _ticker_b = _base_pair, _base_pair
+            
+            _file_a = DATA_ROOT / "candles" / f"{_ticker_a}_{_selected_tf}.parquet"
+            _file_b = DATA_ROOT / "candles" / f"{_ticker_b}_{_selected_tf}.parquet"
+            
+            if _file_a.exists() and _file_b.exists():
+                _df_a = pd.read_parquet(_file_a)
+                _df_b = pd.read_parquet(_file_b)
+                
+                # Рассчитываем спред и Z-score с оптимизированными параметрами
+                _result = analyze_pair(_df_a, _df_b, window=_window)
+                
+                if _result:
+                    # Метрики
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Z-score", f"{_result['zscore']:.2f}")
+                    with col2:
+                        st.metric("Корреляция", f"{_result['correlation']:.3f}")
+                    with col3:
+                        # Пересчитываем half-life в человекочитаемые единицы
+                        _half_life = _result['half_life']
+                        if _selected_tf == 'M10':
+                            _half_life_hours = _half_life * 10 / 60
+                            _half_life_text = f"{_half_life_hours:.1f} ч"
+                        elif _selected_tf == 'H1':
+                            _half_life_text = f"{_half_life:.1f} ч"
+                        elif _selected_tf == 'H4':
+                            _half_life_text = f"{_half_life * 4:.1f} ч"
+                        else:
+                            _half_life_text = f"{_half_life:.1f} дн"
+                        st.metric("Half-life", _half_life_text)
+                    with col4:
+                        _test_m = _pair_data.get('test_metrics', {})
+                        st.metric("Win Rate (тест)", f"{_test_m.get('win_rate', 0)*100:.1f}%")
+                    
+                    # Сигнал
+                    st.markdown("---")
+                    if _result['signal'] == "SHORT_SPREAD":
+                        st.error(f"🎯 СИГНАЛ: 🔴 ШОРТ спреда — {_result['action']}")
+                    elif _result['signal'] == "LONG_SPREAD":
+                        st.success(f"🎯 СИГНАЛ: 🟢 ЛОНГ спреда — {_result['action']}")
+                    else:
+                        st.info(f"🎯 СИГНАЛ: ⚪ НЕЙТРАЛЬНО — {_result['action']}")
+                    
+                    # График Z-score с оптимизированными уровнями
+                    st.markdown("---")
+                    st.subheader(f"📊 Z-score (оптимизированные параметры: window={_window}, entry=±{_entry_z}, exit=±{_exit_z})")
+                    _merged = _result['merged']
+                    _zscore = _result['zscore_series']
+                    
+                    fig_z = go.Figure()
+                    fig_z.add_trace(go.Scatter(
+                        x=_merged['date'], y=_zscore, mode='lines', 
+                        name='Z-score', line=dict(color='#FFD700', width=2)
+                    ))
+                    fig_z.add_hline(y=_entry_z, line_dash="dash", line_color="red", annotation_text=f"+{_entry_z}")
+                    fig_z.add_hline(y=-_entry_z, line_dash="dash", line_color="green", annotation_text=f"-{_entry_z}")
+                    fig_z.add_hline(y=_exit_z, line_dash="dot", line_color="orange", annotation_text=f"+{_exit_z}")
+                    fig_z.add_hline(y=-_exit_z, line_dash="dot", line_color="lightgreen", annotation_text=f"-{_exit_z}")
+                    fig_z.add_hline(y=0, line_dash="solid", line_color="gray")
+                    fig_z.update_layout(height=400, template='plotly_dark', title='Z-score спреда')
+                    st.plotly_chart(fig_z, use_container_width=True)
+                    
+                    # График спреда
+                    st.subheader("📊 Спред")
+                    _spread = _result['spread_series']
+                    fig_s = go.Figure()
+                    fig_s.add_trace(go.Scatter(
+                        x=_merged['date'], y=_spread, mode='lines', 
+                        name='Спред', line=dict(color='#00BFFF', width=2)
+                    ))
+                    _mean = _spread.mean()
+                    _std = _spread.std()
+                    fig_s.add_hline(y=_mean, line_dash="dash", line_color="white", annotation_text=f"Среднее: {_mean:.4f}")
+                    fig_s.add_hline(y=_mean + _entry_z * _std, line_dash="dash", line_color="red", annotation_text=f"+{_entry_z}σ")
+                    fig_s.add_hline(y=_mean - _entry_z * _std, line_dash="dash", line_color="green", annotation_text=f"-{_entry_z}σ")
+                    fig_s.update_layout(height=350, template='plotly_dark', title='Спред с уровнями входа')
+                    st.plotly_chart(fig_s, use_container_width=True)
+                    
+                    # Статистика
+                    st.markdown("---")
+                    st.subheader("📈 Статистика пары")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        _adf_info = _pair_data.get('adf', {})
+                        st.metric("ADF p-value", _adf_info.get('p_value', 'N/A'))
+                    with col2:
+                        _coint_info = _pair_data.get('cointegration', {})
+                        st.metric("Коинтеграция p-value", _coint_info.get('p_value', 'N/A'))
+                    with col3:
+                        st.metric("Train Sharpe", _pair_data.get('train_score', 0))
+                else:
+                    st.warning("Недостаточно данных для анализа")
+            else:
+                st.error(f"Нет данных: {_ticker_a}_{_selected_tf} или {_ticker_b}_{_selected_tf}")
 
 elif page == "📊 Скринер акций":
     st.title("📊 Скринер акций")
