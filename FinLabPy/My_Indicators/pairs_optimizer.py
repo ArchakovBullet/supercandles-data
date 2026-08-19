@@ -13,6 +13,7 @@ warnings.filterwarnings('ignore')
 
 # Для ADF-теста и коинтеграции
 from statsmodels.tsa.stattools import adfuller, coint
+from statsmodels.tsa.vector_ar.vecm import coint_johansen
 
 
 def calculate_adx(df, period=14):
@@ -42,6 +43,59 @@ def calculate_adx(df, period=14):
     adx = dx.rolling(period).mean()
     
     return adx
+
+
+def test_johansen(price_a, price_b, det_order=0, k_ar_diff=1):
+    """Тест коинтеграции Йохансена для пары активов.
+    
+    Параметры:
+    - det_order: -1 (нет детерминированного тренда), 0 (константа), 1 (линейный тренд)
+    - k_ar_diff: количество лагов в VAR модели
+    
+    Возвращает:
+    - trace_statistics: статистики следа
+    - critical_values: критические значения
+    - eigenvectors: собственные векторы (коэффициенты хеджирования)
+    - is_cointegrated: есть ли коинтеграция
+    """
+    try:
+        # Логарифмируем
+        log_a = np.log(price_a)
+        log_b = np.log(price_b)
+        
+        # Формируем матрицу
+        data = np.column_stack([log_a, log_b])
+        
+        # Тест Йохансена
+        result = coint_johansen(data, det_order=det_order, k_ar_diff=k_ar_diff)
+        
+        # Статистики следа
+        trace_statistics = result.lr1
+        critical_values = result.cvt
+        
+        # Собственные векторы (коэффициенты хеджирования)
+        eigenvectors = result.evec
+        
+        # Коинтеграция есть, если статистика следа > критического значения
+        # Для пары: если есть хотя бы 1 коинтеграционное соотношение
+        is_cointegrated = trace_statistics[0] > critical_values[0, 1]  # 5% уровень
+        
+        return {
+            'trace_statistics': [round(x, 4) for x in trace_statistics],
+            'critical_values_5pct': [round(x, 4) for x in critical_values[:, 1]],
+            'eigenvectors': [[round(y, 4) for y in x] for x in eigenvectors],
+            'is_cointegrated': bool(is_cointegrated),
+            'hedge_ratio': round(eigenvectors[0, 0] / eigenvectors[0, 1], 4) if eigenvectors[0, 1] != 0 else None
+        }
+    
+    except Exception as e:
+        return {
+            'trace_statistics': None,
+            'critical_values_5pct': None,
+            'eigenvectors': None,
+            'is_cointegrated': False,
+            'hedge_ratio': None
+        }
 
 
 def test_adf(spread):
@@ -318,6 +372,9 @@ def optimize_pair(df_a, df_b, pair_name=""):
     # Коинтеграция
     coint_result = test_cointegration(merged['price_a'], merged['price_b'])
     
+    # Тест Йохансена
+    johansen_result = test_johansen(merged['price_a'], merged['price_b'])
+
     return {
         'pair_name': pair_name,
         'best_params': best_params if best_params else {'window': 20, 'entry_z': 2.0, 'exit_z': 0.5},
@@ -325,6 +382,7 @@ def optimize_pair(df_a, df_b, pair_name=""):
         'test_metrics': test_metrics,
         'adf': adf_result,
         'cointegration': coint_result,
+        'johansen': johansen_result,
         'total_rows': len(merged),
         'last_optimized': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }

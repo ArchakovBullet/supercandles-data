@@ -486,8 +486,30 @@
         "p_value": 0.6506,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          3.9996,
+          0.4854
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            10.6771,
+            2.0176
+          ],
+          [
+            -9.7606,
+            7.9021
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": 5.2919
+      },
       "total_rows": 1890,
-      "last_optimized": "2026-08-19 20:42:54"
+      "last_optimized": "2026-08-19 21:26:43"
     },
     "LKOH-HYDR_H4": {
       "pair_name": "LKOH-HYDR_H4",
@@ -519,8 +541,30 @@
         "p_value": 0.2588,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          6.999,
+          0.4728
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            14.7901,
+            3.7758
+          ],
+          [
+            -13.057,
+            4.3954
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": 3.9171
+      },
       "total_rows": 1829,
-      "last_optimized": "2026-08-19 20:42:48"
+      "last_optimized": "2026-08-19 21:26:36"
     },
     "LKOH-ROSN_H4": {
       "pair_name": "LKOH-ROSN_H4",
@@ -552,8 +596,30 @@
         "p_value": 0.5506,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          5.2777,
+          0.5928
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            13.6358,
+            3.4989
+          ],
+          [
+            -14.1445,
+            5.6111
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": 3.8972
+      },
       "total_rows": 1895,
-      "last_optimized": "2026-08-19 20:42:49"
+      "last_optimized": "2026-08-19 21:26:38"
     },
     "LKOH-TATN_H4": {
       "pair_name": "LKOH-TATN_H4",
@@ -585,8 +651,30 @@
         "p_value": 0.6194,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          7.8311,
+          0.7536
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            11.0887,
+            -11.0712
+          ],
+          [
+            -17.5367,
+            4.0383
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -1.0016
+      },
       "total_rows": 1885,
-      "last_optimized": "2026-08-19 20:42:51"
+      "last_optimized": "2026-08-19 21:26:40"
     },
     "ROSN-TATN_H4": {
       "pair_name": "ROSN-TATN_H4",
@@ -618,8 +706,30 @@
         "p_value": 0.3516,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          13.7695,
+          0.9205
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            15.8305,
+            -9.1717
+          ],
+          [
+            -19.5248,
+            0.298
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -1.726
+      },
       "total_rows": 1883,
-      "last_optimized": "2026-08-19 20:42:53"
+      "last_optimized": "2026-08-19 21:26:42"
     },
     "LKOH-GAZP_H4": {
       "pair_name": "LKOH-GAZP_H4",
@@ -783,8 +893,30 @@
         "p_value": 0.376,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          8.2431,
+          0.3711
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            15.593,
+            2.5569
+          ],
+          [
+            -19.2328,
+            6.6209
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": 6.0983
+      },
       "total_rows": 1825,
-      "last_optimized": "2026-08-19 20:42:56"
+      "last_optimized": "2026-08-19 21:26:45"
     },
     "LKOH-ROSN_H1": {
       "pair_name": "LKOH-ROSN_H1",
@@ -816,8 +948,30 @@
         "p_value": 0.4867,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          5.7672,
+          0.8998
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            13.6125,
+            3.7364
+          ],
+          [
+            -14.2682,
+            5.2379
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": 3.6432
+      },
       "total_rows": 6779,
-      "last_optimized": "2026-08-19 20:42:21"
+      "last_optimized": "2026-08-19 21:26:06"
     },
     "LKOH-HYDR_H1": {
       "pair_name": "LKOH-HYDR_H1",
@@ -849,8 +1003,30 @@
         "p_value": 0.3387,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          7.3241,
+          1.0243
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            14.2182,
+            -5.3959
+          ],
+          [
+            -13.4812,
+            -2.8313
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -2.635
+      },
       "total_rows": 6715,
-      "last_optimized": "2026-08-19 20:42:15"
+      "last_optimized": "2026-08-19 21:26:00"
     },
     "HYDR-IRAO_H1": {
       "pair_name": "HYDR-IRAO_H1",
@@ -882,8 +1058,30 @@
         "p_value": 0.3058,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          10.3451,
+          1.242
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            15.4303,
+            3.4805
+          ],
+          [
+            -19.4377,
+            5.3227
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": 4.4333
+      },
       "total_rows": 6698,
-      "last_optimized": "2026-08-19 20:42:46"
+      "last_optimized": "2026-08-19 21:26:34"
     },
     "ROSN-TATN_H1": {
       "pair_name": "ROSN-TATN_H1",
@@ -915,8 +1113,30 @@
         "p_value": 0.4992,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          12.9359,
+          0.9382
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            14.4456,
+            -10.8112
+          ],
+          [
+            -19.293,
+            2.5646
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -1.3362
+      },
       "total_rows": 6752,
-      "last_optimized": "2026-08-19 20:42:33"
+      "last_optimized": "2026-08-19 21:26:20"
     },
     "LKOH-TATN_H1": {
       "pair_name": "LKOH-TATN_H1",
@@ -948,8 +1168,30 @@
         "p_value": 0.6837,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          8.9098,
+          0.9534
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            10.1847,
+            -11.7014
+          ],
+          [
+            -17.1634,
+            5.2369
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -0.8704
+      },
       "total_rows": 6755,
-      "last_optimized": "2026-08-19 20:42:27"
+      "last_optimized": "2026-08-19 21:26:13"
     },
     "LKOH-HYDR_M10": {
       "pair_name": "LKOH-HYDR_M10",
@@ -981,8 +1223,30 @@
         "p_value": 0.3851,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          7.8172,
+          1.0511
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            14.1464,
+            -5.5867
+          ],
+          [
+            -13.5048,
+            -2.6312
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -2.5322
+      },
       "total_rows": 37928,
-      "last_optimized": "2026-08-19 20:39:09"
+      "last_optimized": "2026-08-19 21:22:42"
     },
     "HYDR-IRAO_M10": {
       "pair_name": "HYDR-IRAO_M10",
@@ -1014,8 +1278,30 @@
         "p_value": 0.2783,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          11.5122,
+          1.262
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            15.4277,
+            3.4539
+          ],
+          [
+            -19.4206,
+            5.3237
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": 4.4668
+      },
       "total_rows": 37837,
-      "last_optimized": "2026-08-19 20:42:09"
+      "last_optimized": "2026-08-19 21:25:53"
     },
     "LKOH-TATN_M10": {
       "pair_name": "LKOH-TATN_M10",
@@ -1047,8 +1333,30 @@
         "p_value": 0.5473,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          9.186,
+          1.0228
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            10.5619,
+            -11.3371
+          ],
+          [
+            -17.3161,
+            4.6542
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -0.9316
+      },
       "total_rows": 37902,
-      "last_optimized": "2026-08-19 20:40:23"
+      "last_optimized": "2026-08-19 21:23:57"
     },
     "ROSN-TATN_M10": {
       "pair_name": "ROSN-TATN_M10",
@@ -1080,8 +1388,30 @@
         "p_value": 0.4643,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          14.5858,
+          1.239
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            15.0243,
+            -9.9222
+          ],
+          [
+            -19.3934,
+            1.4277
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -1.5142
+      },
       "total_rows": 37884,
-      "last_optimized": "2026-08-19 20:40:57"
+      "last_optimized": "2026-08-19 21:24:36"
     },
     "LKOH-ROSN_M10": {
       "pair_name": "LKOH-ROSN_M10",
@@ -1113,8 +1443,30 @@
         "p_value": 0.5119,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          6.3778,
+          0.9087
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            13.4353,
+            -4.3421
+          ],
+          [
+            -14.4833,
+            -4.5749
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -3.0942
+      },
       "total_rows": 38031,
-      "last_optimized": "2026-08-19 20:39:46"
+      "last_optimized": "2026-08-19 21:23:20"
     },
     "LKOH-IRAO_M10": {
       "pair_name": "LKOH-IRAO_M10",
@@ -1146,8 +1498,30 @@
         "p_value": 0.663,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          5.0449,
+          1.0504
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            9.6769,
+            -4.9886
+          ],
+          [
+            -11.662,
+            -4.6023
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -1.9398
+      },
       "total_rows": 37939,
-      "last_optimized": "2026-08-19 20:41:34"
+      "last_optimized": "2026-08-19 21:25:14"
     },
     "LKOH-IRAO_H1": {
       "pair_name": "LKOH-IRAO_H1",
@@ -1179,8 +1553,30 @@
         "p_value": 0.6768,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          4.8813,
+          1.0213
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            9.7324,
+            -4.8739
+          ],
+          [
+            -11.602,
+            -4.7613
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -1.9968
+      },
       "total_rows": 6762,
-      "last_optimized": "2026-08-19 20:42:40"
+      "last_optimized": "2026-08-19 21:26:27"
     },
     "LKOH-HYDR_D1": {
       "pair_name": "LKOH-HYDR_D1",
@@ -1212,8 +1608,30 @@
         "p_value": 0.3316,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          6.9395,
+          1.1197
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            14.3777,
+            -5.4149
+          ],
+          [
+            -13.5442,
+            -2.901
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -2.6552
+      },
       "total_rows": 421,
-      "last_optimized": "2026-08-19 20:42:56"
+      "last_optimized": "2026-08-19 21:26:46"
     },
     "LKOH-ROSN_D1": {
       "pair_name": "LKOH-ROSN_D1",
@@ -1245,8 +1663,30 @@
         "p_value": 0.5552,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          5.2057,
+          0.8913
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            13.5868,
+            3.6782
+          ],
+          [
+            -14.284,
+            5.4876
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": 3.6939
+      },
       "total_rows": 421,
-      "last_optimized": "2026-08-19 20:42:57"
+      "last_optimized": "2026-08-19 21:26:46"
     },
     "LKOH-TATN_D1": {
       "pair_name": "LKOH-TATN_D1",
@@ -1278,8 +1718,30 @@
         "p_value": 0.5622,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          8.8564,
+          0.5596
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            8.8822,
+            -12.785
+          ],
+          [
+            -16.5223,
+            6.9494
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -0.6947
+      },
       "total_rows": 419,
-      "last_optimized": "2026-08-19 20:42:57"
+      "last_optimized": "2026-08-19 21:26:47"
     },
     "ROSN-TATN_D1": {
       "pair_name": "ROSN-TATN_D1",
@@ -1311,8 +1773,30 @@
         "p_value": 0.4879,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          13.2443,
+          0.6339
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            14.0579,
+            -11.9222
+          ],
+          [
+            -19.2842,
+            3.7602
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -1.1791
+      },
       "total_rows": 419,
-      "last_optimized": "2026-08-19 20:42:58"
+      "last_optimized": "2026-08-19 21:26:47"
     },
     "LKOH-IRAO_D1": {
       "pair_name": "LKOH-IRAO_D1",
@@ -1344,8 +1828,30 @@
         "p_value": 0.6438,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          5.538,
+          1.3477
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            8.9329,
+            -6.1801
+          ],
+          [
+            -12.0802,
+            -3.3041
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -1.4454
+      },
       "total_rows": 419,
-      "last_optimized": "2026-08-19 20:42:58"
+      "last_optimized": "2026-08-19 21:26:48"
     },
     "HYDR-IRAO_D1": {
       "pair_name": "HYDR-IRAO_D1",
@@ -1377,9 +1883,31 @@
         "p_value": 0.1824,
         "is_cointegrated": "False"
       },
+      "johansen": {
+        "trace_statistics": [
+          8.1842,
+          1.7129
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            14.8471,
+            -5.5405
+          ],
+          [
+            -20.1009,
+            -2.735
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": -2.6797
+      },
       "total_rows": 419,
-      "last_optimized": "2026-08-19 20:42:59"
+      "last_optimized": "2026-08-19 21:26:48"
     }
   },
-  "last_updated": "2026-08-19 20:42:59"
+  "last_updated": "2026-08-19 21:26:48"
 }
