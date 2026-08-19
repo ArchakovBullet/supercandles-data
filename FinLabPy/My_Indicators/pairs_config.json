@@ -487,7 +487,7 @@
         "is_cointegrated": "False"
       },
       "total_rows": 1890,
-      "last_optimized": "2026-08-17 20:23:12"
+      "last_optimized": "2026-08-19 20:42:54"
     },
     "LKOH-HYDR_H4": {
       "pair_name": "LKOH-HYDR_H4",
@@ -520,7 +520,7 @@
         "is_cointegrated": "False"
       },
       "total_rows": 1829,
-      "last_optimized": "2026-08-17 20:23:14"
+      "last_optimized": "2026-08-19 20:42:48"
     },
     "LKOH-ROSN_H4": {
       "pair_name": "LKOH-ROSN_H4",
@@ -553,7 +553,7 @@
         "is_cointegrated": "False"
       },
       "total_rows": 1895,
-      "last_optimized": "2026-08-17 20:23:15"
+      "last_optimized": "2026-08-19 20:42:49"
     },
     "LKOH-TATN_H4": {
       "pair_name": "LKOH-TATN_H4",
@@ -586,7 +586,7 @@
         "is_cointegrated": "False"
       },
       "total_rows": 1885,
-      "last_optimized": "2026-08-17 20:23:17"
+      "last_optimized": "2026-08-19 20:42:51"
     },
     "ROSN-TATN_H4": {
       "pair_name": "ROSN-TATN_H4",
@@ -619,7 +619,7 @@
         "is_cointegrated": "False"
       },
       "total_rows": 1883,
-      "last_optimized": "2026-08-17 20:23:19"
+      "last_optimized": "2026-08-19 20:42:53"
     },
     "LKOH-GAZP_H4": {
       "pair_name": "LKOH-GAZP_H4",
@@ -784,7 +784,7 @@
         "is_cointegrated": "False"
       },
       "total_rows": 1825,
-      "last_optimized": "2026-08-17 20:23:27"
+      "last_optimized": "2026-08-19 20:42:56"
     },
     "LKOH-ROSN_H1": {
       "pair_name": "LKOH-ROSN_H1",
@@ -793,17 +793,17 @@
         "entry_z": 3.0,
         "exit_z": 0.5
       },
-      "train_score": 0.393,
+      "train_score": 0.387,
       "test_metrics": {
-        "total_pnl": 0.0613,
-        "win_rate": 0.667,
-        "sharpe": 0.518,
+        "total_pnl": 0.0591,
+        "win_rate": 0.625,
+        "sharpe": 0.53,
         "max_drawdown": -0.0189,
-        "num_trades": 9
+        "num_trades": 8
       },
       "adf": {
-        "adf_statistic": -1.5781,
-        "p_value": 0.4946,
+        "adf_statistic": -1.2273,
+        "p_value": 0.6617,
         "critical_values": {
           "1%": -3.457,
           "5%": -2.8733,
@@ -812,12 +812,12 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.0696,
-        "p_value": 0.4922,
+        "coint_statistic": -2.0802,
+        "p_value": 0.4867,
         "is_cointegrated": "False"
       },
-      "total_rows": 6743,
-      "last_optimized": "2026-08-17 20:27:34"
+      "total_rows": 6779,
+      "last_optimized": "2026-08-19 20:42:21"
     },
     "LKOH-HYDR_H1": {
       "pair_name": "LKOH-HYDR_H1",
@@ -828,29 +828,29 @@
       },
       "train_score": 0.21,
       "test_metrics": {
-        "total_pnl": 0.2233,
+        "total_pnl": 0.2379,
         "win_rate": 0.769,
-        "sharpe": 0.192,
+        "sharpe": 0.208,
         "max_drawdown": -0.0913,
         "num_trades": 117
       },
       "adf": {
-        "adf_statistic": -2.9246,
-        "p_value": 0.0426,
+        "adf_statistic": -2.6197,
+        "p_value": 0.089,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
           "10%": -2.5729
         },
-        "is_stationary": "True"
+        "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.488,
-        "p_value": 0.2844,
+        "coint_statistic": -2.371,
+        "p_value": 0.3387,
         "is_cointegrated": "False"
       },
-      "total_rows": 6679,
-      "last_optimized": "2026-08-17 20:27:40"
+      "total_rows": 6715,
+      "last_optimized": "2026-08-19 20:42:15"
     },
     "HYDR-IRAO_H1": {
       "pair_name": "HYDR-IRAO_H1",
@@ -861,15 +861,15 @@
       },
       "train_score": 0.431,
       "test_metrics": {
-        "total_pnl": 0.2563,
-        "win_rate": 0.875,
-        "sharpe": 0.83,
+        "total_pnl": 0.2559,
+        "win_rate": 0.824,
+        "sharpe": 0.788,
         "max_drawdown": -0.0021,
-        "num_trades": 16
+        "num_trades": 17
       },
       "adf": {
-        "adf_statistic": -1.7228,
-        "p_value": 0.4194,
+        "adf_statistic": -2.4938,
+        "p_value": 0.117,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
@@ -878,12 +878,12 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.3813,
-        "p_value": 0.3338,
+        "coint_statistic": -2.4408,
+        "p_value": 0.3058,
         "is_cointegrated": "False"
       },
-      "total_rows": 6662,
-      "last_optimized": "2026-08-17 20:27:46"
+      "total_rows": 6698,
+      "last_optimized": "2026-08-19 20:42:46"
     },
     "ROSN-TATN_H1": {
       "pair_name": "ROSN-TATN_H1",
@@ -892,17 +892,17 @@
         "entry_z": 3.0,
         "exit_z": 1.0
       },
-      "train_score": 0.427,
+      "train_score": 0.433,
       "test_metrics": {
-        "total_pnl": 0.0539,
-        "win_rate": 0.636,
-        "sharpe": 0.135,
+        "total_pnl": 0.0593,
+        "win_rate": 0.652,
+        "sharpe": 0.145,
         "max_drawdown": -0.0486,
-        "num_trades": 22
+        "num_trades": 23
       },
       "adf": {
-        "adf_statistic": -1.2421,
-        "p_value": 0.6552,
+        "adf_statistic": -0.1846,
+        "p_value": 0.9403,
         "critical_values": {
           "1%": -3.4571,
           "5%": -2.8733,
@@ -911,12 +911,12 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.2662,
-        "p_value": 0.3905,
+        "coint_statistic": -2.0563,
+        "p_value": 0.4992,
         "is_cointegrated": "False"
       },
-      "total_rows": 6716,
-      "last_optimized": "2026-08-17 20:27:52"
+      "total_rows": 6752,
+      "last_optimized": "2026-08-19 20:42:33"
     },
     "LKOH-TATN_H1": {
       "pair_name": "LKOH-TATN_H1",
@@ -925,17 +925,17 @@
         "entry_z": 3.0,
         "exit_z": 0.5
       },
-      "train_score": 0.372,
+      "train_score": 0.358,
       "test_metrics": {
-        "total_pnl": 0.1385,
-        "win_rate": 0.72,
-        "sharpe": 0.395,
+        "total_pnl": 0.1309,
+        "win_rate": 0.692,
+        "sharpe": 0.36,
         "max_drawdown": -0.043,
-        "num_trades": 25
+        "num_trades": 26
       },
       "adf": {
-        "adf_statistic": -2.3771,
-        "p_value": 0.1483,
+        "adf_statistic": -0.5771,
+        "p_value": 0.8761,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
@@ -944,45 +944,45 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -1.8688,
-        "p_value": 0.5957,
+        "coint_statistic": -1.685,
+        "p_value": 0.6837,
         "is_cointegrated": "False"
       },
-      "total_rows": 6719,
-      "last_optimized": "2026-08-17 20:27:57"
+      "total_rows": 6755,
+      "last_optimized": "2026-08-19 20:42:27"
     },
     "LKOH-HYDR_M10": {
       "pair_name": "LKOH-HYDR_M10",
       "best_params": {
-        "window": 15,
+        "window": 30,
         "entry_z": 2.0,
-        "exit_z": 0.0
+        "exit_z": 1.0
       },
-      "train_score": 0.226,
+      "train_score": 0.227,
       "test_metrics": {
-        "total_pnl": 0.5675,
-        "win_rate": 0.738,
-        "sharpe": 0.138,
-        "max_drawdown": -0.0986,
-        "num_trades": 489
+        "total_pnl": 0.5032,
+        "win_rate": 0.773,
+        "sharpe": 0.151,
+        "max_drawdown": -0.0787,
+        "num_trades": 445
       },
       "adf": {
-        "adf_statistic": -0.9916,
-        "p_value": 0.7563,
+        "adf_statistic": -1.1632,
+        "p_value": 0.6892,
         "critical_values": {
-          "1%": -3.4572,
-          "5%": -2.8734,
-          "10%": -2.5731
+          "1%": -3.4569,
+          "5%": -2.8732,
+          "10%": -2.573
         },
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.3793,
-        "p_value": 0.3347,
+        "coint_statistic": -2.277,
+        "p_value": 0.3851,
         "is_cointegrated": "False"
       },
-      "total_rows": 37724,
-      "last_optimized": "2026-08-17 20:49:05"
+      "total_rows": 37928,
+      "last_optimized": "2026-08-19 20:39:09"
     },
     "HYDR-IRAO_M10": {
       "pair_name": "HYDR-IRAO_M10",
@@ -993,29 +993,29 @@
       },
       "train_score": 0.448,
       "test_metrics": {
-        "total_pnl": 0.5121,
-        "win_rate": 0.814,
-        "sharpe": 0.375,
+        "total_pnl": 0.5162,
+        "win_rate": 0.816,
+        "sharpe": 0.376,
         "max_drawdown": -0.0346,
-        "num_trades": 102
+        "num_trades": 103
       },
       "adf": {
-        "adf_statistic": -0.9957,
-        "p_value": 0.7548,
+        "adf_statistic": -1.6059,
+        "p_value": 0.4806,
         "critical_values": {
-          "1%": -3.457,
-          "5%": -2.8733,
+          "1%": -3.4569,
+          "5%": -2.8732,
           "10%": -2.573
         },
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.4428,
-        "p_value": 0.3048,
+        "coint_statistic": -2.5018,
+        "p_value": 0.2783,
         "is_cointegrated": "False"
       },
-      "total_rows": 37633,
-      "last_optimized": "2026-08-17 20:49:38"
+      "total_rows": 37837,
+      "last_optimized": "2026-08-19 20:42:09"
     },
     "LKOH-TATN_M10": {
       "pair_name": "LKOH-TATN_M10",
@@ -1024,31 +1024,31 @@
         "entry_z": 3.0,
         "exit_z": 0.0
       },
-      "train_score": 0.412,
+      "train_score": 0.42,
       "test_metrics": {
-        "total_pnl": 0.1262,
+        "total_pnl": 0.1206,
         "win_rate": 0.743,
-        "sharpe": 0.417,
+        "sharpe": 0.399,
         "max_drawdown": -0.0258,
         "num_trades": 35
       },
       "adf": {
-        "adf_statistic": -4.4031,
-        "p_value": 0.0003,
+        "adf_statistic": -0.6293,
+        "p_value": 0.8642,
         "critical_values": {
-          "1%": -3.4581,
-          "5%": -2.8738,
-          "10%": -2.5733
+          "1%": -3.4568,
+          "5%": -2.8732,
+          "10%": -2.573
         },
-        "is_stationary": "True"
+        "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.0981,
-        "p_value": 0.4773,
+        "coint_statistic": -1.9638,
+        "p_value": 0.5473,
         "is_cointegrated": "False"
       },
-      "total_rows": 37698,
-      "last_optimized": "2026-08-17 20:50:10"
+      "total_rows": 37902,
+      "last_optimized": "2026-08-19 20:40:23"
     },
     "ROSN-TATN_M10": {
       "pair_name": "ROSN-TATN_M10",
@@ -1066,22 +1066,22 @@
         "num_trades": 39
       },
       "adf": {
-        "adf_statistic": -2.8769,
-        "p_value": 0.0481,
+        "adf_statistic": -1.3564,
+        "p_value": 0.603,
         "critical_values": {
-          "1%": -3.4581,
-          "5%": -2.8738,
-          "10%": -2.5733
+          "1%": -3.4568,
+          "5%": -2.8732,
+          "10%": -2.573
         },
-        "is_stationary": "True"
+        "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.2539,
-        "p_value": 0.3967,
+        "coint_statistic": -2.1231,
+        "p_value": 0.4643,
         "is_cointegrated": "False"
       },
-      "total_rows": 37680,
-      "last_optimized": "2026-08-17 20:50:43"
+      "total_rows": 37884,
+      "last_optimized": "2026-08-19 20:40:57"
     },
     "LKOH-ROSN_M10": {
       "pair_name": "LKOH-ROSN_M10",
@@ -1090,17 +1090,17 @@
         "entry_z": 3.0,
         "exit_z": 0.0
       },
-      "train_score": 0.34,
+      "train_score": 0.339,
       "test_metrics": {
-        "total_pnl": 0.2265,
-        "win_rate": 0.758,
-        "sharpe": 0.367,
+        "total_pnl": 0.2305,
+        "win_rate": 0.767,
+        "sharpe": 0.376,
         "max_drawdown": -0.0236,
-        "num_trades": 91
+        "num_trades": 90
       },
       "adf": {
-        "adf_statistic": -3.0302,
-        "p_value": 0.0322,
+        "adf_statistic": -3.5701,
+        "p_value": 0.0064,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
@@ -1109,13 +1109,277 @@
         "is_stationary": "True"
       },
       "cointegration": {
-        "coint_statistic": -2.0271,
-        "p_value": 0.5145,
+        "coint_statistic": -2.0321,
+        "p_value": 0.5119,
         "is_cointegrated": "False"
       },
-      "total_rows": 37827,
-      "last_optimized": "2026-08-17 20:51:16"
+      "total_rows": 38031,
+      "last_optimized": "2026-08-19 20:39:46"
+    },
+    "LKOH-IRAO_M10": {
+      "pair_name": "LKOH-IRAO_M10",
+      "best_params": {
+        "window": 15,
+        "entry_z": 2.5,
+        "exit_z": 0.0
+      },
+      "train_score": 0.204,
+      "test_metrics": {
+        "total_pnl": 0.2934,
+        "win_rate": 0.691,
+        "sharpe": 0.176,
+        "max_drawdown": -0.0427,
+        "num_trades": 220
+      },
+      "adf": {
+        "adf_statistic": -0.1442,
+        "p_value": 0.9449,
+        "critical_values": {
+          "1%": -3.4569,
+          "5%": -2.8732,
+          "10%": -2.573
+        },
+        "is_stationary": "False"
+      },
+      "cointegration": {
+        "coint_statistic": -1.7301,
+        "p_value": 0.663,
+        "is_cointegrated": "False"
+      },
+      "total_rows": 37939,
+      "last_optimized": "2026-08-19 20:41:34"
+    },
+    "LKOH-IRAO_H1": {
+      "pair_name": "LKOH-IRAO_H1",
+      "best_params": {
+        "window": 20,
+        "entry_z": 2.5,
+        "exit_z": 1.0
+      },
+      "train_score": 0.156,
+      "test_metrics": {
+        "total_pnl": 0.0794,
+        "win_rate": 0.648,
+        "sharpe": 0.136,
+        "max_drawdown": -0.035,
+        "num_trades": 54
+      },
+      "adf": {
+        "adf_statistic": -1.996,
+        "p_value": 0.2883,
+        "critical_values": {
+          "1%": -3.4568,
+          "5%": -2.8732,
+          "10%": -2.573
+        },
+        "is_stationary": "False"
+      },
+      "cointegration": {
+        "coint_statistic": -1.7002,
+        "p_value": 0.6768,
+        "is_cointegrated": "False"
+      },
+      "total_rows": 6762,
+      "last_optimized": "2026-08-19 20:42:40"
+    },
+    "LKOH-HYDR_D1": {
+      "pair_name": "LKOH-HYDR_D1",
+      "best_params": {
+        "window": 25,
+        "entry_z": 2.0,
+        "exit_z": 0.0
+      },
+      "train_score": 0.739,
+      "test_metrics": {
+        "total_pnl": -0.0966,
+        "win_rate": 0.333,
+        "sharpe": -0.349,
+        "max_drawdown": -0.1674,
+        "num_trades": 3
+      },
+      "adf": {
+        "adf_statistic": -1.9007,
+        "p_value": 0.3317,
+        "critical_values": {
+          "1%": -3.4567,
+          "5%": -2.8731,
+          "10%": -2.5729
+        },
+        "is_stationary": "False"
+      },
+      "cointegration": {
+        "coint_statistic": -2.3859,
+        "p_value": 0.3316,
+        "is_cointegrated": "False"
+      },
+      "total_rows": 421,
+      "last_optimized": "2026-08-19 20:42:56"
+    },
+    "LKOH-ROSN_D1": {
+      "pair_name": "LKOH-ROSN_D1",
+      "best_params": {
+        "window": 30,
+        "entry_z": 2.0,
+        "exit_z": 0.0
+      },
+      "train_score": 0.08,
+      "test_metrics": {
+        "total_pnl": 0.0072,
+        "win_rate": 0.5,
+        "sharpe": 0.083,
+        "max_drawdown": -0.0269,
+        "num_trades": 2
+      },
+      "adf": {
+        "adf_statistic": -1.4032,
+        "p_value": 0.5808,
+        "critical_values": {
+          "1%": -3.4567,
+          "5%": -2.8731,
+          "10%": -2.5729
+        },
+        "is_stationary": "False"
+      },
+      "cointegration": {
+        "coint_statistic": -1.9485,
+        "p_value": 0.5552,
+        "is_cointegrated": "False"
+      },
+      "total_rows": 421,
+      "last_optimized": "2026-08-19 20:42:57"
+    },
+    "LKOH-TATN_D1": {
+      "pair_name": "LKOH-TATN_D1",
+      "best_params": {
+        "window": 40,
+        "entry_z": 2.0,
+        "exit_z": 0.5
+      },
+      "train_score": 0.475,
+      "test_metrics": {
+        "total_pnl": -0.0804,
+        "win_rate": 0.0,
+        "sharpe": -1.221,
+        "max_drawdown": -0.0787,
+        "num_trades": 3
+      },
+      "adf": {
+        "adf_statistic": -1.5918,
+        "p_value": 0.4877,
+        "critical_values": {
+          "1%": -3.4567,
+          "5%": -2.8731,
+          "10%": -2.5729
+        },
+        "is_stationary": "False"
+      },
+      "cointegration": {
+        "coint_statistic": -1.9348,
+        "p_value": 0.5622,
+        "is_cointegrated": "False"
+      },
+      "total_rows": 419,
+      "last_optimized": "2026-08-19 20:42:57"
+    },
+    "ROSN-TATN_D1": {
+      "pair_name": "ROSN-TATN_D1",
+      "best_params": {
+        "window": 40,
+        "entry_z": 2.0,
+        "exit_z": 0.0
+      },
+      "train_score": 1.429,
+      "test_metrics": {
+        "total_pnl": 0.017,
+        "win_rate": 0.333,
+        "sharpe": 0.194,
+        "max_drawdown": -0.0193,
+        "num_trades": 3
+      },
+      "adf": {
+        "adf_statistic": -0.9804,
+        "p_value": 0.7604,
+        "critical_values": {
+          "1%": -3.4567,
+          "5%": -2.8731,
+          "10%": -2.5729
+        },
+        "is_stationary": "False"
+      },
+      "cointegration": {
+        "coint_statistic": -2.078,
+        "p_value": 0.4879,
+        "is_cointegrated": "False"
+      },
+      "total_rows": 419,
+      "last_optimized": "2026-08-19 20:42:58"
+    },
+    "LKOH-IRAO_D1": {
+      "pair_name": "LKOH-IRAO_D1",
+      "best_params": {
+        "window": 40,
+        "entry_z": 2.0,
+        "exit_z": 0.0
+      },
+      "train_score": -0.108,
+      "test_metrics": {
+        "total_pnl": 0.118,
+        "win_rate": 1.0,
+        "sharpe": 1.515,
+        "max_drawdown": 0.0,
+        "num_trades": 2
+      },
+      "adf": {
+        "adf_statistic": -2.1588,
+        "p_value": 0.2215,
+        "critical_values": {
+          "1%": -3.457,
+          "5%": -2.8733,
+          "10%": -2.573
+        },
+        "is_stationary": "False"
+      },
+      "cointegration": {
+        "coint_statistic": -1.7707,
+        "p_value": 0.6438,
+        "is_cointegrated": "False"
+      },
+      "total_rows": 419,
+      "last_optimized": "2026-08-19 20:42:58"
+    },
+    "HYDR-IRAO_D1": {
+      "pair_name": "HYDR-IRAO_D1",
+      "best_params": {
+        "window": 40,
+        "entry_z": 2.0,
+        "exit_z": 0.0
+      },
+      "train_score": 1.821,
+      "test_metrics": {
+        "total_pnl": -0.0131,
+        "win_rate": 0.5,
+        "sharpe": -0.085,
+        "max_drawdown": -0.0614,
+        "num_trades": 2
+      },
+      "adf": {
+        "adf_statistic": -2.1333,
+        "p_value": 0.2313,
+        "critical_values": {
+          "1%": -3.4568,
+          "5%": -2.8732,
+          "10%": -2.573
+        },
+        "is_stationary": "False"
+      },
+      "cointegration": {
+        "coint_statistic": -2.7491,
+        "p_value": 0.1824,
+        "is_cointegrated": "False"
+      },
+      "total_rows": 419,
+      "last_optimized": "2026-08-19 20:42:59"
     }
   },
-  "last_updated": "2026-08-17 20:51:16"
+  "last_updated": "2026-08-19 20:42:59"
 }
