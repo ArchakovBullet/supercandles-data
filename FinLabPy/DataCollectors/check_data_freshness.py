@@ -4,6 +4,11 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import sys, os, random
 sys.path.insert(0, '/root/finlab')
+
+# Загрузка .env
+from dotenv import load_dotenv
+load_dotenv('/root/finlab/.env')
+
 import vk_api
 from vk_api import VkApi
 
@@ -14,6 +19,9 @@ today = datetime.now().date()
 # VK настройки
 VK_TOKEN = os.getenv('VK_TOKEN', '')
 GROUP_ID = int(os.getenv('VK_GROUP_ID', '0'))
+
+# Дата, с которой HI2 API перестал работать
+HI2_API_DISABLED_DATE = datetime(2026, 8, 14).date()
 
 def send_vk_message(msg):
     if not VK_TOKEN or not GROUP_ID:
@@ -57,6 +65,71 @@ for f in sorted((DATA / 'candles').glob('*_D1.parquet'))[:20]:
                 problems.append(f'🟡 {ticker}: свечи не обновлялись {age} дней')
     except:
         pass
+
+# Проверка HI2 (API закрыт с 14.08.2026 — уведомляем один раз)
+hi2_files = list((DATA / 'hi2').glob('*_hi2.parquet'))
+if hi2_files:
+    # Проверяем, что последняя дата в HI2 < даты отключения API
+    try:
+        df_hi2 = pd.read_parquet(DATA / 'hi2_daily.parquet')
+        if 'tradedate' in df_hi2.columns and len(df_hi2) > 0:
+            last_hi2_date = pd.to_datetime(df_hi2['tradedate'].max()).date()
+            if last_hi2_date <= HI2_API_DISABLED_DATE:
+                days_since = (today - last_hi2_date).days
+                if days_since > MAX_AGE_DAYS:
+                    problems.append(f'🟠 HI2: API закрыт с 14.08.2026, данные до {last_hi2_date} (отставание {days_since} дней). Отправлен запрос в поддержку AlgoPack.')
+    except:
+        problems.append('❌ HI2: ошибка чтения данных')
+
+# Проверка Super Candles
+supercandles_dir = DATA / 'supercandles'
+if supercandles_dir.exists():
+    sc_files = list(supercandles_dir.glob('*.parquet'))
+    if sc_files:
+        latest_sc = max(f.stat().st_mtime for f in sc_files)
+        latest_sc_date = datetime.fromtimestamp(latest_sc).date()
+        age_sc = (today - latest_sc_date).days
+        if age_sc > MAX_AGE_DAYS:
+            problems.append(f'🔴 Super Candles не обновлялись {age_sc} дней')
+    else:
+        problems.append('❌ Super Candles: нет файлов')
+
+# Проверка Funding
+funding_file = DATA / 'funding' / 'funding.parquet'
+if funding_file.exists():
+    age_funding = (today - datetime.fromtimestamp(funding_file.stat().st_mtime).date()).days
+    if age_funding > MAX_AGE_DAYS:
+        problems.append(f'🔴 Funding не обновлялся {age_funding} дней')
+else:
+    problems.append('❌ Funding: файл не найден')
+
+# Проверка TradeStats
+tradestats_dir = DATA / 'tradestats'
+if tradestats_dir.exists():
+    ts_files = list(tradestats_dir.glob('*.parquet'))
+    if ts_files:
+        latest_ts = max(f.stat().st_mtime for f in ts_files)
+        latest_ts_date = datetime.fromtimestamp(latest_ts).date()
+        age_ts = (today - latest_ts_date).days
+        if age_ts > MAX_AGE_DAYS:
+            problems.append(f'🔴 TradeStats не обновлялись {age_ts} дней')
+    else:
+        problems.append('❌ TradeStats: нет файлов')
+
+# Проверка MegaAlert
+mega_alerts_dir = DATA / 'mega_alerts'
+if mega_alerts_dir.exists():
+    ma_files = list(mega_alerts_dir.glob('*.parquet'))
+    if ma_files:
+        latest_ma = max(f.stat().st_mtime for f in ma_files)
+        latest_ma_date = datetime.fromtimestamp(latest_ma).date()
+        age_ma = (today - latest_ma_date).days
+        if age_ma > MAX_AGE_DAYS:
+            problems.append(f'🔴 MegaAlert не обновлялись {age_ma} дней')
+    else:
+        problems.append('❌ MegaAlert: нет файлов')
+else:
+    problems.append('❌ MegaAlert: директория не найдена')
 
 if problems:
     msg = f'⚠️ Проблемы со свежестью данных ({today}):\n' + '\n'.join(problems[:10])
