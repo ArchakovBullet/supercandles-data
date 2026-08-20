@@ -65,6 +65,21 @@ def get_folder_stats(folder_path: Path) -> dict:
             age_days = (now - datetime.fromtimestamp(mtime)).days
             if age_days > max_age_days:
                 max_age_days = age_days
+            # Проверяем дату данных внутри файла
+            if 'begin' in df.columns:
+                data_date = pd.to_datetime(df['begin'].max()).to_pydatetime()
+                # Для H4 данных проверяем дату (не время)
+                if 'h4' in folder_path.name.lower():
+                    data_age = (now.date() - data_date.date()).days
+                else:
+                    data_age = (now - data_date).days
+                if data_age > max_age_days:
+                    max_age_days = data_age
+            elif 'tradedate' in df.columns:
+                data_date = pd.to_datetime(df['tradedate'].max()).to_pydatetime()
+                data_age = (now.date() - data_date.date()).days
+                if data_age > max_age_days:
+                    max_age_days = data_age
         except Exception as e:
             st.warning(f"Ошибка чтения {f.name}: {e}")
     # Определяем статус по возрасту (по последнему обновлению, а не самому старому файлу)
