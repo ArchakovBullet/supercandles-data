@@ -24,6 +24,43 @@ class MegaAlertCollector:
         self.data_dir = data_dir or project_root / 'data' / 'mega_alerts'
         self.data_dir.mkdir(parents=True, exist_ok=True)
     
+    @staticmethod
+    def _resolve_full_code(short_code):
+        """Получить полный код фьючерса (ближайший активный контракт)."""
+        cache_file = Path(__file__).parent / "contract_cache.json"
+        cache = {}
+        if cache_file.exists():
+            with open(cache_file) as f:
+                cache = json.load(f)
+        
+        today = datetime.now().strftime("%Y-%m-%d")
+        if short_code in cache and cache[short_code].get("date") == today:
+            return cache[short_code]["code"]
+        
+        try:
+            url = "https://iss.moex.com/iss/engines/futures/markets/forts/securities.json"
+            r = requests.get(url, timeout=10)
+            data = r.json()["securities"]
+            cols = data["columns"]
+            rows = data["data"]
+            secid_idx = cols.index("SECID")
+            sectype_idx = cols.index("SECTYPE")
+            date_idx = cols.index("LASTTRADEDATE")
+            active = []
+            for row in rows:
+                if row[sectype_idx].upper() == short_code.upper() and row[date_idx] > today:
+                    active.append((row[date_idx], row[secid_idx]))
+            if active:
+                active.sort()
+                full_code = active[0][1]
+                cache[short_code] = {"code": full_code, "date": today}
+                with open(cache_file, "w") as f:
+                    json.dump(cache, f)
+                return full_code
+        except:
+            pass
+        return short_code
+
     def collect_all(self):
         """Собрать Mega Alerts для всех тикеров."""
         logger.info(f'Начало сбора Mega Alerts за {date.today()}')
@@ -51,20 +88,24 @@ class MegaAlertCollector:
     
     def _collect_one(self, ticker: str) -> list:
         """Собрать Mega Alerts для одного тикера."""
-        # Определяем engine
+        # Определяем engine и полный код контракта
         cfg_path = Path(__file__).parent / 'tickers_config.json'
         engine = 'stocks'
+        api_ticker = ticker
+        
         if cfg_path.exists():
             with open(cfg_path) as f:
                 cfg = json.load(f)
             if ticker in cfg.get('futures', []):
                 engine = 'futures'
+                # Для срочных фьючерсов нужен полный код (RIU6, BRU6 и т.д.)
+                api_ticker = self._resolve_full_code(ticker)
         
         # Получаем алерты за последние 7 дней
         end_date = date.today()
         start_date = end_date - timedelta(days=7)
         
-        raw = self.api.get_alerts(engine, ticker, date=end_date)
+        raw = self.api.get_alerts(engine, api_ticker, date=end_date)
         
         if not raw or 'data' not in raw or 'data' not in raw['data']:
             return []
