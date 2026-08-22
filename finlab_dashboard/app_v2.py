@@ -3483,7 +3483,7 @@ collect_tradestats(_code, "RFUD")
                 fig2 = go.Figure()
                 fig2.add_trace(go.Scatter(x=df_4h['hour'], y=df_4h['fiz_buy_ratio'], mode='lines+markers', name='Физ %', line=dict(color='#00BFFF')))
                 fig2.add_trace(go.Scatter(x=df_4h['hour'], y=df_4h['yur_buy_ratio'], mode='lines+markers', name='Юр %', line=dict(color='#FF6B6B')))
-                fig2.update_layout(height=300, template='plotly_dark', title='FutOI 4H (накопление данных...)')
+                fig2.update_layout(height=300, template='plotly_dark', title='FutOI 4H')
                 st.plotly_chart(fig2, use_container_width=True)
 
             
