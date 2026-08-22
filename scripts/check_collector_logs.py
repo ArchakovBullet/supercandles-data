@@ -25,10 +25,6 @@ ERROR_PATTERNS = [
     r'SSLCertVerificationError',
     r'ConnectionError',
     r'TimeoutError',
-    r'403',
-    r'404',
-    r'500',
-    r'401',
 ]
 
 def load_state():
