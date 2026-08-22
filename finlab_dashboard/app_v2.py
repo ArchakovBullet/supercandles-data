@@ -3485,7 +3485,7 @@ collect_tradestats(_code, "RFUD")
                 fig2.add_trace(go.Scatter(x=df_4h['hour'], y=df_4h['yur_buy_ratio'], mode='lines+markers', name='Юр %', line=dict(color='#FF6B6B')))
                 fig2.update_layout(height=300, template='plotly_dark', title='FutOI 4H (накопление данных...)')
                 st.plotly_chart(fig2, use_container_width=True)
-                st.caption("ℹ️ Данных пока мало (сборщик запущен 17.06). Полноценный анализ будет доступен через 1-2 недели.")
+
             
             # Свечной график H1 (агрегируем до 4H)
             _h1_file = DATA_ROOT / "candles" / f"{selected_ticker}_H1.parquet"
