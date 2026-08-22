@@ -13,6 +13,7 @@ load_dotenv('/root/finlab/.env')
 import vk_api
 
 LOGS_DIR = Path('/root/finlab/logs')
+STATE_FILE = Path('/root/finlab/logs/collector_errors_state.json')
 TOKEN = os.getenv('VK_TOKEN', '')
 GROUP_ID = int(os.getenv('VK_GROUP_ID', '0'))
 
@@ -30,13 +31,32 @@ ERROR_PATTERNS = [
     r'401',
 ]
 
+def load_state():
+    """Загрузить предыдущее состояние ошибок."""
+    import json
+    if STATE_FILE.exists():
+        with open(STATE_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_state(state):
+    """Сохранить состояние ошибок."""
+    import json
+    with open(STATE_FILE, 'w') as f:
+        json.dump(state, f, indent=2)
+
 def check_recent_logs():
-    """Проверить логи за последние 6 часов на ошибки."""
+    """Проверить логи за последние 2 часа на новые ошибки."""
     now = datetime.now()
-    cutoff = now - timedelta(hours=6)
+    cutoff = now - timedelta(hours=2)
+    state = load_state()
     problems = []
+    new_errors = []
     
     for log_file in LOGS_DIR.glob('*.log'):
+        # Пропускаем собственный лог
+        if log_file.name == 'collector_logs_check.log':
+            continue
         try:
             mtime = datetime.fromtimestamp(log_file.stat().st_mtime)
             if mtime < cutoff:
@@ -44,15 +64,25 @@ def check_recent_logs():
             
             with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
                 lines = f.readlines()
-                # Проверяем последние 100 строк
-                for line in lines[-100:]:
+                # Проверяем последние 50 строк
+                for line in lines[-50:]:
                     for pattern in ERROR_PATTERNS:
                         if re.search(pattern, line, re.IGNORECASE):
-                            # Не дублируем одинаковые ошибки из одного файла
-                            problems.append(f"  📄 {log_file.name}: {line.strip()[:150]}")
+                            # Создаём ключ для дедупликации
+                            error_key = f"{log_file.name}:{line.strip()[:80]}"
+                            if error_key not in state:
+                                problems.append(f"  📄 {log_file.name}: {line.strip()[:150]}")
+                                new_errors.append(error_key)
                             break
         except:
             pass
+    
+    # Обновляем state
+    for key in new_errors:
+        state[key] = now.strftime('%Y-%m-%d %H:%M:%S')
+    # Очищаем state от ошибок старше 24 часов
+    state = {k: v for k, v in state.items() if (now - datetime.strptime(v, '%Y-%m-%d %H:%M:%S')).days < 1}
+    save_state(state)
     
     return problems
 
