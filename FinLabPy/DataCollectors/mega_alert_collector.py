@@ -128,6 +128,10 @@ class MegaAlertCollector:
         else:
             df_combined = df
         
+        # Приводим threshold к Float64 (может быть Int64 в старых файлах)
+        if 'threshold' in df_combined.columns:
+            df_combined = df_combined.with_columns(pl.col('threshold').cast(pl.Float64))
+        
         df_combined.write_parquet(file_path)
         return rows
 
