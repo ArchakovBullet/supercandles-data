@@ -60,12 +60,11 @@ class MegaAlertCollector:
         except:
             pass
         return short_code
-
+    
     def collect_all(self):
         """Собрать Mega Alerts для всех тикеров."""
         logger.info(f'Начало сбора Mega Alerts за {date.today()}')
         
-        # Тикеры из конфига
         cfg_path = Path(__file__).parent / 'tickers_config.json'
         if cfg_path.exists():
             with open(cfg_path) as f:
@@ -87,8 +86,7 @@ class MegaAlertCollector:
         logger.info(f'Готово! Всего алертов: {total_alerts}')
     
     def _collect_one(self, ticker: str) -> list:
-        """Собрать Mega Alerts для одного тикера."""
-        # Определяем engine и полный код контракта
+        """Собрать Mega Alerts для одного тикера за 7 дней."""
         cfg_path = Path(__file__).parent / 'tickers_config.json'
         engine = 'stocks'
         api_ticker = ticker
@@ -98,45 +96,51 @@ class MegaAlertCollector:
                 cfg = json.load(f)
             if ticker in cfg.get('futures', []):
                 engine = 'futures'
-                # Для срочных фьючерсов нужен полный код (RIU6, BRU6 и т.д.)
                 api_ticker = self._resolve_full_code(ticker)
         
-        # Получаем алерты за последние 7 дней
+        all_rows = []
+        
+        # Собираем за 7 дней по одному дню
         end_date = date.today()
-        start_date = end_date - timedelta(days=7)
+        for days_back in range(7):
+            target_date = end_date - timedelta(days=days_back)
+            try:
+                raw = self.api.get_alerts(engine, api_ticker, date=target_date)
+                if raw and 'data' in raw and 'data' in raw['data']:
+                    alerts_data = raw['data']
+                    columns = alerts_data.get('columns', [])
+                    data = alerts_data.get('data', [])
+                    if data:
+                        for row in data:
+                            row_dict = dict(zip(columns, row))
+                            all_rows.append(row_dict)
+            except:
+                pass
         
-        raw = self.api.get_alerts(engine, api_ticker, date=end_date)
-        
-        if not raw or 'data' not in raw or 'data' not in raw['data']:
+        if not all_rows:
             return []
         
-        alerts_data = raw['data']
-        columns = alerts_data.get('columns', [])
-        data = alerts_data.get('data', [])
-        
-        if not data:
-            return []
-        
-        # Сохраняем
+        # Сохраняем (всегда перезапись)
         file_path = self.data_dir / f'{ticker}_alerts.parquet'
-        rows = [dict(zip(columns, row)) for row in data]
-        df = pl.DataFrame(rows)
         
-        if file_path.exists():
-            df_existing = pl.read_parquet(file_path)
-            df_combined = pl.concat([df_existing, df])
-        else:
-            df_combined = df
+        # Создаём DataFrame и приводим все числовые колонки к Float64
+        df = pl.DataFrame(all_rows)
         
-        # Приводим threshold к Float64 (может быть Int64 в старых файлах)
-        if 'threshold' in df_combined.columns:
-            df_combined = df_combined.with_columns(pl.col('threshold').cast(pl.Float64))
+        # Приводим все числовые колонки к Float64
+        for col in df.columns:
+            if df[col].dtype in [pl.Int64, pl.Int32, pl.Float32]:
+                try:
+                    df = df.with_columns(pl.col(col).cast(pl.Float64, strict=False))
+                except:
+                    pass
         
-        df_combined.write_parquet(file_path)
-        return rows
+        df.write_parquet(file_path)
+        return all_rows
 
 
 if __name__ == '__main__':
+    from dotenv import load_dotenv
+    load_dotenv('/root/finlab/.env')
     api = MOEXPy(token=os.getenv('MOEX_TOKEN'))
     collector = MegaAlertCollector(api)
     collector.collect_all()

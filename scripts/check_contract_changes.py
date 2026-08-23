@@ -62,11 +62,11 @@ def check_contract_changes():
 def send_vk_message(vk, peer_id, message):
     """Отправить сообщение в VK"""
     try:
-        vk.method('messages.send', {
-            'peer_id': peer_id,
-            'message': message,
-            'random_id': int(datetime.now().timestamp() * 1000)
-        })
+        vk.messages.send(
+            peer_id=peer_id,
+            message=message,
+            random_id=int(datetime.now().timestamp() * 1000)
+        )
         return True
     except Exception as e:
         print(f"❌ Ошибка отправки: {e}")
