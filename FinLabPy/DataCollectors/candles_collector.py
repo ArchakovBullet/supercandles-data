@@ -69,7 +69,7 @@ def get_full_code(short_code):
         if short_code in cache and cache[short_code].get("date") == today:
             return cache[short_code]["code"]
         url = "https://iss.moex.com/iss/engines/futures/markets/forts/securities.json"
-        r = requests.get(url, timeout=10)
+        r = requests.get(url, timeout=10, verify=False)
         if r.status_code != 200:
             return short_code
         data = r.json()["securities"]
