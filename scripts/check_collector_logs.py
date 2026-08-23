@@ -27,6 +27,13 @@ ERROR_PATTERNS = [
     r'TimeoutError',
 ]
 
+# Паттерны для игнорирования (не считаются ошибками)
+IGNORE_PATTERNS = [
+    r'keyring_pass\.cfg',
+    r'РћС€РёР±РєР° РїСЂРё СЃРѕС…СЂР°РЅРµРЅРёРё С‚РѕРєРµРЅР°',
+    r'РћС€РёР±РєР° РїСЂРё Р·Р°РіСЂСѓР·РєРµ С‚РѕРєРµРЅР°',
+]
+
 def load_state():
     """Загрузить предыдущее состояние ошибок."""
     import json
@@ -62,6 +69,16 @@ def check_recent_logs():
                 lines = f.readlines()
                 # Проверяем последние 50 строк
                 for line in lines[-50:]:
+                    # Проверяем, не игнорируется ли строка
+                    is_ignored = False
+                    for ignore_pattern in IGNORE_PATTERNS:
+                        if re.search(ignore_pattern, line, re.IGNORECASE):
+                            is_ignored = True
+                            break
+                    
+                    if is_ignored:
+                        continue
+                    
                     for pattern in ERROR_PATTERNS:
                         if re.search(pattern, line, re.IGNORECASE):
                             # Создаём ключ для дедупликации
