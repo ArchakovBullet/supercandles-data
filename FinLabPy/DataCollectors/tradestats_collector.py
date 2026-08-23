@@ -39,7 +39,7 @@ def _resolve_full_code(short_code):
         return cache[short_code]["code"]
     try:
         url = "https://iss.moex.com/iss/engines/futures/markets/forts/securities.json"
-        r = requests.get(url, timeout=10)
+        r = requests.get(url, timeout=10, verify=False)
         data = r.json()["securities"]
         cols = data["columns"]
         rows = data["data"]
