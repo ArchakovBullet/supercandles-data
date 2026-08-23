@@ -59,6 +59,24 @@ def get_full_code(short_code):
     import json, requests
     from datetime import datetime
     from pathlib import Path
+    
+    # Маппинг коротких кодов фьючерсов к SECTYPE
+    short_to_sectype = {
+        'MM': 'MXI', 'RM': 'RTSM', 'HO': 'HOME', 'OG': 'OGI', 'MA': 'MMI',
+        'FN': 'FNI', 'CS': 'CNI', 'RB': 'RGBI', 'RF': 'RUONIA', 'MY': 'MOEXCNY',
+        'IP': 'IPO', 'EH': 'ETH', 'BT': 'BTC', 'S3': 'SOL', 'XR': 'XRP',
+        'TX': 'TRX', 'BC': 'BNB', 'BM': 'BRM', 'WT': 'WTI', 'NG': 'NG',
+        'NR': 'NGM', 'GL': 'GL', 'GN': 'GOLDM', 'LD': 'PLDM', 'LT': 'PLTM',
+        'S1': 'SILVM', 'S2': 'SL', 'NC': 'NICKEL', 'ZC': 'ZINC', 'AN': 'ALUM',
+        'SA': 'SUGR', 'Su': 'SUGAR', 'CC': 'COCOA', 'KC': 'COFFEE', '92': 'AI92',
+        '95': 'AI95', 'DL': 'DTL', 'Eu': 'Eu', 'ER': 'EURM', 'UM': 'USDM',
+        'TY': 'TRY', 'HK': 'HKD', 'AE': 'AED', 'I2': 'INR', 'KZ': 'KZT',
+        'AR': 'AMD', 'BY': 'BYN', 'AU': 'AUDU', 'GU': 'GBPU', 'CA': 'UCAD',
+        'CF': 'UCHF', 'JP': 'UJPY', 'TR': 'UTRY', 'UC': 'UCNY', 'UT': 'UKZT',
+        'IN': 'UINR', 'EC': 'ECAD', 'EG': 'EGBP', 'EJ': 'EJPY',
+        'RR': 'RUON', 'MF': '1MFR',
+    }
+    
     try:
         cache_file = Path(__file__).parent / "contract_cache.json"
         cache = {}
@@ -80,7 +98,9 @@ def get_full_code(short_code):
         date_idx = cols.index("LASTTRADEDATE")
         active = []
         for row in rows:
-            if row[sectype_idx].upper() == short_code.upper():
+            # Проверяем по короткому коду или по маппингу SECTYPE
+            sectype_lookup = short_to_sectype.get(short_code, short_code)
+            if row[sectype_idx].upper() == sectype_lookup.upper():
                 if row[date_idx] > today:
                     active.append((row[date_idx], row[secid_idx]))
         if active:
@@ -93,6 +113,8 @@ def get_full_code(short_code):
     except:
         pass
     return short_code
+
+
 def main():
     print("=" * 60)
     print(f"СБОРЩИК СВЕЧЕЙ | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -109,7 +131,7 @@ def main():
             
             # Определяем дату начала
             api_ticker = get_full_code(ticker) if board == "RFUD" else ticker
-            file_path = DATA_DIR / f"{api_ticker}_{tf_name}.parquet"
+            file_path = DATA_DIR / f"{ticker}_{tf_name}.parquet"
             # Ищем существующий файл (может быть с коротким или полным кодом)
             existing_files = list(DATA_DIR.glob(f"{ticker}_*.parquet")) + list(DATA_DIR.glob(f"{api_ticker}_*.parquet"))
             existing_files = [f for f in existing_files if f.stem.endswith(tf_name)]
