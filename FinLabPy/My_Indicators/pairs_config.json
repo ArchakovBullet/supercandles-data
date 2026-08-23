@@ -509,7 +509,7 @@
         "hedge_ratio": 5.2919
       },
       "total_rows": 1890,
-      "last_optimized": "2026-08-19 21:26:43"
+      "last_optimized": "2026-08-23 19:04:30"
     },
     "LKOH-HYDR_H4": {
       "pair_name": "LKOH-HYDR_H4",
@@ -564,7 +564,7 @@
         "hedge_ratio": 3.9171
       },
       "total_rows": 1829,
-      "last_optimized": "2026-08-19 21:26:36"
+      "last_optimized": "2026-08-23 19:04:23"
     },
     "LKOH-ROSN_H4": {
       "pair_name": "LKOH-ROSN_H4",
@@ -619,7 +619,7 @@
         "hedge_ratio": 3.8972
       },
       "total_rows": 1895,
-      "last_optimized": "2026-08-19 21:26:38"
+      "last_optimized": "2026-08-23 19:04:25"
     },
     "LKOH-TATN_H4": {
       "pair_name": "LKOH-TATN_H4",
@@ -674,7 +674,7 @@
         "hedge_ratio": -1.0016
       },
       "total_rows": 1885,
-      "last_optimized": "2026-08-19 21:26:40"
+      "last_optimized": "2026-08-23 19:04:26"
     },
     "ROSN-TATN_H4": {
       "pair_name": "ROSN-TATN_H4",
@@ -729,7 +729,7 @@
         "hedge_ratio": -1.726
       },
       "total_rows": 1883,
-      "last_optimized": "2026-08-19 21:26:42"
+      "last_optimized": "2026-08-23 19:04:28"
     },
     "LKOH-GAZP_H4": {
       "pair_name": "LKOH-GAZP_H4",
@@ -916,7 +916,7 @@
         "hedge_ratio": 6.0983
       },
       "total_rows": 1825,
-      "last_optimized": "2026-08-19 21:26:45"
+      "last_optimized": "2026-08-23 19:04:31"
     },
     "LKOH-ROSN_H1": {
       "pair_name": "LKOH-ROSN_H1",
@@ -925,33 +925,33 @@
         "entry_z": 3.0,
         "exit_z": 0.5
       },
-      "train_score": 0.387,
+      "train_score": 0.433,
       "test_metrics": {
-        "total_pnl": 0.0591,
-        "win_rate": 0.625,
-        "sharpe": 0.53,
-        "max_drawdown": -0.0189,
-        "num_trades": 8
+        "total_pnl": 0.0347,
+        "win_rate": 0.571,
+        "sharpe": 0.379,
+        "max_drawdown": -0.0078,
+        "num_trades": 7
       },
       "adf": {
-        "adf_statistic": -1.2273,
-        "p_value": 0.6617,
+        "adf_statistic": -2.104,
+        "p_value": 0.2429,
         "critical_values": {
-          "1%": -3.457,
-          "5%": -2.8733,
+          "1%": -3.4568,
+          "5%": -2.8732,
           "10%": -2.573
         },
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.0802,
-        "p_value": 0.4867,
+        "coint_statistic": -2.0693,
+        "p_value": 0.4924,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          5.7672,
-          0.8998
+          5.707,
+          0.7629
         ],
         "critical_values_5pct": [
           15.4943,
@@ -959,38 +959,38 @@
         ],
         "eigenvectors": [
           [
-            13.6125,
-            3.7364
+            13.4702,
+            -4.3479
           ],
           [
-            -14.2682,
-            5.2379
+            -14.5722,
+            -4.4155
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": 3.6432
+        "hedge_ratio": -3.0981
       },
-      "total_rows": 6779,
-      "last_optimized": "2026-08-19 21:26:06"
+      "total_rows": 6839,
+      "last_optimized": "2026-08-23 19:03:56"
     },
     "LKOH-HYDR_H1": {
       "pair_name": "LKOH-HYDR_H1",
       "best_params": {
-        "window": 15,
+        "window": 10,
         "entry_z": 2.0,
         "exit_z": 1.0
       },
-      "train_score": 0.21,
+      "train_score": 0.204,
       "test_metrics": {
-        "total_pnl": 0.2379,
-        "win_rate": 0.769,
-        "sharpe": 0.208,
-        "max_drawdown": -0.0913,
-        "num_trades": 117
+        "total_pnl": 0.1045,
+        "win_rate": 0.69,
+        "sharpe": 0.089,
+        "max_drawdown": -0.0769,
+        "num_trades": 126
       },
       "adf": {
-        "adf_statistic": -2.6197,
-        "p_value": 0.089,
+        "adf_statistic": -0.9961,
+        "p_value": 0.7547,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
@@ -999,14 +999,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.371,
-        "p_value": 0.3387,
+        "coint_statistic": -2.3363,
+        "p_value": 0.3556,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          7.3241,
-          1.0243
+          7.0907,
+          0.8469
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1014,19 +1014,19 @@
         ],
         "eigenvectors": [
           [
-            14.2182,
-            -5.3959
+            13.9482,
+            -5.5965
           ],
           [
-            -13.4812,
-            -2.8313
+            -13.5458,
+            -2.5457
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -2.635
+        "hedge_ratio": -2.4923
       },
-      "total_rows": 6715,
-      "last_optimized": "2026-08-19 21:26:00"
+      "total_rows": 6772,
+      "last_optimized": "2026-08-23 19:03:50"
     },
     "HYDR-IRAO_H1": {
       "pair_name": "HYDR-IRAO_H1",
@@ -1037,15 +1037,15 @@
       },
       "train_score": 0.431,
       "test_metrics": {
-        "total_pnl": 0.2559,
-        "win_rate": 0.824,
-        "sharpe": 0.788,
+        "total_pnl": 0.2664,
+        "win_rate": 0.889,
+        "sharpe": 0.801,
         "max_drawdown": -0.0021,
-        "num_trades": 17
+        "num_trades": 18
       },
       "adf": {
-        "adf_statistic": -2.4938,
-        "p_value": 0.117,
+        "adf_statistic": -1.064,
+        "p_value": 0.7292,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
@@ -1054,14 +1054,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.4408,
-        "p_value": 0.3058,
+        "coint_statistic": -2.3127,
+        "p_value": 0.3672,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          10.3451,
-          1.242
+          9.0052,
+          0.8812
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1069,19 +1069,19 @@
         ],
         "eigenvectors": [
           [
-            15.4303,
-            3.4805
+            15.6643,
+            1.8665
           ],
           [
-            -19.4377,
-            5.3227
+            -18.5043,
+            7.1835
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": 4.4333
+        "hedge_ratio": 8.3923
       },
-      "total_rows": 6698,
-      "last_optimized": "2026-08-19 21:26:34"
+      "total_rows": 6755,
+      "last_optimized": "2026-08-23 19:04:21"
     },
     "ROSN-TATN_H1": {
       "pair_name": "ROSN-TATN_H1",
@@ -1092,31 +1092,31 @@
       },
       "train_score": 0.433,
       "test_metrics": {
-        "total_pnl": 0.0593,
-        "win_rate": 0.652,
-        "sharpe": 0.145,
+        "total_pnl": 0.0672,
+        "win_rate": 0.636,
+        "sharpe": 0.165,
         "max_drawdown": -0.0486,
-        "num_trades": 23
+        "num_trades": 22
       },
       "adf": {
-        "adf_statistic": -0.1846,
-        "p_value": 0.9403,
+        "adf_statistic": -1.9152,
+        "p_value": 0.3249,
         "critical_values": {
-          "1%": -3.4571,
-          "5%": -2.8733,
+          "1%": -3.4568,
+          "5%": -2.8732,
           "10%": -2.573
         },
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.0563,
-        "p_value": 0.4992,
+        "coint_statistic": -2.0496,
+        "p_value": 0.5027,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          12.9359,
-          0.9382
+          12.8055,
+          0.8551
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1124,19 +1124,19 @@
         ],
         "eigenvectors": [
           [
-            14.4456,
-            -10.8112
+            14.0825,
+            -10.6357
           ],
           [
-            -19.293,
-            2.5646
+            -19.1625,
+            2.5765
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -1.3362
+        "hedge_ratio": -1.3241
       },
-      "total_rows": 6752,
-      "last_optimized": "2026-08-19 21:26:20"
+      "total_rows": 6812,
+      "last_optimized": "2026-08-23 19:04:09"
     },
     "LKOH-TATN_H1": {
       "pair_name": "LKOH-TATN_H1",
@@ -1145,17 +1145,17 @@
         "entry_z": 3.0,
         "exit_z": 0.5
       },
-      "train_score": 0.358,
+      "train_score": 0.395,
       "test_metrics": {
-        "total_pnl": 0.1309,
-        "win_rate": 0.692,
-        "sharpe": 0.36,
+        "total_pnl": 0.1098,
+        "win_rate": 0.68,
+        "sharpe": 0.331,
         "max_drawdown": -0.043,
-        "num_trades": 26
+        "num_trades": 25
       },
       "adf": {
-        "adf_statistic": -0.5771,
-        "p_value": 0.8761,
+        "adf_statistic": -1.441,
+        "p_value": 0.5625,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
@@ -1164,14 +1164,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -1.685,
-        "p_value": 0.6837,
+        "coint_statistic": -1.6019,
+        "p_value": 0.7201,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          8.9098,
-          0.9534
+          8.6778,
+          0.7128
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1179,54 +1179,54 @@
         ],
         "eigenvectors": [
           [
-            10.1847,
-            -11.7014
+            9.7908,
+            -11.6821
           ],
           [
-            -17.1634,
-            5.2369
+            -17.0186,
+            5.5257
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -0.8704
+        "hedge_ratio": -0.8381
       },
-      "total_rows": 6755,
-      "last_optimized": "2026-08-19 21:26:13"
+      "total_rows": 6815,
+      "last_optimized": "2026-08-23 19:04:03"
     },
     "LKOH-HYDR_M10": {
       "pair_name": "LKOH-HYDR_M10",
       "best_params": {
-        "window": 30,
+        "window": 15,
         "entry_z": 2.0,
-        "exit_z": 1.0
+        "exit_z": 0.0
       },
-      "train_score": 0.227,
+      "train_score": 0.229,
       "test_metrics": {
-        "total_pnl": 0.5032,
-        "win_rate": 0.773,
-        "sharpe": 0.151,
-        "max_drawdown": -0.0787,
-        "num_trades": 445
+        "total_pnl": 0.5593,
+        "win_rate": 0.738,
+        "sharpe": 0.137,
+        "max_drawdown": -0.0986,
+        "num_trades": 493
       },
       "adf": {
-        "adf_statistic": -1.1632,
-        "p_value": 0.6892,
+        "adf_statistic": -1.6862,
+        "p_value": 0.4382,
         "critical_values": {
-          "1%": -3.4569,
-          "5%": -2.8732,
-          "10%": -2.573
+          "1%": -3.4584,
+          "5%": -2.8739,
+          "10%": -2.5733
         },
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.277,
-        "p_value": 0.3851,
+        "coint_statistic": -2.2492,
+        "p_value": 0.3991,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          7.8172,
-          1.0511
+          7.6406,
+          0.9064
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1234,19 +1234,19 @@
         ],
         "eigenvectors": [
           [
-            14.1464,
-            -5.5867
+            13.8936,
+            -5.7303
           ],
           [
-            -13.5048,
-            -2.6312
+            -13.5555,
+            -2.3969
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -2.5322
+        "hedge_ratio": -2.4246
       },
-      "total_rows": 37928,
-      "last_optimized": "2026-08-19 21:22:42"
+      "total_rows": 38253,
+      "last_optimized": "2026-08-23 19:00:48"
     },
     "HYDR-IRAO_M10": {
       "pair_name": "HYDR-IRAO_M10",
@@ -1257,31 +1257,31 @@
       },
       "train_score": 0.448,
       "test_metrics": {
-        "total_pnl": 0.5162,
-        "win_rate": 0.816,
-        "sharpe": 0.376,
+        "total_pnl": 0.4992,
+        "win_rate": 0.808,
+        "sharpe": 0.359,
         "max_drawdown": -0.0346,
-        "num_trades": 103
+        "num_trades": 104
       },
       "adf": {
-        "adf_statistic": -1.6059,
-        "p_value": 0.4806,
+        "adf_statistic": -1.1624,
+        "p_value": 0.6896,
         "critical_values": {
-          "1%": -3.4569,
-          "5%": -2.8732,
-          "10%": -2.573
+          "1%": -3.4574,
+          "5%": -2.8735,
+          "10%": -2.5731
         },
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.5018,
-        "p_value": 0.2783,
+        "coint_statistic": -2.3198,
+        "p_value": 0.3637,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          11.5122,
-          1.262
+          10.1828,
+          0.9565
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1289,19 +1289,19 @@
         ],
         "eigenvectors": [
           [
-            15.4277,
-            3.4539
+            15.6268,
+            2.0726
           ],
           [
-            -19.4206,
-            5.3237
+            -18.5809,
+            6.9042
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": 4.4668
+        "hedge_ratio": 7.5398
       },
-      "total_rows": 37837,
-      "last_optimized": "2026-08-19 21:25:53"
+      "total_rows": 38168,
+      "last_optimized": "2026-08-23 19:03:44"
     },
     "LKOH-TATN_M10": {
       "pair_name": "LKOH-TATN_M10",
@@ -1310,33 +1310,33 @@
         "entry_z": 3.0,
         "exit_z": 0.0
       },
-      "train_score": 0.42,
+      "train_score": 0.423,
       "test_metrics": {
-        "total_pnl": 0.1206,
-        "win_rate": 0.743,
-        "sharpe": 0.399,
+        "total_pnl": 0.0934,
+        "win_rate": 0.735,
+        "sharpe": 0.36,
         "max_drawdown": -0.0258,
-        "num_trades": 35
+        "num_trades": 34
       },
       "adf": {
-        "adf_statistic": -0.6293,
-        "p_value": 0.8642,
+        "adf_statistic": -1.1835,
+        "p_value": 0.6806,
         "critical_values": {
-          "1%": -3.4568,
+          "1%": -3.4569,
           "5%": -2.8732,
           "10%": -2.573
         },
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -1.9638,
-        "p_value": 0.5473,
+        "coint_statistic": -1.8743,
+        "p_value": 0.593,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          9.186,
-          1.0228
+          8.9611,
+          0.8157
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1344,19 +1344,19 @@
         ],
         "eigenvectors": [
           [
-            10.5619,
-            -11.3371
+            10.0468,
+            -11.4401
           ],
           [
-            -17.3161,
-            4.6542
+            -17.1276,
+            5.1317
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -0.9316
+        "hedge_ratio": -0.8782
       },
-      "total_rows": 37902,
-      "last_optimized": "2026-08-19 21:23:57"
+      "total_rows": 38239,
+      "last_optimized": "2026-08-23 19:01:55"
     },
     "ROSN-TATN_M10": {
       "pair_name": "ROSN-TATN_M10",
@@ -1367,31 +1367,31 @@
       },
       "train_score": 0.435,
       "test_metrics": {
-        "total_pnl": 0.1056,
-        "win_rate": 0.821,
-        "sharpe": 0.312,
+        "total_pnl": 0.1139,
+        "win_rate": 0.829,
+        "sharpe": 0.329,
         "max_drawdown": -0.0503,
-        "num_trades": 39
+        "num_trades": 41
       },
       "adf": {
-        "adf_statistic": -1.3564,
-        "p_value": 0.603,
+        "adf_statistic": -0.7831,
+        "p_value": 0.824,
         "critical_values": {
-          "1%": -3.4568,
-          "5%": -2.8732,
-          "10%": -2.573
+          "1%": -3.4574,
+          "5%": -2.8735,
+          "10%": -2.5731
         },
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.1231,
-        "p_value": 0.4643,
+        "coint_statistic": -2.0489,
+        "p_value": 0.5031,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          14.5858,
-          1.239
+          14.183,
+          1.0685
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1399,19 +1399,19 @@
         ],
         "eigenvectors": [
           [
-            15.0243,
-            -9.9222
+            14.4924,
+            -10.0124
           ],
           [
-            -19.3934,
-            1.4277
+            -19.2399,
+            1.7678
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -1.5142
+        "hedge_ratio": -1.4474
       },
-      "total_rows": 37884,
-      "last_optimized": "2026-08-19 21:24:36"
+      "total_rows": 38221,
+      "last_optimized": "2026-08-23 19:02:32"
     },
     "LKOH-ROSN_M10": {
       "pair_name": "LKOH-ROSN_M10",
@@ -1420,72 +1420,17 @@
         "entry_z": 3.0,
         "exit_z": 0.0
       },
-      "train_score": 0.339,
+      "train_score": 0.346,
       "test_metrics": {
-        "total_pnl": 0.2305,
-        "win_rate": 0.767,
-        "sharpe": 0.376,
+        "total_pnl": 0.2077,
+        "win_rate": 0.77,
+        "sharpe": 0.361,
         "max_drawdown": -0.0236,
-        "num_trades": 90
+        "num_trades": 87
       },
       "adf": {
-        "adf_statistic": -3.5701,
-        "p_value": 0.0064,
-        "critical_values": {
-          "1%": -3.4567,
-          "5%": -2.8731,
-          "10%": -2.5729
-        },
-        "is_stationary": "True"
-      },
-      "cointegration": {
-        "coint_statistic": -2.0321,
-        "p_value": 0.5119,
-        "is_cointegrated": "False"
-      },
-      "johansen": {
-        "trace_statistics": [
-          6.3778,
-          0.9087
-        ],
-        "critical_values_5pct": [
-          15.4943,
-          3.8415
-        ],
-        "eigenvectors": [
-          [
-            13.4353,
-            -4.3421
-          ],
-          [
-            -14.4833,
-            -4.5749
-          ]
-        ],
-        "is_cointegrated": false,
-        "hedge_ratio": -3.0942
-      },
-      "total_rows": 38031,
-      "last_optimized": "2026-08-19 21:23:20"
-    },
-    "LKOH-IRAO_M10": {
-      "pair_name": "LKOH-IRAO_M10",
-      "best_params": {
-        "window": 15,
-        "entry_z": 2.5,
-        "exit_z": 0.0
-      },
-      "train_score": 0.204,
-      "test_metrics": {
-        "total_pnl": 0.2934,
-        "win_rate": 0.691,
-        "sharpe": 0.176,
-        "max_drawdown": -0.0427,
-        "num_trades": 220
-      },
-      "adf": {
-        "adf_statistic": -0.1442,
-        "p_value": 0.9449,
+        "adf_statistic": -1.3973,
+        "p_value": 0.5836,
         "critical_values": {
           "1%": -3.4569,
           "5%": -2.8732,
@@ -1494,14 +1439,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -1.7301,
-        "p_value": 0.663,
+        "coint_statistic": -2.0324,
+        "p_value": 0.5117,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          5.0449,
-          1.0504
+          6.3367,
+          0.7875
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1509,38 +1454,38 @@
         ],
         "eigenvectors": [
           [
-            9.6769,
-            -4.9886
+            13.4181,
+            -4.5167
           ],
           [
-            -11.662,
-            -4.6023
+            -14.6216,
+            -4.2144
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -1.9398
+        "hedge_ratio": -2.9708
       },
-      "total_rows": 37939,
-      "last_optimized": "2026-08-19 21:25:14"
+      "total_rows": 38368,
+      "last_optimized": "2026-08-23 19:01:22"
     },
-    "LKOH-IRAO_H1": {
-      "pair_name": "LKOH-IRAO_H1",
+    "LKOH-IRAO_M10": {
+      "pair_name": "LKOH-IRAO_M10",
       "best_params": {
-        "window": 20,
+        "window": 15,
         "entry_z": 2.5,
-        "exit_z": 1.0
+        "exit_z": 0.0
       },
-      "train_score": 0.156,
+      "train_score": 0.205,
       "test_metrics": {
-        "total_pnl": 0.0794,
-        "win_rate": 0.648,
-        "sharpe": 0.136,
-        "max_drawdown": -0.035,
-        "num_trades": 54
+        "total_pnl": 0.3011,
+        "win_rate": 0.694,
+        "sharpe": 0.179,
+        "max_drawdown": -0.0427,
+        "num_trades": 222
       },
       "adf": {
-        "adf_statistic": -1.996,
-        "p_value": 0.2883,
+        "adf_statistic": -1.02,
+        "p_value": 0.7459,
         "critical_values": {
           "1%": -3.4568,
           "5%": -2.8732,
@@ -1549,14 +1494,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -1.7002,
-        "p_value": 0.6768,
+        "coint_statistic": -1.8097,
+        "p_value": 0.625,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          4.8813,
-          1.0213
+          4.8151,
+          0.7332
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1564,19 +1509,74 @@
         ],
         "eigenvectors": [
           [
-            9.7324,
-            -4.8739
+            10.3465,
+            3.3987
           ],
           [
-            -11.602,
-            -4.7613
+            -10.9062,
+            6.1873
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -1.9968
+        "hedge_ratio": 3.0443
       },
-      "total_rows": 6762,
-      "last_optimized": "2026-08-19 21:26:27"
+      "total_rows": 38276,
+      "last_optimized": "2026-08-23 19:03:08"
+    },
+    "LKOH-IRAO_H1": {
+      "pair_name": "LKOH-IRAO_H1",
+      "best_params": {
+        "window": 20,
+        "entry_z": 2.5,
+        "exit_z": 1.0
+      },
+      "train_score": 0.172,
+      "test_metrics": {
+        "total_pnl": 0.0697,
+        "win_rate": 0.648,
+        "sharpe": 0.121,
+        "max_drawdown": -0.035,
+        "num_trades": 54
+      },
+      "adf": {
+        "adf_statistic": -3.0607,
+        "p_value": 0.0296,
+        "critical_values": {
+          "1%": -3.4567,
+          "5%": -2.8731,
+          "10%": -2.5729
+        },
+        "is_stationary": "True"
+      },
+      "cointegration": {
+        "coint_statistic": -1.775,
+        "p_value": 0.6418,
+        "is_cointegrated": "False"
+      },
+      "johansen": {
+        "trace_statistics": [
+          4.6081,
+          0.6422
+        ],
+        "critical_values_5pct": [
+          15.4943,
+          3.8415
+        ],
+        "eigenvectors": [
+          [
+            10.3989,
+            3.2228
+          ],
+          [
+            -10.7925,
+            6.3932
+          ]
+        ],
+        "is_cointegrated": false,
+        "hedge_ratio": 3.2266
+      },
+      "total_rows": 6822,
+      "last_optimized": "2026-08-23 19:04:15"
     },
     "LKOH-HYDR_D1": {
       "pair_name": "LKOH-HYDR_D1",
@@ -1587,15 +1587,15 @@
       },
       "train_score": 0.739,
       "test_metrics": {
-        "total_pnl": -0.0966,
+        "total_pnl": -0.1141,
         "win_rate": 0.333,
-        "sharpe": -0.349,
-        "max_drawdown": -0.1674,
+        "sharpe": -0.381,
+        "max_drawdown": -0.1849,
         "num_trades": 3
       },
       "adf": {
-        "adf_statistic": -1.9007,
-        "p_value": 0.3317,
+        "adf_statistic": -1.8503,
+        "p_value": 0.3558,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
@@ -1604,14 +1604,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.3859,
-        "p_value": 0.3316,
+        "coint_statistic": -2.2851,
+        "p_value": 0.381,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          6.9395,
-          1.1197
+          6.4604,
+          0.9269
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1619,19 +1619,19 @@
         ],
         "eigenvectors": [
           [
-            14.3777,
-            -5.4149
+            13.8427,
+            -6.2609
           ],
           [
-            -13.5442,
-            -2.901
+            -13.734,
+            -1.9693
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -2.6552
+        "hedge_ratio": -2.211
       },
-      "total_rows": 421,
-      "last_optimized": "2026-08-19 21:26:46"
+      "total_rows": 425,
+      "last_optimized": "2026-08-23 19:04:32"
     },
     "LKOH-ROSN_D1": {
       "pair_name": "LKOH-ROSN_D1",
@@ -1640,7 +1640,7 @@
         "entry_z": 2.0,
         "exit_z": 0.0
       },
-      "train_score": 0.08,
+      "train_score": 0.076,
       "test_metrics": {
         "total_pnl": 0.0072,
         "win_rate": 0.5,
@@ -1649,8 +1649,8 @@
         "num_trades": 2
       },
       "adf": {
-        "adf_statistic": -1.4032,
-        "p_value": 0.5808,
+        "adf_statistic": -1.4148,
+        "p_value": 0.5751,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
@@ -1659,14 +1659,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -1.9485,
-        "p_value": 0.5552,
+        "coint_statistic": -1.9286,
+        "p_value": 0.5654,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          5.2057,
-          0.8913
+          5.2272,
+          0.8046
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1674,38 +1674,38 @@
         ],
         "eigenvectors": [
           [
-            13.5868,
-            3.6782
+            13.2832,
+            -4.8004
           ],
           [
-            -14.284,
-            5.4876
+            -14.7615,
+            -4.0758
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": 3.6939
+        "hedge_ratio": -2.7671
       },
-      "total_rows": 421,
-      "last_optimized": "2026-08-19 21:26:46"
+      "total_rows": 425,
+      "last_optimized": "2026-08-23 19:04:32"
     },
     "LKOH-TATN_D1": {
       "pair_name": "LKOH-TATN_D1",
       "best_params": {
         "window": 40,
         "entry_z": 2.0,
-        "exit_z": 0.5
+        "exit_z": 0.0
       },
-      "train_score": 0.475,
+      "train_score": 0.597,
       "test_metrics": {
-        "total_pnl": -0.0804,
-        "win_rate": 0.0,
-        "sharpe": -1.221,
-        "max_drawdown": -0.0787,
+        "total_pnl": -0.0555,
+        "win_rate": 0.667,
+        "sharpe": -0.395,
+        "max_drawdown": -0.0718,
         "num_trades": 3
       },
       "adf": {
-        "adf_statistic": -1.5918,
-        "p_value": 0.4877,
+        "adf_statistic": -1.3082,
+        "p_value": 0.6254,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
@@ -1714,14 +1714,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -1.9348,
-        "p_value": 0.5622,
+        "coint_statistic": -1.7443,
+        "p_value": 0.6564,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          8.8564,
-          0.5596
+          8.5852,
+          0.2708
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1729,19 +1729,19 @@
         ],
         "eigenvectors": [
           [
-            8.8822,
-            -12.785
+            8.178,
+            -12.9622
           ],
           [
-            -16.5223,
-            6.9494
+            -16.1751,
+            7.6835
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -0.6947
+        "hedge_ratio": -0.6309
       },
-      "total_rows": 419,
-      "last_optimized": "2026-08-19 21:26:47"
+      "total_rows": 423,
+      "last_optimized": "2026-08-23 19:04:33"
     },
     "ROSN-TATN_D1": {
       "pair_name": "ROSN-TATN_D1",
@@ -1752,15 +1752,15 @@
       },
       "train_score": 1.429,
       "test_metrics": {
-        "total_pnl": 0.017,
-        "win_rate": 0.333,
-        "sharpe": 0.194,
-        "max_drawdown": -0.0193,
+        "total_pnl": 0.0278,
+        "win_rate": 0.667,
+        "sharpe": 0.253,
+        "max_drawdown": -0.0321,
         "num_trades": 3
       },
       "adf": {
-        "adf_statistic": -0.9804,
-        "p_value": 0.7604,
+        "adf_statistic": -0.84,
+        "p_value": 0.8071,
         "critical_values": {
           "1%": -3.4567,
           "5%": -2.8731,
@@ -1769,14 +1769,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.078,
-        "p_value": 0.4879,
+        "coint_statistic": -1.9818,
+        "p_value": 0.538,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          13.2443,
-          0.6339
+          12.8334,
+          0.514
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1784,19 +1784,19 @@
         ],
         "eigenvectors": [
           [
-            14.0579,
-            -11.9222
+            13.4266,
+            -11.9814
           ],
           [
-            -19.2842,
-            3.7602
+            -19.0688,
+            4.1771
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -1.1791
+        "hedge_ratio": -1.1206
       },
-      "total_rows": 419,
-      "last_optimized": "2026-08-19 21:26:47"
+      "total_rows": 423,
+      "last_optimized": "2026-08-23 19:04:34"
     },
     "LKOH-IRAO_D1": {
       "pair_name": "LKOH-IRAO_D1",
@@ -1814,8 +1814,8 @@
         "num_trades": 2
       },
       "adf": {
-        "adf_statistic": -2.1588,
-        "p_value": 0.2215,
+        "adf_statistic": -2.3305,
+        "p_value": 0.1623,
         "critical_values": {
           "1%": -3.457,
           "5%": -2.8733,
@@ -1824,14 +1824,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -1.7707,
-        "p_value": 0.6438,
+        "coint_statistic": -1.779,
+        "p_value": 0.6399,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          5.538,
-          1.3477
+          5.2774,
+          1.027
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1839,19 +1839,19 @@
         ],
         "eigenvectors": [
           [
-            8.9329,
-            -6.1801
+            9.2418,
+            -5.7116
           ],
           [
-            -12.0802,
-            -3.3041
+            -11.968,
+            -3.673
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -1.4454
+        "hedge_ratio": -1.6181
       },
-      "total_rows": 419,
-      "last_optimized": "2026-08-19 21:26:48"
+      "total_rows": 423,
+      "last_optimized": "2026-08-23 19:04:34"
     },
     "HYDR-IRAO_D1": {
       "pair_name": "HYDR-IRAO_D1",
@@ -1860,17 +1860,17 @@
         "entry_z": 2.0,
         "exit_z": 0.0
       },
-      "train_score": 1.821,
+      "train_score": 1.452,
       "test_metrics": {
-        "total_pnl": -0.0131,
+        "total_pnl": -0.028,
         "win_rate": 0.5,
-        "sharpe": -0.085,
-        "max_drawdown": -0.0614,
+        "sharpe": -0.159,
+        "max_drawdown": -0.0762,
         "num_trades": 2
       },
       "adf": {
-        "adf_statistic": -2.1333,
-        "p_value": 0.2313,
+        "adf_statistic": -2.0129,
+        "p_value": 0.281,
         "critical_values": {
           "1%": -3.4568,
           "5%": -2.8732,
@@ -1879,14 +1879,14 @@
         "is_stationary": "False"
       },
       "cointegration": {
-        "coint_statistic": -2.7491,
-        "p_value": 0.1824,
+        "coint_statistic": -2.6442,
+        "p_value": 0.2203,
         "is_cointegrated": "False"
       },
       "johansen": {
         "trace_statistics": [
-          8.1842,
-          1.7129
+          7.4485,
+          1.6308
         ],
         "critical_values_5pct": [
           15.4943,
@@ -1894,20 +1894,20 @@
         ],
         "eigenvectors": [
           [
-            14.8471,
-            -5.5405
+            15.188,
+            -4.4454
           ],
           [
-            -20.1009,
-            -2.735
+            -19.5638,
+            -4.0871
           ]
         ],
         "is_cointegrated": false,
-        "hedge_ratio": -2.6797
+        "hedge_ratio": -3.4166
       },
-      "total_rows": 419,
-      "last_optimized": "2026-08-19 21:26:48"
+      "total_rows": 423,
+      "last_optimized": "2026-08-23 19:04:35"
     }
   },
-  "last_updated": "2026-08-19 21:26:48"
+  "last_updated": "2026-08-23 19:04:35"
 }
