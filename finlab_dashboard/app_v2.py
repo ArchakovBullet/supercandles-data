@@ -3669,21 +3669,79 @@ elif page == "📊 Парная торговля":
     st.title("📊 Парная торговля")
     st.caption("Статистический арбитраж: оптимизированные пары на M10/H1/H4/D1")
     
-    # Фильтр по типу пары
-    _pair_type_filter = st.selectbox(
-        "🏷️ Тип пары",
-        options=["Все", "🟩 Стат. арбитраж", "🟦 Арбитраж Ф↔А"],
-        index=0,
-        key="pair_type_filter"
-    )
+    # Пояснения по вкладке
+    with st.expander("ℹ️ О вкладке — как пользоваться", expanded=False):
+        st.markdown("""
+### 📊 Что показывает эта вкладка?
 
-    # Загрузка конфигурации пар
+**Парная торговля** — это стратегия статистического арбитража, которая использует расхождения между двумя связанными активами.
+
+#### 🟩 Статистический арбитраж
+- Пары из **разных активов** (например, RI-MY — индекс РТС и индекс МосБиржи)
+- Основан на **исторической корреляции** и **коинтеграции**
+- Сигналы: когда Z-score выходит за пределы ±2 → открываем позицию, при возврате к 0 → закрываем
+
+#### 🟦 Арбитраж Ф↔А (фьючерс-акция)
+- Пары из **акции и её фьючерса** (например, SMLT-SS — акции Самолета и фьючерс на них)
+- Основан на **теоретической связи** через стоимость фьючерса
+- ⚠️ **HFT пары** — требуют быстрого исполнения и низких комиссий
+- Спред обычно мал, но стабилен
+
+#### 🔍 На что обращать внимание:
+1. **Z-score** — главный индикатор:
+   - Z > +2 → спред расширен → **ШОРТ спреда** (продаём переоценённый актив)
+   - Z < -2 → спред сужен → **ЛОНГ спреда** (покупаем недооценённый актив)
+   - Z в диапазоне [-2, +2] → **нейтрально**, ждём сигнала
+
+2. **Half-life** — время возврата спреда к среднему:
+   - Меньше 1 часа → быстрый возврат (хорошо для торговли)
+   - Больше 24 часов → медленный возврат (требует терпения)
+
+3. **Win Rate (тест)** — процент прибыльных сделок на тестовом периоде:
+   - > 70% — отличная пара
+   - 55-70% — хорошая пара
+   - < 55% — осторожно, пара может быть нестабильна
+
+4. **ADF p-value** — тест на стационарность:
+   - < 0.05 → спред стационарен (возвращается к среднему)
+   - > 0.05 → спред может "уйти" (риск потерь)
+
+5. **Коинтеграция p-value** — тест на долгосрочную связь:
+   - < 0.05 → активы связаны долгосрочно
+   - > 0.05 → связь может нарушиться
+
+#### ⚠️ Важные предупреждения:
+- **HFT пары** (Ф↔А) требуют высокой скорости исполнения
+- **Комиссия** может съесть прибыль на малых спредах
+- **Проскальзывание** — реальная цена может отличаться от расчётной
+- **Фундаментальные события** могут нарушить связь между активами
+        """)
+    
+    # Фильтр по типу пары (сначала загружаем все пары для статистики)
     _config_path = Path("/root/finlab/FinLabPy/My_Indicators/pairs_config.json")
     if _config_path.exists():
         with open(_config_path, 'r') as f:
             _pairs_config = json.load(f)
     else:
         _pairs_config = {"pairs": {}}
+    
+    # Считаем количество пар каждого типа
+    _total_pairs = len(_pairs_config.get('pairs', {}))
+    _stat_arb_count = sum(1 for p in _pairs_config.get('pairs', {}).keys() if get_pair_type(p) == 'stat_arb')
+    _fut_stock_count = sum(1 for p in _pairs_config.get('pairs', {}).keys() if get_pair_type(p) == 'fut_stock')
+    
+    _filter_options = [
+        f"Все ({_total_pairs})",
+        f"🟩 Стат. арбитраж ({_stat_arb_count})",
+        f"🟦 Арбитраж Ф↔А ({_fut_stock_count})"
+    ]
+    
+    _pair_type_filter = st.selectbox(
+        "🏷️ Тип пары",
+        options=_filter_options,
+        index=0,
+        key="pair_type_filter"
+    )
     
     # Таймфреймы для выбора
     TIMEFRAMES = ['M10', 'H1', 'H4', 'D1']
@@ -3710,10 +3768,10 @@ elif page == "📊 Парная торговля":
             'label': get_pair_label(_pair_name)
         })
     
-    # Применяем фильтр
-    if _pair_type_filter == "🟩 Стат. арбитраж":
+    # Применяем фильтр (с учётом нового формата опций)
+    if "Стат. арбитраж" in _pair_type_filter:
         _available_pairs = [p['name'] for p in _classified_pairs if p['type'] == 'stat_arb']
-    elif _pair_type_filter == "🟦 Арбитраж Ф↔А":
+    elif "Арбитраж Ф↔А" in _pair_type_filter:
         _available_pairs = [p['name'] for p in _classified_pairs if p['type'] == 'fut_stock']
     else:
         # "Все" - сначала стат. арбитраж, потом арбитраж Ф↔А
@@ -3769,7 +3827,15 @@ elif page == "📊 Парная торговля":
         
         if _table_data:
             _df_table = pd.DataFrame(_table_data)
-            st.dataframe(_df_table, use_container_width=True, hide_index=True)
+            
+            # Добавляем HTML-класс для типа пары
+            _df_table['Тип'] = _df_table['Тип'].apply(
+                lambda x: f'<span style="color: #90CAF9;">{x}</span>' if 'Арбитраж Ф↔А' in x else 
+                         f'<span style="color: #A5D6A7;">{x}</span>' if 'Стат. арбитраж' in x else x
+            )
+            
+            # Отображаем таблицу с HTML
+            st.write(_df_table.to_html(escape=False, index=False), unsafe_allow_html=True)
         
         # Выбор пары для детального анализа
         st.markdown("---")
@@ -3816,6 +3882,28 @@ elif page == "📊 Парная торговля":
                 _result = analyze_pair(_df_a, _df_b, window=_window)
                 
                 if _result:
+                    # Дополнительные метрики для Ф↔А пар
+                    if _selected_pair_type == 'fut_stock':
+                        col_fut1, col_fut2, col_fut3 = st.columns(3)
+                        with col_fut1:
+                            # Средний спред в пунктах
+                            if 'spread' in _result and _result['spread'] is not None:
+                                _avg_spread = abs(_result['spread']).mean()
+                                st.metric("Средний |спред|", f"{_avg_spread:.4f}")
+                        with col_fut2:
+                            # Волатильность спреда
+                            if 'spread' in _result and _result['spread'] is not None:
+                                _spread_std = _result['spread'].std()
+                                st.metric("Волатильность спреда", f"{_spread_std:.4f}")
+                        with col_fut3:
+                            # Оценка стоимости контракта (приблизительно)
+                            if len(_df_a) > 0 and len(_df_b) > 0:
+                                _price_a = _df_a['close'].iloc[-1]
+                                _price_b = _df_b['close'].iloc[-1]
+                                _price_diff = abs(_price_a - _price_b)
+                                st.metric("Разница цен", f"{_price_diff:.2f} руб")
+                        st.markdown("---")
+                    
                     # Метрики
                     col1, col2, col3, col4 = st.columns(4)
                     with col1:
@@ -3843,10 +3931,27 @@ elif page == "📊 Парная торговля":
                     st.markdown("---")
                     if _result['signal'] == "SHORT_SPREAD":
                         st.error(f"🎯 СИГНАЛ: 🔴 ШОРТ спреда — {_result['action']}")
+                        # Алерт о расхождении
+                        _current_z = _result['zscore']
+                        _entry_level = _entry_z
+                        _deviation = abs(_current_z - _entry_level)
+                        st.markdown(f"📈 **Спред расширен**: Z={_current_z:.2f} (порог {_entry_level:.1f}), отклонение {_deviation:.2f}σ")
                     elif _result['signal'] == "LONG_SPREAD":
                         st.success(f"🎯 СИГНАЛ: 🟢 ЛОНГ спреда — {_result['action']}")
+                        # Алерт о схождении
+                        _current_z = _result['zscore']
+                        _entry_level = -_entry_z
+                        _deviation = abs(_current_z - _entry_level)
+                        st.markdown(f"📉 **Спред сужен**: Z={_current_z:.2f} (порог {_entry_level:.1f}), отклонение {_deviation:.2f}σ")
                     else:
                         st.info(f"🎯 СИГНАЛ: ⚪ НЕЙТРАЛЬНО — {_result['action']}")
+                        # Показываем расстояние до сигнала
+                        _current_z = _result['zscore']
+                        _distance_to_entry = _entry_z - abs(_current_z)
+                        if _distance_to_entry > 0:
+                            st.caption(f"ℹ️ До сигнала: {_distance_to_entry:.2f}σ (Z={_current_z:.2f}, порог ±{_entry_z:.1f})")
+                        else:
+                            st.caption(f"ℹ️ Z={_current_z:.2f} — близко к порогу ±{_entry_z:.1f}")
                     
                     # График Z-score с оптимизированными уровнями
                     st.markdown("---")
