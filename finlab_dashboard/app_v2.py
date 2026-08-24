@@ -34,6 +34,77 @@ from My_Indicators.unified_verdict import get_unified_verdict
 from My_Indicators.unified_scanner import get_unified_scanner_verdict
 from My_Indicators.unified_scanner import get_unified_scanner_verdict
 from My_Indicators.pairs_trading import analyze_pair
+# ========== МАППИНГ ПАР И КЛАССИФИКАЦИЯ ==========
+STOCK_TO_FUTURES = {
+    'SMLT': 'SS',    # Самолет
+    'PHOR': 'PH',    # ФосАгро
+    'SVCB': 'SC',    # Совкомбанк
+    'CHMF': 'CK',    # Северсталь
+    'GAZP': 'GZ',    # Газпром
+    'GAZPF': 'GZ',   # Газпром-преф (фьючерс на обычку)
+    'BANE': 'BN',    # Башнефть
+    'BELU': 'NB',    # НоваБев
+    'WUSH': 'WU',    # ВУШ Холдинг
+    'SIBN': 'SO',    # Газпром нефть
+    'POSI': 'PS',    # Позитив
+    'SNGSP': 'SG',   # Сургутнефтегаз-п
+    'SFIN': 'SH',    # ЭсЭфАй
+    'SOFL': 'S0',    # Софтлайн
+    'RASP': 'RA',    # Распадская
+}
+
+# Обратный маппинг для проверки (фьючерс -> акция)
+FUTURES_TO_STOCK = {v: k for k, v in STOCK_TO_FUTURES.items()}
+
+def get_pair_type(pair_name: str) -> str:
+    """
+    Определяет тип пары по названию.
+    
+    Args:
+        pair_name: Название пары (например, "SMLT-SS_M10")
+    
+    Returns:
+        'stat_arb' - статистический арбитраж (разные активы)
+        'fut_stock' - арбитраж фьючерс-акция
+    """
+    # Убираем таймфрейм из названия
+    base_pair = pair_name.split('_')[0]  # "SMLT-SS"
+    
+    if '-' not in base_pair:
+        return 'stat_arb'
+    
+    # Разбираем пару на два тикера
+    parts = base_pair.split('-')
+    if len(parts) != 2:
+        return 'stat_arb'
+    
+    ticker_a, ticker_b = parts
+    
+    # Проверяем: акция + её фьючерс
+    if ticker_a in STOCK_TO_FUTURES and STOCK_TO_FUTURES[ticker_a] == ticker_b:
+        return 'fut_stock'
+    
+    # Обратная проверка: фьючерс + его акция
+    if ticker_b in STOCK_TO_FUTURES and STOCK_TO_FUTURES[ticker_b] == ticker_a:
+        return 'fut_stock'
+    
+    # Проверка через обратный маппинг
+    if ticker_a in FUTURES_TO_STOCK and FUTURES_TO_STOCK[ticker_a] == ticker_b:
+        return 'fut_stock'
+    
+    if ticker_b in FUTURES_TO_STOCK and FUTURES_TO_STOCK[ticker_b] == ticker_a:
+        return 'fut_stock'
+    
+    return 'stat_arb'
+
+def get_pair_label(pair_name: str) -> str:
+    """Возвращает метку для пары"""
+    pair_type = get_pair_type(pair_name)
+    if pair_type == 'fut_stock':
+        return "🟦 Арбитраж Ф↔А"
+    else:
+        return '🟩 Стат. арбитраж'
+
 # ========== КОНФИГ ==========
 DATA_ROOT = Path("/root/finlab/data")
 LOGS_ROOT = Path("/root/finlab/logs")
@@ -3598,6 +3669,14 @@ elif page == "📊 Парная торговля":
     st.title("📊 Парная торговля")
     st.caption("Статистический арбитраж: оптимизированные пары на M10/H1/H4/D1")
     
+    # Фильтр по типу пары
+    _pair_type_filter = st.selectbox(
+        "🏷️ Тип пары",
+        options=["Все", "🟩 Стат. арбитраж", "🟦 Арбитраж Ф↔А"],
+        index=0,
+        key="pair_type_filter"
+    )
+
     # Загрузка конфигурации пар
     _config_path = Path("/root/finlab/FinLabPy/My_Indicators/pairs_config.json")
     if _config_path.exists():
@@ -3610,16 +3689,36 @@ elif page == "📊 Парная торговля":
     TIMEFRAMES = ['M10', 'H1', 'H4', 'D1']
     _selected_tf = st.selectbox("📅 Таймфрейм", TIMEFRAMES, index=0)
     
-    # Собираем все пары для выбранного ТФ
-    _available_pairs = []
+    # Собираем все пары для выбранного ТФ с учётом фильтра
+    _all_available_pairs = []
     for _pair_name, _pair_data in _pairs_config.get('pairs', {}).items():
         if _selected_tf == 'D1':
             # Для D1 берем пары без суффикса и с _D1
             if '_M10' not in _pair_name and '_H1' not in _pair_name and '_H4' not in _pair_name:
-                _available_pairs.append(_pair_name)
+                _all_available_pairs.append(_pair_name)
         else:
             if _pair_name.endswith(f"_{_selected_tf}"):
-                _available_pairs.append(_pair_name)
+                _all_available_pairs.append(_pair_name)
+    
+    # Классифицируем пары
+    _classified_pairs = []
+    for _pair_name in _all_available_pairs:
+        _pair_type = get_pair_type(_pair_name)
+        _classified_pairs.append({
+            'name': _pair_name,
+            'type': _pair_type,
+            'label': get_pair_label(_pair_name)
+        })
+    
+    # Применяем фильтр
+    if _pair_type_filter == "🟩 Стат. арбитраж":
+        _available_pairs = [p['name'] for p in _classified_pairs if p['type'] == 'stat_arb']
+    elif _pair_type_filter == "🟦 Арбитраж Ф↔А":
+        _available_pairs = [p['name'] for p in _classified_pairs if p['type'] == 'fut_stock']
+    else:
+        # "Все" - сначала стат. арбитраж, потом арбитраж Ф↔А
+        _classified_pairs_sorted = sorted(_classified_pairs, key=lambda x: x['type'] != 'stat_arb')
+        _available_pairs = [p['name'] for p in _classified_pairs_sorted]
     
     if not _available_pairs:
         st.warning(f"Нет оптимизированных пар для таймфрейма {_selected_tf}")
@@ -3649,8 +3748,13 @@ elif page == "📊 Парная торговля":
             else:
                 _status = "🔴 Неактивна"
             
+            # Определяем тип пары и метку
+            _pair_type = get_pair_type(_pair_name)
+            _pair_label = get_pair_label(_pair_name)
+            
             _table_data.append({
                 'Пара': _pair_name.replace(f"_{_selected_tf}", ""),
+                'Тип': _pair_label,
                 'Статус': _status,
                 'Сделки': _num_trades,
                 'Win Rate': f"{_win_rate*100:.1f}%",
@@ -3675,6 +3779,16 @@ elif page == "📊 Парная торговля":
         
         if _selected_pair:
             _pair_data = _pairs_config['pairs'][_selected_pair]
+            
+            # Показываем тип пары и предупреждение HFT
+            _selected_pair_type = get_pair_type(_selected_pair)
+            _selected_pair_label = get_pair_label(_selected_pair)
+            
+            if _selected_pair_type == 'fut_stock':
+                st.markdown(f"### {_selected_pair_label}")
+                st.warning("⚠️ **HFT пара**: арбитраж фьючерс-акция. Требует высокой скорости исполнения и низких комиссий.")
+            else:
+                st.markdown(f"### {_selected_pair_label}")
             _best_params = _pair_data.get('best_params', {})
             _window = _best_params.get('window', 20)
             _entry_z = _best_params.get('entry_z', 2.0)
