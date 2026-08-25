@@ -1,5 +1,18 @@
 """Сборщик индексов и секторов MOEX"""
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+# Создаём сессию с retry
+session = requests.Session()
+retry = Retry(
+    total=3,
+    backoff_factor=0.5,
+    status_forcelist=[500, 502, 503, 504]
+)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
 import pandas as pd
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -34,7 +47,7 @@ def collect_index(ticker, filename):
     }
     
     try:
-        r = requests.get(url, params=params, timeout=10, verify=False)
+        r = session.get(url, params=params, timeout=30, verify=False)
         if r.status_code != 200:
             logger.warning(f'{ticker}: HTTP {r.status_code}')
             return 0
