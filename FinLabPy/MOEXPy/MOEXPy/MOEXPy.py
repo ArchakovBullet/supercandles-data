@@ -98,7 +98,7 @@ class MOEXPy:
             params = {
                 'start': start   # РќРѕРјРµСЂ РїРµСЂРІРѕР№ Р·Р°РїРёСЃРё СЃ РЅР°С‡Р°Р»Р° РёРЅС‚РµСЂРІР°Р»Р°
             }
-            content = self.check_result(get(url, params=params, headers=self.headers, verify=False))  # РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ, РїРѕР»СѓС‡Р°РµРј РѕС‚РІРµС‚
+            content = self.check_result(get(url, params=params, headers=self.headers, verify=False, timeout=30))  # РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ, РїРѕР»СѓС‡Р°РµРј РѕС‚РІРµС‚
             if content is None:  # Р•СЃР»Рё РѕС‚РІРµС‚ РЅРµ РїСЂРёС€РµР»
                 return None  # С‚Рѕ РІС‹С…РѕРґРёРј, РґР°Р»СЊС€Рµ РЅРµ РїСЂРѕРґРѕР»Р¶Р°РµРј
             data = content['securities']['data']  # РџСЂРёС€РµРґС€РёРµ РґР°РЅРЅС‹Рµ
@@ -143,7 +143,7 @@ class MOEXPy:
                 'till': dt_till,  # Р”Р°С‚Р° Рё РІСЂРµРјСЏ РѕРєРѕРЅС‡Р°РЅРёСЏ Р·Р°РїСЂРѕСЃР°
                 'interval': interval  # Р’СЂРµРјРµРЅРЅРѕР№ РёРЅС‚РµСЂРІР°Р»
             }
-            content = self.check_result(get(url, params=params, headers=self.headers, verify=False))  # РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ, РїРѕР»СѓС‡Р°РµРј РѕС‚РІРµС‚
+            content = self.check_result(get(url, params=params, headers=self.headers, verify=False, timeout=30))  # РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ, РїРѕР»СѓС‡Р°РµРј РѕС‚РІРµС‚
             if content is None:  # Р•СЃР»Рё РѕС‚РІРµС‚ РЅРµ РїСЂРёС€РµР»
                 return None  # С‚Рѕ РІС‹С…РѕРґРёРј, РґР°Р»СЊС€Рµ РЅРµ РїСЂРѕРґРѕР»Р¶Р°РµРј
             data = content['candles']['data']  # РџСЂРёС€РµРґС€РёРµ РґР°РЅРЅС‹Рµ
@@ -180,7 +180,7 @@ class MOEXPy:
             return None
         url = f'{self.iss_server}/engines/{engine}/markets/{market}/boards/{board}/securities/{ticker}/trades.json'  # URL Р·Р°РїСЂРѕСЃР°
         params = {} if tradeno is None else dict(tradeno=tradeno)  # Р•СЃР»Рё СѓРєР°Р·Р°РЅ РЅРѕРјРµСЂ СЃРґРµР»РєРё, С‚Рѕ Р±СѓРґРµРј РїРѕР»СѓС‡Р°С‚СЊ СЃРґРµР»РєРё РЅР°С‡РёРЅР°СЏ СЃ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РЅРѕРјРµСЂР°
-        return self.check_result(get(url, params=params, headers=self.headers, verify=False))
+        return self.check_result(get(url, params=params, headers=self.headers, verify=False, timeout=30))
 
     # Super Candles - РђРєС†РёРё - https://moexalgo.github.io/docs/api/super-candles-Р°РєС†РёРё
     # Super Candles - Р¤СЊСЋС‡РµСЂСЃС‹ - https://moexalgo.github.io/docs/api/super-candles-С„СЊСЋС‡РµСЂСЃС‹
@@ -197,7 +197,7 @@ class MOEXPy:
         """
         url = f'{self.api_server}/datashop/algopack/{self.engine_map[engine]}/{stats}stats.json'  # URL Р·Р°РїСЂРѕСЃР°
         params = dict(date=date, latest=latest, limit=limit)
-        return self.check_result(get(url, params=params, headers=self.headers, verify=False))
+        return self.check_result(get(url, params=params, headers=self.headers, verify=False, timeout=30))
 
     def get_stats(self, stats: Literal['trade', 'ob', 'order'], engine: Literal['stock', 'futures', 'currency'], ticker, dt_from, dt_till, latest=False):
         """РњРµС‚СЂРёРєРё СЂР°СЃСЃС‡РёС‚Р°РЅРЅС‹Рµ РЅР° РѕСЃРЅРѕРІРµ РїРѕС‚РѕРєР° СЃРґРµР»РѕРє/РєРѕС‚РёСЂРѕРІРѕРє/Р·Р°СЏРІРѕРє РїРѕ РёРЅСЃС‚СЂСѓРјРµРЅС‚Сѓ
@@ -217,7 +217,7 @@ class MOEXPy:
                 'till': dt_till,  # Р”Р°С‚Р° Рё РІСЂРµРјСЏ РѕРєРѕРЅС‡Р°РЅРёСЏ Р·Р°РїСЂРѕСЃР°
                 'latest': latest  # РџРѕСЃР»РµРґРЅСЏСЏ РїСЏС‚РёРјРёРЅСѓС‚РєР°
             }
-            content = self.check_result(get(url, params=params, headers=self.headers, verify=False))  # РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ, РїРѕР»СѓС‡Р°РµРј РѕС‚РІРµС‚
+            content = self.check_result(get(url, params=params, headers=self.headers, verify=False, timeout=30))  # РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ, РїРѕР»СѓС‡Р°РµРј РѕС‚РІРµС‚
             if content is None:  # Р•СЃР»Рё РѕС‚РІРµС‚ РЅРµ РїСЂРёС€РµР»
                 return None  # С‚Рѕ РІС‹С…РѕРґРёРј, РґР°Р»СЊС€Рµ РЅРµ РїСЂРѕРґРѕР»Р¶Р°РµРј
             data = content['candles']['data']  # РџСЂРёС€РµРґС€РёРµ РґР°РЅРЅС‹Рµ
@@ -245,7 +245,7 @@ class MOEXPy:
                 'date': date,  # Р”Р°С‚Р° С‚РѕСЂРіРѕРІ
                 'start': start   # РќРѕРјРµСЂ РїРµСЂРІРѕР№ Р·Р°РїРёСЃРё СЃ РЅР°С‡Р°Р»Р° РёРЅС‚РµСЂРІР°Р»Р°
             }
-            content = self.check_result(get(url, params=params, headers=self.headers, verify=False))
+            content = self.check_result(get(url, params=params, headers=self.headers, verify=False, timeout=30))
             data = content['futoi']['data']  # РџСЂРёС€РµРґС€РёРµ РґР°РЅРЅС‹Рµ
             if len(data) == 0:  # Р•СЃР»Рё РґР°РЅРЅС‹С… РЅРµС‚ (РґРѕСЃС‚РёРіРЅСѓС‚ РєРѕРЅРµС† РІС‹Р±РѕСЂРєРё)
                 break  # С‚Рѕ РІС‹С…РѕРґРёРј
@@ -271,7 +271,7 @@ class MOEXPy:
                 'from': dt_till - timedelta(days=i+1),  # Р”Р°С‚Р° Рё РІСЂРµРјСЏ РЅР°С‡Р°Р»Р° Р·Р°РїСЂРѕСЃР°
                 'till': dt_till - timedelta(days=i),  # Р”Р°С‚Р° Рё РІСЂРµРјСЏ РѕРєРѕРЅС‡Р°РЅРёСЏ Р·Р°РїСЂРѕСЃР°
             }
-            response = get(url, params=params, headers=self.headers, verify=False)  # РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ, РїРѕР»СѓС‡Р°РµРј РѕС‚РІРµС‚
+            response = get(url, params=params, headers=self.headers, verify=False, timeout=30)  # РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ, РїРѕР»СѓС‡Р°РµРј РѕС‚РІРµС‚
             content = loads(response.content.decode('utf-8'))  # Р РµР·СѓР»СЊС‚Р°С‚ Р·Р°РїСЂРѕСЃР° РІ РІРёРґРµ JSON
             data = [row for row in content['futoi']['data'] if dt_from <= datetime.strptime(f'{row[2]} {row[3]}', '%Y-%m-%d %H:%M:%S') <= dt_till]  # РџСЂРёС€РµРґС€РёРµ РґР°РЅРЅС‹Рµ СЃ С„РёР»СЊС‚СЂРѕРј РїРѕ РґР°С‚Рµ/РІСЂРµРјРµРЅРё Р·Р°РїСЂРѕСЃР°
             if all_data is None:  # Р•СЃР»Рё СЌС‚Рѕ РїРµСЂРІС‹Рµ РїСЂРёС€РµРґС€РёРµ РґР°РЅРЅС‹Рµ
@@ -291,7 +291,7 @@ class MOEXPy:
         """
         url = f'{self.api_server}/datashop/algopack/{self.engine_map[engine]}/hi2.json'  # URL Р·Р°РїСЂРѕСЃР°
         params = dict(date=date)
-        return self.check_result(get(url, params=params, headers=self.headers, verify=False))
+        return self.check_result(get(url, params=params, headers=self.headers, verify=False, timeout=30))
 
     def get_hi2(self, engine: Literal['stock', 'futures', 'currency'], ticker, date=None, from_date=None, till_date=None):
         """Индекс концентрации (Херфиндаля-Хиршмана) по инструменту
@@ -308,7 +308,7 @@ class MOEXPy:
             params['till'] = str(till_date)
         elif date:
             params['date'] = str(date)
-        return self.check_result(get(url, params=params, headers=self.headers, verify=False))
+        return self.check_result(get(url, params=params, headers=self.headers, verify=False, timeout=30))
 
     # Mega Alerts - https://moexalgo.github.io/docs/api/mega-alerts
 
@@ -320,7 +320,7 @@ class MOEXPy:
         """
         url = f'{self.api_server}/datashop/algopack/{self.engine_map[engine]}/alerts.json'  # URL Р·Р°РїСЂРѕСЃР°
         params = dict(date=date)
-        return self.check_result(get(url, params=params, headers=self.headers, verify=False))
+        return self.check_result(get(url, params=params, headers=self.headers, verify=False, timeout=30))
 
     def get_alerts(self, engine: Literal['stock', 'futures'], ticker, date):
         """РўРѕСЂРіРѕРІС‹Рµ Р°РЅРѕРјР°Р»РёРё РїРѕ РІСЃРµРј РёРЅСЃС‚СЂСѓРјРµРЅС‚Сѓ
@@ -331,7 +331,7 @@ class MOEXPy:
         """
         url = f'{self.api_server}/datashop/algopack/{self.engine_map[engine]}/alerts/{ticker}.json'  # URL Р·Р°РїСЂРѕСЃР°
         params = dict(date=date)
-        return self.check_result(get(url, params=params, headers=self.headers, verify=False))
+        return self.check_result(get(url, params=params, headers=self.headers, verify=False, timeout=30))
 
     # Р—Р°РїСЂРѕСЃС‹ REST
 
@@ -571,7 +571,7 @@ class MOEXPy:
                 'till': dt_till.strftime('%Y-%m-%d'),
                 'start': cursor
             }
-            response = get(url, params=params, headers=self.headers, verify=False)
+            response = get(url, params=params, headers=self.headers, verify=False, timeout=30)
             content = loads(response.content.decode('utf-8'))
 
             # Поддержка нового формата (metadata + columns + data) для срочных фьючерсов
