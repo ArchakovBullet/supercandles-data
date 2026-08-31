@@ -20,7 +20,11 @@ def setup_logger(name: str, level: str = "INFO") -> logging.Logger:
     """
     # Создаем папку logs в корне проекта
     project_root = Path(__file__).parent.parent.parent
-    logs_dir = project_root / "logs"
+    # На сервере используем /root/finlab/logs, локально - E:\Python\FinLabProject\logs
+    if project_root.exists() and str(project_root).startswith('/'):
+        logs_dir = Path('/root/finlab/logs')
+    else:
+        logs_dir = project_root / 'logs'
     logs_dir.mkdir(exist_ok=True)
     
     # Имя файла: YYYY-MM-DD_name.log

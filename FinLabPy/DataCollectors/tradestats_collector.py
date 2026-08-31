@@ -77,7 +77,7 @@ def _resolve_full_code(short_code):
 
 def collect_tradestats(ticker, board):
     """Собрать TradeStats для одного тикера"""
-    print(f"  {ticker} ({board})...", end=' ')
+    logger.info(f"  {ticker} ({board})...")
     
     moex = MOEXPy()
     
@@ -90,7 +90,7 @@ def collect_tradestats(ticker, board):
         result = moex.get_tradestats(api_ticker, dt_from, dt_till, board)
         
         if result is None or 'data' not in result:
-            print("нет данных")
+            logger.warning("нет данных")
             return 0
         
         # Преобразуем в DataFrame
@@ -100,7 +100,7 @@ def collect_tradestats(ticker, board):
             df = pd.DataFrame(result['data'])
         
         if df.empty:
-            print("пустой ответ")
+            logger.warning("пустой ответ")
             return 0
         
         # Сохраняем
@@ -114,36 +114,36 @@ def collect_tradestats(ticker, board):
         else:
             df.to_parquet(file_path, index=False)
         
-        print(f"+{len(df)} записей")
+        logger.info(f"+{len(df)} записей")
         return len(df)
     
     except Exception as e:
-        print(f"ошибка: {e}")
+        logger.error(f"ошибка: {e}")
         return 0
 
 def main():
-    print("=" * 60)
-    print(f"СБОРЩИК TRADESTATS | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info(f"СБОРЩИК TRADESTATS | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("=" * 60)
     
     total = 0
     
     # Фьючерсы (board='RFUD')
-    print("\n=== ФЬЮЧЕРСЫ ===")
+    logger.info("\n=== ФЬЮЧЕРСЫ ===")
     for ticker in FUTURES:
         count = collect_tradestats(ticker, 'RFUD')
         total += count
     
     # Акции (board='TQBR')
-    print("\n=== АКЦИИ ===")
+    logger.info("\n=== АКЦИИ ===")
     for ticker in STOCKS:
         count = collect_tradestats(ticker, 'TQBR')
         total += count
     
-    print("\n" + "=" * 60)
-    print(f"ГОТОВО! Всего новых записей: {total}")
-    print(f"Данные в: {DATA_DIR}")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info(f"ГОТОВО! Всего новых записей: {total}")
+    logger.info(f"Данные в: {DATA_DIR}")
+    logger.info("=" * 60)
 
 if __name__ == '__main__':
     main()
