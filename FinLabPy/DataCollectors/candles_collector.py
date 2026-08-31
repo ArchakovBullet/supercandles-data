@@ -116,18 +116,18 @@ def get_full_code(short_code):
 
 
 def main():
-    print("=" * 60)
-    print(f"СБОРЩИК СВЕЧЕЙ | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info(f"СБОРЩИК СВЕЧЕЙ | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("=" * 60)
         
     moex = MOEXPy()
     total = 0
     
     for ticker, board in ALL_TICKERS.items():
-        print(f"\n{ticker} ({board}):")
+        logger.info(f"\n{ticker} ({board}):")
         
         for tf_name, interval in TIMEFRAMES.items():
-            print(f"  {tf_name}...", end=' ')
+            logger.info(f"  {tf_name}...")
             
             # Определяем дату начала
             api_ticker = get_full_code(ticker) if board == "RFUD" else ticker
@@ -150,14 +150,14 @@ def main():
             dt_till = datetime.now()
             
             if dt_from >= dt_till:
-                print("нет новых данных")
+                logger.info("нет новых данных")
                 continue
             
             try:
                 result = moex.get_candles(board, api_ticker, dt_from, dt_till, interval)
                 
                 if result is None or 'candles' not in result or len(result['candles']['data']) == 0:
-                    print("нет данных")
+                    logger.warning("нет данных")
                     continue
                 
                 # Преобразуем в DataFrame
@@ -179,26 +179,26 @@ def main():
                     new_df = df[new_rows]
                     
                     if len(new_df) == 0:
-                        print("нет новых данных")
+                        logger.info("нет новых данных")
                         continue
                     
                     combined = pd.concat([existing, new_df], ignore_index=True)
                     combined = combined.sort_values('begin')
                     combined = combined.drop_duplicates(subset=['begin'])
                     combined.to_parquet(file_path, index=False)
-                    print(f"+{len(new_df)} свечей")
+                    logger.info(f"+{len(new_df)} свечей")
                     total += len(new_df)
                 else:
                     df.to_parquet(file_path, index=False)
-                    print(f"+{len(df)} свечей")
+                    logger.info(f"+{len(df)} свечей")
                     total += len(df)
             except Exception as e:
-                print(f"ошибка: {e}")
+                logger.error(f"ошибка: {e}")
     
-    print("\n" + "=" * 60)
-    print(f"ГОТОВО! Всего новых свечей: {total}")
-    print(f"Данные в: {DATA_DIR}")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info(f"ГОТОВО! Всего новых свечей: {total}")
+    logger.info(f"Данные в: {DATA_DIR}")
+    logger.info("=" * 60)
 
 if __name__ == '__main__':
     main()

@@ -37,4 +37,4 @@ else:
     combined = daily
 
 combined.to_parquet(OUT, index=False)
-print(f'LQDT: {len(combined)} дневных свечей, последняя: {combined["close"].iloc[-1]}')
+logger.info(f'LQDT: {len(combined)} дневных свечей, последняя: {combined["close"].iloc[-1]}')
