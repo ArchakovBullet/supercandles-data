@@ -5,7 +5,10 @@ from datetime import datetime, timedelta
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from MOEXPy.MOEXPy import MOEXPy
+from FinLabPy.Utils import setup_logger
 import os
+
+logger = setup_logger('lqdt_collector')
 
 api = MOEXPy(token=os.getenv('MOEX_TOKEN') or __import__('dotenv').load_dotenv('/root/finlab/.env') or os.getenv('MOEX_TOKEN'))
 OUT = Path('/root/finlab/data/candles/LQDT_D1.parquet')
