@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from MOEXPy.MOEXPy import MOEXPy
-from FinLabPy.Utils import setup_logger
+from Utils.Logger import setup_logger
 import os
 
 logger = setup_logger('lqdt_collector')
