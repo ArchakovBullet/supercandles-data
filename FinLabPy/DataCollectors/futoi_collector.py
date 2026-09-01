@@ -19,7 +19,7 @@ logger = setup_logger('futoi_collector')
 # Только реально торгуемые фьючерсы MOEX (VTBRF и LKOHF не торгуются)
 def _load_tickers():
     import json
-    cfg_path = Path(__file__).parent / 'tickers_config.json'
+    cfg_path = Path(__file__).parent / 'futoi_tickers_config.json'
     if cfg_path.exists():
         with open(cfg_path) as f:
             cfg = json.load(f)
