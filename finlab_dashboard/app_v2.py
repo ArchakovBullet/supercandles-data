@@ -4007,6 +4007,24 @@ elif page == "📊 Парная торговля":
 
 elif page == "🤖 Торговые роботы":
     st.title("🤖 Торговые роботы")
+    
+    # CSS для кнопок Старт/Стоп
+    st.markdown("""
+    <style>
+    /* Кнопка Старт — зелёная (primary) */
+    div[data-testid="stButton"] button[kind="primary"] {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+    }
+    /* Кнопка Стоп — красная (secondary в состоянии stopped) */
+    div[data-testid="stButton"] button[kind="secondary"] {
+        background-color: transparent;
+        color: #666;
+        border: 1px solid #666;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     st.caption("Управление торговыми роботами")
 
     # Подвкладки
@@ -4023,30 +4041,70 @@ elif page == "🤖 Торговые роботы":
         # Проверка статуса робота
         import subprocess
         _pid_file = Path('/root/finlab/robots/robot.pid')
-        _robot_running = _pid_file.exists()
+        _robot_running = False
+        _pid = None
+        
+        if _pid_file.exists():
+            _pid = _pid_file.read_text().strip()
+            # Проверяем, что процесс реально работает
+            _result = subprocess.run(['ps', '-p', _pid], capture_output=True, text=True)
+            _robot_running = _result.returncode == 0
         
         if _robot_running:
-            _pid = _pid_file.read_text().strip()
             st.success(f"🟢 Робот запущен (PID: {_pid})")
         else:
-            st.warning("🟡 Робот не запущен")
+            st.error("🔴 Робот остановлен")
 
-        # Кнопки Старт/Стоп
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("▶️ Старт", use_container_width=True):
-                subprocess.run(['/root/finlab/robots/start_robot.sh'], capture_output=True)
-                st.success("Робот запущен!")
-                st.rerun()
-        with col2:
-            if st.button("⏸️ Пауза", use_container_width=True):
-                Path('/root/finlab/robots/robot_command.txt').write_text('PAUSE')
-                st.success("Команда PAUSE отправлена")
-        with col3:
-            if st.button("🛑 Стоп", use_container_width=True):
-                subprocess.run(['/root/finlab/robots/stop_robot.sh'], capture_output=True)
-                st.success("Робот остановлен! Все позиции закрыты.")
-                st.rerun()
+        # Кнопки Старт/Стоп (обе видимы, подсветка в зависимости от состояния)
+        col_start, col_stop = st.columns(2)
+        
+        with col_start:
+            if _robot_running:
+                # Робот работает — Старт ЗЕЛЁНАЯ (primary)
+                st.button("▶️ Старт", type="primary", use_container_width=True, key="start_running")
+            else:
+                # Робот остановлен — Старт серая (secondary)
+                if st.button("▶️ Старт", type="secondary", use_container_width=True, key="start_stopped"):
+                    subprocess.run(['/root/finlab/robots/start_robot.sh'], capture_output=True)
+                    st.rerun()
+        
+        with col_stop:
+            if _robot_running:
+                # Робот работает — Стоп серая (secondary), но кликабельная
+                if st.button("🛑 Стоп", type="secondary", use_container_width=True, key="stop_running"):
+                    subprocess.run(['/root/finlab/robots/stop_robot.sh'], capture_output=True)
+                    st.success("Робот остановлен! Все позиции закрыты.")
+                    st.rerun()
+            else:
+                # Робот остановлен — Стоп красная (HTML-кнопка)
+                st.markdown("""
+                <style>
+                .red-stop-button {
+                    background-color: #f44336;
+                    color: white;
+                    padding: 8px 20px;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    width: 100%;
+                    text-align: center;
+                }
+                .red-stop-button:hover {
+                    background-color: #d32f2f;
+                }
+                </style>
+                <button class="red-stop-button" onclick="alert('Нажмите Старт для запуска')">🛑 Стоп</button>
+                """, unsafe_allow_html=True)
+
+
+        if not _robot_running:
+            st.markdown("""
+            <style>
+            div[data-testid="stButton"] button[kind="primary"] {
+            }
+            </style>
+            """, unsafe_allow_html=True)
 
         st.markdown("---")
 
