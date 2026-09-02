@@ -1057,7 +1057,7 @@ with st.sidebar.expander("ℹ️ Как это работает?"):
 
 st.sidebar.markdown("---")
 
-page = st.sidebar.radio("📌 Навигация", ["📊 Сводка", "📋 Статус сборщиков", "📊 Сканер фьючерсов", "📊 Парная торговля", "📊 Скринер акций", "🔧 Техинфо"], index=0)
+page = st.sidebar.radio("📌 Навигация", ["📊 Сводка", "📋 Статус сборщиков", "📊 Сканер фьючерсов", "📊 Парная торговля", "🤖 Торговые роботы", "📊 Скринер акций", "🔧 Техинфо"], index=0)
 st.sidebar.markdown("---")
 st.sidebar.info("**FinLabPy v0.2.0**\n\nКурс: FutOI + HI2 + ML\n\nСервер: `lvkseaqdin`\nДанные: Parquet")
 # ========== РОУТИНГ СТРАНИЦ ==========
@@ -4004,6 +4004,100 @@ elif page == "📊 Парная торговля":
                     st.warning("Недостаточно данных для анализа")
             else:
                 st.error(f"Нет данных: {_ticker_a}_{_selected_tf} или {_ticker_b}_{_selected_tf}")
+
+elif page == "🤖 Торговые роботы":
+    st.title("🤖 Торговые роботы")
+    st.caption("Управление торговыми роботами")
+
+    # Подвкладки
+    robot_tab = st.radio(
+        "Выберите робота",
+        ["📊 Парная торговля", "📈 Робот акций", "📉 Робот фьючерсов"],
+        horizontal=True
+    )
+
+    if robot_tab == "📊 Парная торговля":
+        st.subheader("📊 Робот парной торговли")
+        st.info("Бумажный режим — виртуальные сделки без реального исполнения")
+
+        # Проверка статуса робота
+        import subprocess
+        _pid_file = Path('/root/finlab/robots/robot.pid')
+        _robot_running = _pid_file.exists()
+        
+        if _robot_running:
+            _pid = _pid_file.read_text().strip()
+            st.success(f"🟢 Робот запущен (PID: {_pid})")
+        else:
+            st.warning("🟡 Робот не запущен")
+
+        # Кнопки Старт/Стоп
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("▶️ Старт", use_container_width=True):
+                subprocess.run(['/root/finlab/robots/start_robot.sh'], capture_output=True)
+                st.success("Робот запущен!")
+                st.rerun()
+        with col2:
+            if st.button("⏸️ Пауза", use_container_width=True):
+                Path('/root/finlab/robots/robot_command.txt').write_text('PAUSE')
+                st.success("Команда PAUSE отправлена")
+        with col3:
+            if st.button("🛑 Стоп", use_container_width=True):
+                subprocess.run(['/root/finlab/robots/stop_robot.sh'], capture_output=True)
+                st.success("Робот остановлен! Все позиции закрыты.")
+                st.rerun()
+
+        st.markdown("---")
+
+        # Настройки робота
+        st.subheader("⚙️ Настройки")
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            st.number_input("Депозит (₽)", value=100_000, step=10_000, key="robot_deposit")
+        with col_b:
+            st.selectbox("Тип объёма", ["Контракты", "Валюта контракта", "Процент от депозита"], key="robot_volume_type")
+        with col_c:
+            st.number_input("Объём", value=1.0, step=1.0, key="robot_volume")
+
+        st.markdown("---")
+
+        # Открытые позиции
+        st.subheader("📊 Открытые позиции")
+        import sqlite3
+        _db_path = Path('/root/finlab/robots/pairs_robot.db')
+        if _db_path.exists():
+            _conn = sqlite3.connect(_db_path)
+            _positions_df = pd.read_sql_query('SELECT * FROM positions WHERE status = "OPEN"', _conn)
+            _conn.close()
+            if len(_positions_df) > 0:
+                _positions_display = _positions_df[['pair_name', 'direction', 'volume', 'entry_z', 'entry_time']].copy()
+                _positions_display['entry_z'] = _positions_display['entry_z'].round(2)
+                st.dataframe(_positions_display, use_container_width=True, hide_index=True)
+            else:
+                st.info("Нет открытых позиций")
+
+        st.markdown("---")
+
+        # Журнал сделок
+        st.subheader("📝 Журнал сделок")
+        if _db_path.exists():
+            _conn = sqlite3.connect(_db_path)
+            _trades_df = pd.read_sql_query('SELECT * FROM trades ORDER BY id DESC LIMIT 20', _conn)
+            _conn.close()
+            if len(_trades_df) > 0:
+                _trades_display = _trades_df[['pair_name', 'action', 'direction', 'zscore', 'pnl', 'time']].copy()
+                _trades_display['zscore'] = _trades_display['zscore'].round(2)
+                _trades_display['pnl'] = _trades_display['pnl'].round(4)
+                st.dataframe(_trades_display, use_container_width=True, hide_index=True)
+            else:
+                st.info("Сделок пока нет")
+
+    elif robot_tab == "📈 Робот акций":
+        st.info("🚧 В разработке")
+
+    elif robot_tab == "📉 Робот фьючерсов":
+        st.info("🚧 В разработке")
 
 elif page == "📊 Скринер акций":
     st.title("📊 Скринер акций")
