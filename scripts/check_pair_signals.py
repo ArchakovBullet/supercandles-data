@@ -138,6 +138,7 @@ def check_signals():
                     direction = "🔴 ШОРТ" if current_z > 0 else "🟢 ЛОНГ"
                     signals.append({
                         'pair': base_pair,
+                        'tf': TIMEFRAME,
                         'zscore': current_z,
                         'direction': direction,
                         'time': datetime.now().strftime('%H:%M:%S')
@@ -187,7 +188,7 @@ def main():
     if signals:
         message_lines = ["🎯 Сигналы парной торговли:", ""]
         for s in signals:
-            message_lines.append(f"{s['direction']} {s['pair']}: Z={s['zscore']} ({s['time']})")
+            message_lines.append(f"{s['direction']} {s['pair']}_{s['tf']}: Z={s['zscore']} ({s['time']})")
         
         message = "\n".join(message_lines)
         print("\n" + message)
