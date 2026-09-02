@@ -91,16 +91,21 @@ def init_db():
     print("✅ БД инициализирована")
 
 # ========== РАСЧЁТ СИГНАЛОВ ==========
-def calculate_zscore(price_a, price_b, window=20):
-    """Рассчитать Z-score спреда"""
+def calculate_zscore(df_a, df_b, window=20):
+    """Рассчитать Z-score спреда (с выравниванием по времени)"""
     try:
-        if len(price_a) < window or len(price_b) < window:
+        import numpy as np
+        
+        # Выравниваем по времени (begin)
+        merged = pd.merge(df_a[['begin', 'close']], df_b[['begin', 'close']], 
+                          on='begin', suffixes=('_a', '_b'))
+        
+        if len(merged) < window:
             return None
         
         # Логарифмический спред
-        import numpy as np
-        log_a = np.log(price_a)
-        log_b = np.log(price_b)
+        log_a = np.log(merged['close_a'])
+        log_b = np.log(merged['close_b'])
         spread = log_a - log_b
         
         # Z-score
@@ -112,7 +117,9 @@ def calculate_zscore(price_a, price_b, window=20):
             'current_zscore': zscore.iloc[-1],
             'spread': spread.iloc[-1],
             'mean': mean.iloc[-1],
-            'std': std.iloc[-1]
+            'std': std.iloc[-1],
+            'price_a': merged['close_a'].iloc[-1],
+            'price_b': merged['close_b'].iloc[-1]
         }
     except Exception as e:
         print(f"❌ Z-score error: {e}")
@@ -309,13 +316,13 @@ def check_signals_by_tf(pairs_config, tf):
             exit_z = pair_data.get('best_params', {}).get('exit_z', EXIT_Z_DEFAULT)
             
             # Z-score
-            result = calculate_zscore(df_a['close'], df_b['close'], window=window)
+            result = calculate_zscore(df_a, df_b, window=window)
             if not result:
                 continue
             
             current_z = result['current_zscore']
-            price_a = df_a['close'].iloc[-1]
-            price_b = df_b['close'].iloc[-1]
+            price_a = result['price_a']
+            price_b = result['price_b']
             
             # Проверяем открытые позиции
             open_positions = get_open_positions()
