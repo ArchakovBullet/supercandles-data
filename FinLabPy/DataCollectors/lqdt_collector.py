@@ -9,6 +9,14 @@ from Utils.Logger import setup_logger
 import os
 
 logger = setup_logger('lqdt_collector')
+if logger is None:
+    import logging
+    logger = logging.getLogger('lqdt_collector')
+    logger.setLevel(logging.INFO)
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter('%(levelname)-8s | %(message)s'))
+        logger.addHandler(handler)
 
 api = MOEXPy(token=os.getenv('MOEX_TOKEN') or __import__('dotenv').load_dotenv('/root/finlab/.env') or os.getenv('MOEX_TOKEN'))
 OUT = Path('/root/finlab/data/candles/LQDT_D1.parquet')
