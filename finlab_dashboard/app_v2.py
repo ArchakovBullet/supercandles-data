@@ -4137,6 +4137,44 @@ elif page == "🤖 Торговые роботы":
 
         st.markdown("---")
 
+        # Статистика сделок
+        st.subheader("📈 Статистика сделок")
+        if _db_path.exists():
+            _conn = sqlite3.connect(_db_path)
+            _closed_df = pd.read_sql_query('SELECT * FROM positions WHERE status = "CLOSED"', _conn)
+            _conn.close()
+            
+            if len(_closed_df) > 0:
+                _profitable = _closed_df[_closed_df['pnl'] > 0]
+                _unprofitable = _closed_df[_closed_df['pnl'] <= 0]
+                
+                _total_pnl = _closed_df['pnl'].sum()
+                _win_rate = len(_profitable) / len(_closed_df) * 100 if len(_closed_df) > 0 else 0
+                
+                col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
+                with col_stat1:
+                    st.metric("Всего сделок", len(_closed_df))
+                with col_stat2:
+                    st.metric("Прибыльных", len(_profitable))
+                with col_stat3:
+                    st.metric("Убыточных", len(_unprofitable))
+                with col_stat4:
+                    st.metric("Win Rate", f"{_win_rate:.1f}%")
+                
+                col_pnl1, col_pnl2, col_pnl3 = st.columns(3)
+                with col_pnl1:
+                    st.metric("Общий PnL", f"{_total_pnl:+.4f}")
+                with col_pnl2:
+                    _avg_win = _profitable['pnl'].mean() if len(_profitable) > 0 else 0
+                    st.metric("Средний PnL (прибыльные)", f"{_avg_win:+.4f}")
+                with col_pnl3:
+                    _avg_loss = _unprofitable['pnl'].mean() if len(_unprofitable) > 0 else 0
+                    st.metric("Средний PnL (убыточные)", f"{_avg_loss:+.4f}")
+                
+                st.markdown("---")
+            else:
+                st.info("Закрытых сделок пока нет")
+
         # Журнал сделок
         st.subheader("📝 Журнал сделок")
         if _db_path.exists():
