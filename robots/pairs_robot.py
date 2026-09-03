@@ -19,9 +19,11 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+from dotenv import load_dotenv
 
 # ========== КОНФИГ ==========
 ROOT = Path('/root/finlab')
+load_dotenv(ROOT / '.env')
 CONFIG_PATH = ROOT / 'FinLabPy' / 'My_Indicators' / 'pairs_config.json'
 CANDLES_DIR = ROOT / 'data' / 'candles'
 DB_PATH = ROOT / 'robots' / 'pairs_robot.db'
@@ -118,8 +120,8 @@ def calculate_zscore(df_a, df_b, window=20):
             'spread': spread.iloc[-1],
             'mean': mean.iloc[-1],
             'std': std.iloc[-1],
-            'price_a': merged['close_a'].iloc[-1],
-            'price_b': merged['close_b'].iloc[-1]
+            'price_a': float(merged['close_a'].iloc[-1]) if not isinstance(merged['close_a'].iloc[-1], bytes) else 0.0,
+            'price_b': float(merged['close_b'].iloc[-1]) if not isinstance(merged['close_b'].iloc[-1], bytes) else 0.0
         }
     except Exception as e:
         print(f"❌ Z-score error: {e}")
@@ -309,6 +311,9 @@ def check_signals_by_tf(pairs_config, tf):
         try:
             df_a = pd.read_parquet(file_a)
             df_b = pd.read_parquet(file_b)
+            # Конвертируем close в float, отбрасывая bytes
+            df_a['close'] = df_a['close'].apply(lambda x: float(x) if not isinstance(x, bytes) else 0.0)
+            df_b['close'] = df_b['close'].apply(lambda x: float(x) if not isinstance(x, bytes) else 0.0)
             
             # Параметры
             window = pair_data.get('best_params', {}).get('window', 20)
