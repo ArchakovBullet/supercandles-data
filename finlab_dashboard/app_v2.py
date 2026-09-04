@@ -4044,58 +4044,125 @@ elif page == "🤖 Торговые роботы":
         _robot_running = False
         _pid = None
         
-        if _pid_file.exists():
-            _pid = _pid_file.read_text().strip()
-            # Проверяем, что процесс реально работает
-            _result = subprocess.run(['ps', '-p', _pid], capture_output=True, text=True)
-            _robot_running = _result.returncode == 0
+        # Проверяем статус через systemd
+        _result = subprocess.run(['systemctl', 'is-active', 'finlab-robot'], capture_output=True, text=True)
+        _robot_running = _result.stdout.strip() == 'active'
         
-        if _robot_running:
-            st.success(f"🟢 Робот запущен (PID: {_pid})")
-        else:
-            st.error("🔴 Робот остановлен")
+        # Проверяем открытые позиции
+        import sqlite3 as _sqlite3
+        _db_path = Path('/root/finlab/robots/pairs_robot.db')
+        _open_count = 0
+        if _db_path.exists():
+            try:
+                _conn = _sqlite3.connect(str(_db_path))
+                _cursor = _conn.cursor()
+                _cursor.execute("SELECT COUNT(*) FROM positions WHERE status='OPEN'")
+                _open_count = _cursor.fetchone()[0]
+                _conn.close()
+            except:
+                pass
 
-        # Кнопки Старт/Стоп (обе видимы, подсветка в зависимости от состояния)
-        col_start, col_stop = st.columns(2)
+        if _robot_running:
+            if _open_count > 0:
+                st.success(f"🟢 Робот работает ({_open_count} откр. позиций)")
+            else:
+                st.success("🟢 Робот работает")
+        else:
+            if _open_count > 0:
+                st.warning(f"🟡 Робот на паузе ({_open_count} откр. позиций)")
+            else:
+                st.error("🔴 Робот остановлен (все позиции закрыты)")
+
+        st.markdown('''
+        <style>
+        div.stButton > button {
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+            margin: 0 auto;
+        }
+        div.stButton > button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+        </style>
+        ''', unsafe_allow_html=True)
+
+        # Кнопки Старт/Пауза/Стоп
+        col_start, col_pause, col_stop = st.columns(3)
         
         with col_start:
             if _robot_running:
-                # Робот работает — Старт ЗЕЛЁНАЯ (primary)
-                st.button("▶️ Старт", type="primary", use_container_width=True, key="start_running")
+                # Робот работает — Старт зелёная, disabled
+                st.button("▶️ Старт", type="primary", use_container_width=True, key="start_running", disabled=True)
             else:
-                # Робот остановлен — Старт серая (secondary)
-                if st.button("▶️ Старт", type="secondary", use_container_width=True, key="start_stopped"):
-                    subprocess.run(['/root/finlab/robots/start_robot.sh'], capture_output=True)
-                    st.rerun()
+                if _open_count > 0:
+                    # Робот на паузе — Старт без цвета
+                    if st.button("▶️ Старт", type="secondary", use_container_width=True, key="start_paused"):
+                        subprocess.run(['systemctl', 'start', 'finlab-robot'], capture_output=True)
+                        st.rerun()
+                else:
+                    # Робот остановлен — Старт без цвета
+                    if st.button("▶️ Старт", type="secondary", use_container_width=True, key="start_stopped"):
+                        subprocess.run(['systemctl', 'start', 'finlab-robot'], capture_output=True)
+                        st.rerun()
         
+        with col_pause:
+            if _robot_running:
+                if st.button('⏸️ Пауза', type='secondary', use_container_width=True, key='pause_running'):
+                    subprocess.run(['systemctl', 'stop', 'finlab-robot'], capture_output=True)
+                    st.warning('⏸️ Робот на паузе. Открытые позиции заморожены.')
+                    st.rerun()
+            else:
+                if _open_count > 0:
+                    # Пауза — жёлтая круглая, disabled
+                    st.markdown('''
+                    <style>
+                    .btn-pause-active {
+                        width: 80px;
+                        height: 80px;
+                        border-radius: 50%;
+                        background: linear-gradient(145deg, #FFC107, #FFA000);
+                        color: white;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 14px;
+                        font-weight: bold;
+                        box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+                        margin: 0 auto;
+                        cursor: not-allowed;
+                        opacity: 0.8;
+                    }
+                    </style>
+                    <div class="btn-pause-active">⏸️<br>Пауза</div>
+                    ''', unsafe_allow_html=True)
+                else:
+                    st.button('⏸️ Пауза', type='secondary', use_container_width=True, key='pause_stopped', disabled=True)
+
         with col_stop:
             if _robot_running:
-                # Робот работает — Стоп серая (secondary), но кликабельная
+                # Робот работает — Стоп без цвета, кликабельная
                 if st.button("🛑 Стоп", type="secondary", use_container_width=True, key="stop_running"):
-                    subprocess.run(['/root/finlab/robots/stop_robot.sh'], capture_output=True)
+                    # Сначала закрываем позиции
+                    Path('/root/finlab/robots/robot_command.txt').write_text('STOP')
+                    import time as _time
+                    _time.sleep(2)
+                    subprocess.run(['systemctl', 'stop', 'finlab-robot'], capture_output=True)
                     st.success("Робот остановлен! Все позиции закрыты.")
                     st.rerun()
             else:
-                # Робот остановлен — Стоп красная (HTML-кнопка)
-                st.markdown("""
-                <style>
-                .red-stop-button {
-                    background-color: #f44336;
-                    color: white;
-                    padding: 8px 20px;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-size: 16px;
-                    width: 100%;
-                    text-align: center;
-                }
-                .red-stop-button:hover {
-                    background-color: #d32f2f;
-                }
-                </style>
-                <button class="red-stop-button" onclick="alert('Нажмите Старт для запуска')">🛑 Стоп</button>
-                """, unsafe_allow_html=True)
+                if _open_count == 0:
+                    # Остановлен — красная, disabled
+                    st.button('🛑 Стоп', type='primary', use_container_width=True, key='stop_stopped', disabled=True)
+                else:
+                    st.button('🛑 Стоп', type='secondary', use_container_width=True, key='stop_paused', disabled=True)
 
 
         if not _robot_running:
