@@ -24,6 +24,14 @@ from dotenv import load_dotenv
 # ========== КОНФИГ ==========
 ROOT = Path('/root/finlab')
 load_dotenv(ROOT / '.env')
+
+# Загружаем справочник стоимости пункта
+try:
+    import json as _json
+    with open(CONTRACT_POINTS_PATH, 'r') as _f:
+        CONTRACT_POINTS = _json.load(_f)
+except:
+    CONTRACT_POINTS = {}
 CONFIG_PATH = ROOT / 'FinLabPy' / 'My_Indicators' / 'pairs_config.json'
 CANDLES_DIR = ROOT / 'data' / 'candles'
 DB_PATH = ROOT / 'robots' / 'pairs_robot.db'
@@ -168,13 +176,31 @@ def get_open_positions():
     return positions
 
 def open_position(pair_name, base_pair, tf, direction, volume, zscore, price_a, price_b):
-    """Открыть позицию"""
+    """Открыть позицию (две ноги)"""
+    ticker_a, ticker_b = base_pair.split('-')
+    
+    if direction == 'SHORT_SPREAD':
+        leg_a_dir = 'SELL'
+        leg_b_dir = 'BUY'
+    else:  # LONG_SPREAD
+        leg_a_dir = 'BUY'
+        leg_b_dir = 'SELL'
+    
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO positions (pair_name, base_pair, timeframe, direction, volume, entry_z, entry_time, entry_price_a, entry_price_b)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (pair_name, base_pair, tf, direction, volume, zscore, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), price_a, price_b))
+        INSERT INTO positions (
+            pair_name, base_pair, timeframe, direction, volume, 
+            entry_z, entry_time, entry_price_a, entry_price_b,
+            leg_a_ticker, leg_a_direction, leg_b_ticker, leg_b_direction
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        pair_name, base_pair, tf, direction, volume, 
+        zscore, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 
+        price_a, price_b,
+        ticker_a, leg_a_dir, ticker_b, leg_b_dir
+    ))
     conn.commit()
     conn.close()
     
@@ -184,7 +210,9 @@ def open_position(pair_name, base_pair, tf, direction, volume, zscore, price_a, 
     # VK
     emoji = '🔴' if direction == 'SHORT_SPREAD' else '🟢'
     action = 'ШОРТ' if direction == 'SHORT_SPREAD' else 'ЛОНГ'
-    message = f"🤖 РОБОТ: {emoji} {action} {base_pair}_{tf}: Z={zscore:.2f}"
+    message = f"🤖 РОБОТ: {emoji} {action} {base_pair}_{tf}: Z={zscore:.2f}\n"
+    message += f"  Нога A: {leg_a_dir} {ticker_a} @ {price_a:.2f}\n"
+    message += f"  Нога B: {leg_b_dir} {ticker_b} @ {price_b:.2f}"
     send_vk_message(message)
     print(f"✅ Открыта позиция: {message}")
 
@@ -217,11 +245,11 @@ def close_position(position_id, pair_name, base_pair, tf, zscore, price_a, price
     conn.close()
     
     # Журнал
-    log_trade(pair_name, base_pair, tf, 'CLOSE', direction, volume, zscore, price_a, price_b, pnl)
+    log_trade(pair_name, base_pair, tf, 'CLOSE', direction, volume, zscore, price_a, price_b, total_pnl)
     
     # VK
-    emoji = '🟢' if pnl > 0 else '🔴'
-    message = f"🤖 РОБОТ: ЗАКРЫТИЕ {base_pair}_{tf}: PnL={pnl:+.4f} {emoji}"
+    emoji = '🟢' if total_pnl > 0 else '🔴'
+    message = f"🤖 РОБОТ: ЗАКРЫТИЕ {base_pair}_{tf}: PnL={total_pnl:+.4f} (A: {leg_a_pnl:+.4f}, B: {leg_b_pnl:+.4f}) {emoji}"
     send_vk_message(message)
     print(f"✅ Закрыта позиция: {message}")
 
