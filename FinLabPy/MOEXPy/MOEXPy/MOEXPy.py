@@ -45,6 +45,7 @@ class MOEXPy:
         :param str login: Р›РѕРіРёРЅ (ISS+)
         :param str passcode: РџР°СЂРѕР»СЊ (ISS+)
         """
+        self.logger = logging.getLogger('MOEXPy')
         if token is None:  # Р•СЃР»Рё С‚РѕСЂРіРѕРІС‹Р№ С‚РѕРєРµРЅ РЅРµ СѓРєР°Р·Р°РЅ (Р·Р°РїСЂРѕСЃС‹ ISS)
             # РЎРЅР°С‡Р°Р»Р° РїСЂРѕР±СѓРµРј .env
             try:
