@@ -4238,6 +4238,34 @@ elif page == "🤖 Торговые роботы":
                     _avg_loss = _unprofitable['pnl'].mean() if len(_unprofitable) > 0 else 0
                     st.metric("Средний PnL (убыточные)", f"{_avg_loss:+.4f}")
                 
+
+                # Время удержания
+                _closed_df["entry_dt"] = pd.to_datetime(_closed_df["entry_time"])
+                _closed_df["exit_dt"] = pd.to_datetime(_closed_df["exit_time"])
+                _closed_df["hold_time"] = _closed_df["exit_dt"] - _closed_df["entry_dt"]
+                _avg_hold = _closed_df["hold_time"].mean()
+                _max_hold = _closed_df["hold_time"].max()
+                _min_hold = _closed_df["hold_time"].min()
+
+                def _fmt_td(td):
+                    total_sec = int(td.total_seconds())
+                    hours = total_sec // 3600
+                    minutes = (total_sec % 3600) // 60
+                    if hours > 24:
+                        days = hours // 24
+                        return f"{days}д {hours % 24}ч"
+                    elif hours > 0:
+                        return f"{hours}ч {minutes}м"
+                    else:
+                        return f"{minutes}м"
+
+                col_hold1, col_hold2, col_hold3 = st.columns(3)
+                with col_hold1:
+                    st.metric("Среднее время удержания", _fmt_td(_avg_hold))
+                with col_hold2:
+                    st.metric("Макс. время удержания", _fmt_td(_max_hold))
+                with col_hold3:
+                    st.metric("Мин. время удержания", _fmt_td(_min_hold))
                 st.markdown("---")
             else:
                 st.info("Закрытых сделок пока нет")
@@ -4248,6 +4276,13 @@ elif page == "🤖 Торговые роботы":
             _conn = sqlite3.connect(_db_path)
             _trades_df = pd.read_sql_query('SELECT * FROM trades ORDER BY id DESC LIMIT 20', _conn)
             _conn.close()
+            
+            # Добавляем время удержания в журнал (если есть exit_time)
+            if len(_trades_df) > 0 and 'exit_time' in _trades_df.columns:
+                _trades_df['entry_dt'] = pd.to_datetime(_trades_df['time'])
+                _trades_df['exit_dt'] = pd.to_datetime(_trades_df['exit_time'])
+                _trades_df['hold_time'] = _trades_df['exit_dt'] - _trades_df['entry_dt']
+                _trades_df['hold_str'] = _trades_df['hold_time'].apply(lambda td: f"{int(td.total_seconds() // 3600)}ч {int((td.total_seconds() % 3600) // 60)}м")
             if len(_trades_df) > 0:
                 _trades_display = _trades_df[['pair_name', 'action', 'direction', 'zscore', 'pnl', 'time']].copy()
                 _trades_display['zscore'] = _trades_display['zscore'].round(2)
