@@ -87,3 +87,35 @@
     app_v2.py          # Дашборд
   data/                # Parquet-хранилище
   vk_bot.py            # VK-бот
+
+
+---
+
+## ВАЖНО: Workflow (с 06.09.2026)
+
+### Работа ведётся ТОЛЬКО на сервере
+
+Сервер: lvkseaqdin (root), рабочая директория /root/finlab
+
+### Как пушить изменения:
+
+В репозиторий supercandles-data:
+cd /root/finlab && git push origin master
+
+В репозиторий finlab-dashboard:
+cd /root/finlab && git push finlab-dashboard master
+
+### Напоминания:
+- WORK_LOG.md в .gitignore - использовать git add -f WORK_LOG.md
+- MOEXPy в .gitignore - использовать git add -f FinLabPy/MOEXPy/MOEXPy/MOEXPy.py
+- Дневник: /root/finlab/WORK_LOG.md (UTF-8, не UTF-16)
+
+### Remote на сервере:
+- origin - supercandles-data (данные, роботы, код)
+- finlab-dashboard - finlab-dashboard (дашборд, дневник)
+
+### Порядок работы с дневником:
+1. Редактируем /root/finlab/WORK_LOG.md
+2. git add -f WORK_LOG.md && git commit -m Update work log
+3. git push origin master
+4. git push finlab-dashboard master
