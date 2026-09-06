@@ -157,18 +157,22 @@ def check_signals():
     return signals
 
 
-def send_vk_message(vk, peer_id, message):
-    """Отправить сообщение в VK."""
-    try:
-        vk.messages.send(
-            peer_id=peer_id,
-            message=message,
-            random_id=int(datetime.now().timestamp() * 1000)
-        )
-        return True
-    except Exception as e:
-        print(f"❌ Ошибка отправки VK: {e}")
-        return False
+def send_vk_message(vk, peer_id, message, max_retries=3):
+    """Отправить сообщение в VK с повторными попытками."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            vk.messages.send(
+                peer_id=peer_id,
+                message=message,
+                random_id=int(datetime.now().timestamp() * 1000)
+            )
+            return True
+        except Exception as e:
+            print(f"❌ Ошибка отправки VK (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                import time as _time
+                _time.sleep(2 * attempt)  # Задержка: 2с, 4с
+    return False
 
 
 def main():
