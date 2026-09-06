@@ -267,3 +267,37 @@
 - [ ] Товарные фьючерсы в скрининг
 - [ ] Проверить PnL в рублях на новых сделках
 - [ ] Сравнивать доходность роботов с LQDT (бенчмарк)
+---
+
+## 📌 ВАЖНО: Изменение workflow (06.09.2026)
+
+### 🔄 Переход на работу только с сервера
+
+**С этого момента:**
+- Вся работа ведётся **на сервере** (`lvkseaqdin`, `/root/finlab`)
+- Локальная машина (Windows) **не используется** для синхронизации
+- Дневник WORK_LOG.md ведётся **на сервере**
+- Код редактируется через **VSCode Remote SSH**
+
+### 📋 Как пушить изменения:
+
+В репозиторий `supercandles-data`:
+`cd /root/finlab && git push origin master`
+
+В репозиторий `finlab-dashboard`:
+`cd /root/finlab && git push finlab-dashboard master`
+
+### ⚠️ Напоминания:
+- `WORK_LOG.md` в .gitignore — использовать `git add -f WORK_LOG.md`
+- `MOEXPy` в .gitignore — использовать `git add -f FinLabPy/MOEXPy/MOEXPy/MOEXPy.py`
+- При конфликтах с finlab-dashboard: `git checkout --ours WORK_LOG.md` (серверная версия приоритетнее)
+
+### 🗂 Remote на сервере:
+- `origin` → supercandles-data (данные, роботы, код)
+- `finlab-dashboard` → finlab-dashboard (дашборд, дневник)
+
+### 📝 Порядок работы с дневником:
+1. Редактируем `/root/finlab/WORK_LOG.md`
+2. `git add -f WORK_LOG.md && git commit -m "Update work log: ..."`
+3. `git push origin master`
+4. `git push finlab-dashboard master`
