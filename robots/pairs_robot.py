@@ -123,11 +123,17 @@ def calculate_zscore(df_a, df_b, window=20):
         std = spread.rolling(window=window).std()
         zscore = (spread - mean) / std
         
+        # Тренд спреда (SMA20)
+        sma_period = 20
+        spread_sma = spread.rolling(window=sma_period).mean()
+        spread_trend = spread - spread_sma  # Положительный = спред растёт
+
         return {
             'current_zscore': zscore.iloc[-1],
             'spread': spread.iloc[-1],
             'mean': mean.iloc[-1],
             'std': std.iloc[-1],
+            'spread_trend': spread_trend.iloc[-1],
             'price_a': float(merged['close_a'].iloc[-1]) if not isinstance(merged['close_a'].iloc[-1], bytes) else 0.0,
             'price_b': float(merged['close_b'].iloc[-1]) if not isinstance(merged['close_b'].iloc[-1], bytes) else 0.0
         }
@@ -356,16 +362,17 @@ def check_signals_by_tf(pairs_config, tf):
             current_z = result['current_zscore']
             price_a = result['price_a']
             price_b = result['price_b']
+            spread_trend = result.get('spread_trend', 0)
             
             # Проверяем открытые позиции
             open_positions = get_open_positions()
             has_position = any(p[1] == pair_name and p[3] == tf for p in open_positions)
             
             if not has_position:
-                # Проверяем вход
-                if current_z >= entry_z:
+                # Проверяем вход (с фильтром тренда)
+                if current_z >= entry_z and spread_trend > 0:
                     open_position(pair_name, base_pair, tf, 'SHORT_SPREAD', VOLUME, current_z, price_a, price_b)
-                elif current_z <= -entry_z:
+                elif current_z <= -entry_z and spread_trend < 0:
                     open_position(pair_name, base_pair, tf, 'LONG_SPREAD', VOLUME, current_z, price_a, price_b)
             else:
                 # Проверяем выход
