@@ -47,7 +47,7 @@ DEPOSIT = 100_000  # Виртуальный капитал
 VOLUME_TYPE = 'contracts'  # contracts / contract_currency / deposit_percent
 VOLUME = 1.0  # 1 контракт/акция
 CHECK_INTERVALS = {'M10': 600, 'H1': 3600}  # секунд
-ENTRY_Z_DEFAULT = 2.0
+ENTRY_Z_DEFAULT = 3.0
 EXIT_Z_DEFAULT = 0.5
 
 # ========== БАЗА ДАННЫХ ==========
