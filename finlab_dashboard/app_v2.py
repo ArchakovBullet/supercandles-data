@@ -1057,7 +1057,7 @@ with st.sidebar.expander("ℹ️ Как это работает?"):
 
 st.sidebar.markdown("---")
 
-page = st.sidebar.radio("📌 Навигация", ["📊 Сводка", "📋 Статус сборщиков", "📊 Сканер фьючерсов", "📊 Парная торговля", "🤖 Торговые роботы", "📊 Скринер акций", "🔧 Техинфо"], index=0)
+page = st.sidebar.radio("📌 Навигация", ["📊 Сводка", "📋 Статус сборщиков", "📊 Сканер фьючерсов", "📊 Парная торговля", "📊 Торговые роботы", "📊 Скринер акций", "🔧 Техинфо"], index=0)
 st.sidebar.markdown("---")
 st.sidebar.info("**FinLabPy v0.2.0**\n\nКурс: FutOI + HI2 + ML\n\nСервер: `lvkseaqdin`\nДанные: Parquet")
 # ========== РОУТИНГ СТРАНИЦ ==========
@@ -1237,7 +1237,7 @@ if page == "📊 Сводка":
         if _dec == 'LONG' and 'WAIT' not in _sig:
             _rec = "✅ Вход в лонг"
         elif _dec == 'SHORT' and 'WAIT' not in _sig:
-            _rec = "✅ Вход в шорт"
+            _rec = "🔴 Вход в шорт"
         elif _dec == 'LONG' and 'WAIT' in _sig:
             _rec = "⏳ Ждать отката (лонг)"
         elif _dec == 'SHORT' and 'WAIT' in _sig:
@@ -1376,7 +1376,7 @@ if page == "📊 Сводка":
 
             _rec = "⏳ Ждать"
             if _decision == 'LONG': _rec = "✅ Вход в лонг"
-            elif _decision == 'SHORT': _rec = "✅ Вход в шорт"
+            elif _decision == 'SHORT': _rec = "🔴 Вход в шорт"
 
             _stock_rows.append({
                 "Тикер": _st,
@@ -2341,7 +2341,7 @@ elif page == "FUTOI_1H":
                 _final_decision = "✅ ВХОД В ЛОНГ"
                 _final_reason = "D1 в лонг, 1H подтверждает, нетто растёт"
             elif _d1_signal == "SHORT" and _sig_1h == "SHORT" and _netto_trend == "▼ падает":
-                _final_decision = "✅ ВХОД В ШОРТ"
+                _final_decision = "🔴 ВХОД В ШОРТ"
                 _final_reason = "D1 в шорт, 1H подтверждает, нетто падает"
             elif _d1_signal in ("LONG", "SHORT") and _sig_1h == "NEUTRAL":
                 _final_decision = "⏳ ЖДАТЬ"
@@ -4005,8 +4005,8 @@ elif page == "📊 Парная торговля":
             else:
                 st.error(f"Нет данных: {_ticker_a}_{_selected_tf} или {_ticker_b}_{_selected_tf}")
 
-elif page == "🤖 Торговые роботы":
-    st.title("🤖 Торговые роботы")
+elif page == "📊 Торговые роботы":
+    st.title("📊 Торговые роботы")
     
     # CSS для кнопок Старт/Стоп
     st.markdown("""
