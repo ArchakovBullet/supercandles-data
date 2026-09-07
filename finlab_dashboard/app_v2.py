@@ -4284,10 +4284,20 @@ elif page == "🤖 Торговые роботы":
                 _trades_df['hold_time'] = _trades_df['exit_dt'] - _trades_df['entry_dt']
                 _trades_df['hold_str'] = _trades_df['hold_time'].apply(lambda td: f"{int(td.total_seconds() // 3600)}ч {int((td.total_seconds() % 3600) // 60)}м")
             if len(_trades_df) > 0:
-                _trades_display = _trades_df[['pair_name', 'action', 'direction', 'zscore', 'pnl', 'time']].copy()
-                _trades_display['zscore'] = _trades_display['zscore'].round(2)
-                _trades_display['pnl'] = _trades_display['pnl'].round(4)
-                st.dataframe(_trades_display, use_container_width=True, hide_index=True)
+                # Используем positions для полной информации о PnL
+                _conn2 = sqlite3.connect(_db_path)
+                _pos_df = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED" ORDER BY id DESC LIMIT 20', _conn2)
+                _conn2.close()
+                
+                if len(_pos_df) > 0:
+                    _pos_display = _pos_df[['pair_name', 'direction', 'pnl', 'leg_a_pnl', 'leg_b_pnl', 'leg_a_ticker', 'leg_b_ticker', 'entry_time', 'exit_time']].copy()
+                    _pos_display['pnl'] = _pos_display['pnl'].round(2)
+                    _pos_display['leg_a_pnl'] = _pos_display['leg_a_pnl'].round(2)
+                    _pos_display['leg_b_pnl'] = _pos_display['leg_b_pnl'].round(2)
+                    _pos_display.columns = ['Пара', 'Направление', 'PnL (₽)', 'Нога A (₽)', 'Нога B (₽)', 'Тикер A', 'Тикер B', 'Вход', 'Выход']
+                    st.dataframe(_pos_display, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Закрытых сделок пока нет")
             else:
                 st.info("Сделок пока нет")
 
