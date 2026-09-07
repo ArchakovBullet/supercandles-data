@@ -4269,41 +4269,83 @@ elif page == "📊 Торговые роботы":
 
                 # Сравнение с LQDT
                 st.markdown("---")
+                # Сравнение с LQDT (бенчмарк)
+                st.markdown("---")
                 st.subheader("📊 Сравнение с LQDT (бенчмарк)")
+                st.caption("LQDT — фонд ликвидности MOEX (безрисковый ориентир). Сравниваем доходность за одинаковые периоды.")
+
                 _lqdt_file = Path('/root/finlab/data/candles/LQDT_D1.parquet')
                 if _lqdt_file.exists():
                     _lqdt_df = pd.read_parquet(_lqdt_file)
                     _lqdt_df['begin'] = pd.to_datetime(_lqdt_df['begin'])
                     _lqdt_df = _lqdt_df.sort_values('begin')
-                    
-                    # Период робота
+
+                    # === ОБЩЕЕ СРАВНЕНИЕ ===
                     _robot_start = pd.to_datetime(_closed_df['entry_time'].min())
                     _robot_end = pd.to_datetime(_closed_df['exit_time'].max())
-                    
-                    # LQDT за тот же период
+
                     _lqdt_period = _lqdt_df[(_lqdt_df['begin'] >= _robot_start) & (_lqdt_df['begin'] <= _robot_end)]
-                    
+
                     if len(_lqdt_period) > 1:
                         _lqdt_start_price = _lqdt_period['close'].iloc[0]
                         _lqdt_end_price = _lqdt_period['close'].iloc[-1]
                         _lqdt_return = (_lqdt_end_price - _lqdt_start_price) / _lqdt_start_price * 100
-                        
-                        _robot_return = _total_pnl / 100000 * 100
-                        
+
+                        _robot_return = _total_pnl / _deposit * 100
                         _diff = _robot_return - _lqdt_return
-                        
+
                         col_lqdt1, col_lqdt2, col_lqdt3 = st.columns(3)
                         with col_lqdt1:
-                            st.metric("LQDT (бенчмарк)", f"{_lqdt_return:+.2f}%")
+                            st.metric("📈 Общий PnL", f"{_total_pnl:+.1f}₽")
                         with col_lqdt2:
-                            st.metric("Робот", f"{_robot_return:+.2f}%")
+                            st.metric("🤖 Робот (доходность)", f"{_robot_return:+.2f}%")
                         with col_lqdt3:
-                            st.metric("Разница", f"{_diff:+.2f}%", delta=f"{'✅ робот лучше' if _diff > 0 else '❌ робот хуже'}")
+                            st.metric("📊 LQDT (бенчмарк)", f"{_lqdt_return:+.2f}%")
+
+                        if _diff > 0:
+                            st.success(f"✅ Робот опережает LQDT на {_diff:+.2f}%")
+                        else:
+                            st.error(f"❌ Робот отстаёт от LQDT на {_diff:+.2f}%")
                     else:
                         st.info("Недостаточно данных LQDT для сравнения")
+
+                    # === СРАВНЕНИЕ ПО ПАРАМ ===
+                    st.markdown("---")
+                    st.subheader("📋 Доходность по парам vs LQDT")
+                    st.caption("Каждая пара сравнивается с LQDT за тот же период (от входа до выхода).")
+
+                    _pair_comparison = []
+                    for _pair_name, _group in _closed_df.groupby('pair_name'):
+                        _group = _group.sort_values('entry_time')
+                        _pair_start = pd.to_datetime(_group['entry_time'].iloc[0])
+                        _pair_end = pd.to_datetime(_group['exit_time'].iloc[-1])
+                        _pair_pnl = _group['pnl'].sum()
+
+                        _lqdt_pair = _lqdt_df[(_lqdt_df['begin'] >= _pair_start) & (_lqdt_df['begin'] <= _pair_end)]
+                        if len(_lqdt_pair) > 1:
+                            _lqdt_pair_return = (_lqdt_pair['close'].iloc[-1] - _lqdt_pair['close'].iloc[0]) / _lqdt_pair['close'].iloc[0] * 100
+                            _pair_robot_return = _pair_pnl / _deposit * 100
+                            _pair_diff = _pair_robot_return - _lqdt_pair_return
+
+                            _pair_comparison.append({
+                                'Пара': _pair_name,
+                                'Сделок': len(_group),
+                                'PnL': f"{_pair_pnl:+.1f}₽",
+                                'Доходность пары': f"{_pair_robot_return:+.2f}%",
+                                'LQDT за период': f"{_lqdt_pair_return:+.2f}%",
+                                'Разница': f"{_pair_diff:+.2f}%",
+                                'Результат': '✅ Лучше' if _pair_diff > 0 else '❌ Хуже'
+                            })
+
+                    if _pair_comparison:
+                        _pair_df = pd.DataFrame(_pair_comparison)
+                        st.dataframe(_pair_df, use_container_width=True, hide_index=True)
+                    else:
+                        st.info("Нет данных для сравнения по парам")
                 else:
                     st.info("LQDT данные не найдены")
-                    
+
+                st.markdown("---")
                 st.markdown("---")
             else:
                 st.info("Закрытых сделок пока нет")
