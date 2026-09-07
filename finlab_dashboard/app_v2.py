@@ -4230,13 +4230,13 @@ elif page == "🤖 Торговые роботы":
                 
                 col_pnl1, col_pnl2, col_pnl3 = st.columns(3)
                 with col_pnl1:
-                    st.metric("Общий PnL", f"{_total_pnl:+.4f}")
+                    st.metric("Общий PnL", f"{_total_pnl:+.1f}")
                 with col_pnl2:
                     _avg_win = _profitable['pnl'].mean() if len(_profitable) > 0 else 0
-                    st.metric("Средний PnL (прибыльные)", f"{_avg_win:+.4f}")
+                    st.metric("Средний PnL (прибыльные)", f"{_avg_win:+.1f}")
                 with col_pnl3:
                     _avg_loss = _unprofitable['pnl'].mean() if len(_unprofitable) > 0 else 0
-                    st.metric("Средний PnL (убыточные)", f"{_avg_loss:+.4f}")
+                    st.metric("Средний PnL (убыточные)", f"{_avg_loss:+.1f}")
                 
 
                 # Время удержания
@@ -4266,6 +4266,44 @@ elif page == "🤖 Торговые роботы":
                     st.metric("Макс. время удержания", _fmt_td(_max_hold))
                 with col_hold3:
                     st.metric("Мин. время удержания", _fmt_td(_min_hold))
+
+                # Сравнение с LQDT
+                st.markdown("---")
+                st.subheader("📊 Сравнение с LQDT (бенчмарк)")
+                _lqdt_file = Path('/root/finlab/data/candles/LQDT_D1.parquet')
+                if _lqdt_file.exists():
+                    _lqdt_df = pd.read_parquet(_lqdt_file)
+                    _lqdt_df['begin'] = pd.to_datetime(_lqdt_df['begin'])
+                    _lqdt_df = _lqdt_df.sort_values('begin')
+                    
+                    # Период робота
+                    _robot_start = pd.to_datetime(_closed_df['entry_time'].min())
+                    _robot_end = pd.to_datetime(_closed_df['exit_time'].max())
+                    
+                    # LQDT за тот же период
+                    _lqdt_period = _lqdt_df[(_lqdt_df['begin'] >= _robot_start) & (_lqdt_df['begin'] <= _robot_end)]
+                    
+                    if len(_lqdt_period) > 1:
+                        _lqdt_start_price = _lqdt_period['close'].iloc[0]
+                        _lqdt_end_price = _lqdt_period['close'].iloc[-1]
+                        _lqdt_return = (_lqdt_end_price - _lqdt_start_price) / _lqdt_start_price * 100
+                        
+                        _robot_return = _total_pnl / 100000 * 100
+                        
+                        _diff = _robot_return - _lqdt_return
+                        
+                        col_lqdt1, col_lqdt2, col_lqdt3 = st.columns(3)
+                        with col_lqdt1:
+                            st.metric("LQDT (бенчмарк)", f"{_lqdt_return:+.2f}%")
+                        with col_lqdt2:
+                            st.metric("Робот", f"{_robot_return:+.2f}%")
+                        with col_lqdt3:
+                            st.metric("Разница", f"{_diff:+.2f}%", delta=f"{'✅ робот лучше' if _diff > 0 else '❌ робот хуже'}")
+                    else:
+                        st.info("Недостаточно данных LQDT для сравнения")
+                else:
+                    st.info("LQDT данные не найдены")
+                    
                 st.markdown("---")
             else:
                 st.info("Закрытых сделок пока нет")
