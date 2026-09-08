@@ -223,39 +223,63 @@ def open_position(pair_name, base_pair, tf, direction, volume, zscore, price_a, 
     print(f"✅ Открыта позиция: {message}")
 
 def close_position(position_id, pair_name, base_pair, tf, zscore, price_a, price_b):
-    """Закрыть позицию"""
+    """Закрыть позицию (двухногая модель)"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     # Получаем параметры позиции
-    cursor.execute('SELECT direction, volume, entry_z, entry_price_a, entry_price_b FROM positions WHERE id = ?', (position_id,))
+    cursor.execute('SELECT direction, volume, entry_z, entry_price_a, entry_price_b, leg_a_ticker, leg_a_direction, leg_b_ticker, leg_b_direction FROM positions WHERE id = ?', (position_id,))
     pos = cursor.fetchone()
     if not pos:
         conn.close()
         return
-    
-    direction, volume, entry_z, entry_price_a, entry_price_b = pos
-    
-    # Рассчитываем PnL (бумажный)
-    if direction == 'LONG_SPREAD':
-        pnl = (price_a - entry_price_a) + (entry_price_b - price_b)
+
+    direction, volume, entry_z, entry_price_a, entry_price_b, leg_a_ticker, leg_a_direction, leg_b_ticker, leg_b_direction = pos
+
+    # Безопасная конвертация
+    def safe_float(val, default=0.0):
+        if isinstance(val, bytes):
+            try:
+                return float(val.decode('utf-8', errors='ignore') or default)
+            except (ValueError, UnicodeDecodeError):
+                return default
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            return default
+
+    entry_price_a = safe_float(entry_price_a)
+    entry_price_b = safe_float(entry_price_b)
+    price_a = safe_float(price_a)
+    price_b = safe_float(price_b)
+
+    # Расчёт PnL по ногам
+    point_value_a = CONTRACT_POINTS.get(leg_a_ticker, 1.0) if leg_a_ticker else 1.0
+    point_value_b = CONTRACT_POINTS.get(leg_b_ticker, 1.0) if leg_b_ticker else 1.0
+
+    if leg_a_direction == 'SELL':
+        leg_a_pnl = (entry_price_a - price_a) * point_value_a * volume
     else:
-        pnl = (entry_price_a - price_a) + (price_b - entry_price_b)
-    
+        leg_a_pnl = (price_a - entry_price_a) * point_value_a * volume
+
+    if leg_b_direction == 'SELL':
+        leg_b_pnl = (entry_price_b - price_b) * point_value_b * volume
+    else:
+        leg_b_pnl = (price_b - entry_price_b) * point_value_b * volume
+
+    total_pnl = leg_a_pnl + leg_b_pnl
+
     # Обновляем позицию
-    cursor.execute('''
-        UPDATE positions SET status = "CLOSED", exit_time = ?, exit_z = ?, exit_price_a = ?, exit_price_b = ?, pnl = ?
-        WHERE id = ?
-    ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), zscore, price_a, price_b, pnl, position_id))
+    cursor.execute('UPDATE positions SET status = "CLOSED", exit_time = ?, exit_z = ?, exit_price_a = ?, exit_price_b = ?, leg_a_pnl = ?, leg_b_pnl = ?, pnl = ? WHERE id = ?', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), zscore, price_a, price_b, leg_a_pnl, leg_b_pnl, total_pnl, position_id))
     conn.commit()
     conn.close()
-    
+
     # Журнал
     log_trade(pair_name, base_pair, tf, 'CLOSE', direction, volume, zscore, price_a, price_b, total_pnl)
-    
+
     # VK
     emoji = '🟢' if total_pnl > 0 else '🔴'
-    message = f"🤖 РОБОТ: ЗАКРЫТИЕ {base_pair}_{tf}: PnL={total_pnl:+.4f} (A: {leg_a_pnl:+.4f}, B: {leg_b_pnl:+.4f}) {emoji}"
+    message = f"🤖 РОБОТ: ЗАКРЫТИЕ {base_pair}_{tf}: PnL={total_pnl:+.2f}₽ (A: {leg_a_pnl:+.2f}₽, B: {leg_b_pnl:+.2f}₽) {emoji}"
     send_vk_message(message)
     print(f"✅ Закрыта позиция: {message}")
 
