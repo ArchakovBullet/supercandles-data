@@ -393,11 +393,32 @@ def check_signals_by_tf(pairs_config, tf):
             has_position = any(p[1] == pair_name and p[3] == tf for p in open_positions)
             
             if not has_position:
-                # Проверяем вход (с фильтром тренда)
-                if current_z >= entry_z and spread_trend > 0:
-                    open_position(pair_name, base_pair, tf, 'SHORT_SPREAD', VOLUME, current_z, price_a, price_b)
-                elif current_z <= -entry_z and spread_trend < 0:
-                    open_position(pair_name, base_pair, tf, 'LONG_SPREAD', VOLUME, current_z, price_a, price_b)
+                # Фильтр времени: не входить в конце сессии (после 18:00 МСК)
+                import datetime as _dt
+                _now_msk = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=3)))
+                _hour = _now_msk.hour
+                _minute = _now_msk.minute
+                _is_trading_time = (_hour < 18) or (_hour == 18 and _minute == 0)
+                
+                # Фильтр волатильности: std не должна быть аномально высокой
+                _std = result.get('std', 0)
+                _mean = result.get('mean', 0)
+                _vol_ok = True
+                if _std and _mean and abs(_mean) > 0.0001:
+                    _vol_ratio = _std / abs(_mean)
+                    if _vol_ratio > 0.02:  # Волатильность > 2% от среднего — аномально
+                        _vol_ok = False
+                
+                # Проверяем вход (с фильтрами)
+                if _is_trading_time and _vol_ok:
+                    if current_z >= entry_z and spread_trend > 0:
+                        open_position(pair_name, base_pair, tf, 'SHORT_SPREAD', VOLUME, current_z, price_a, price_b)
+                    elif current_z <= -entry_z and spread_trend < 0:
+                        open_position(pair_name, base_pair, tf, 'LONG_SPREAD', VOLUME, current_z, price_a, price_b)
+                elif not _is_trading_time:
+                    pass  # Пропускаем — не торгуем в конце сессии
+                elif not _vol_ok:
+                    pass  # Пропускаем — волатильность аномальная
             else:
                 # Проверяем выход
                 if abs(current_z) <= exit_z:
