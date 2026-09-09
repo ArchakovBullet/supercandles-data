@@ -331,13 +331,13 @@ def main():
                         
                         # Стоп-лосс
                         if pos_direction == 'LONG' and pos_atr > 0:
-                            stop_price = pos_entry_price - pos_atr
+                            stop_price = pos_entry_price - pos_atr * 2
                             if entry_price <= stop_price:
                                 close_position(pos_id, ticker, pos_direction, score, entry_price, 'STOP')
                                 open_tickers.discard(ticker)
                                 break
                         elif pos_direction == 'SHORT' and pos_atr > 0:
-                            stop_price = pos_entry_price + pos_atr
+                            stop_price = pos_entry_price + pos_atr * 2
                             if entry_price >= stop_price:
                                 close_position(pos_id, ticker, pos_direction, score, entry_price, 'STOP')
                                 open_tickers.discard(ticker)
