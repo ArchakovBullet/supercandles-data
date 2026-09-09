@@ -4198,6 +4198,11 @@ elif page == "📊 Торговые роботы":
             if len(_positions_df) > 0:
                 _positions_display = _positions_df[['pair_name', 'direction', 'volume', 'entry_z', 'entry_time']].copy()
                 _positions_display['entry_z'] = _positions_display['entry_z'].round(2)
+                _positions_display.columns = ['Пара', 'Направление', 'Объём', 'Z-score', 'Время входа']
+                _positions_display['Время входа'] = pd.to_datetime(_positions_display['Время входа'])
+                _positions_display['Время в позиции'] = (pd.Timestamp.now() - _positions_display['Время входа'])
+                _positions_display['Время в позиции'] = _positions_display['Время в позиции'].apply(lambda td: f'{td.days}д {td.seconds // 3600}ч')
+                _positions_display['Время входа'] = _positions_display['Время входа'].dt.strftime('%d.%m %H:%M')
                 st.dataframe(_positions_display, use_container_width=True, hide_index=True)
             else:
                 st.info("Нет открытых позиций")
@@ -4473,6 +4478,10 @@ elif page == "📊 Торговые роботы":
                 st.subheader("📊 Открытые позиции")
                 _fut_open_display = _fut_open_df[['ticker', 'direction', 'volume', 'entry_score', 'entry_price', 'entry_time']].copy()
                 _fut_open_display.columns = ['Тикер', 'Направление', 'Объём', 'Скор', 'Цена входа', 'Время входа']
+                _fut_open_display['Время входа'] = pd.to_datetime(_fut_open_display['Время входа'])
+                _fut_open_display['Время в позиции'] = (pd.Timestamp.now() - _fut_open_display['Время входа'])
+                _fut_open_display['Время в позиции'] = _fut_open_display['Время в позиции'].apply(lambda td: f'{td.days}д {td.seconds // 3600}ч')
+                _fut_open_display['Время входа'] = _fut_open_display['Время входа'].dt.strftime('%d.%m %H:%M')
                 st.dataframe(_fut_open_display, use_container_width=True, hide_index=True)
 
             # Статистика
