@@ -4027,12 +4027,121 @@ elif page == "📊 Торговые роботы":
     """, unsafe_allow_html=True)
     st.caption("Управление торговыми роботами")
 
-    # Подвкладки
+    # Подвкладки (radio — вверху)
     robot_tab = st.radio(
         "Выберите робота",
-        ["📊 Парная торговля", "📈 Робот акций", "📉 Робот фьючерсов"],
+        ["📊 Обзор", "📊 Парная торговля", "📈 Робот акций", "📉 Робот фьючерсов"],
         horizontal=True
     )
+    import sqlite3 as _sqlite3
+    from datetime import datetime as _dt_now
+
+    if robot_tab == "📊 Обзор":
+        # Загружаем данные по роботам
+        _robots_stats = {}
+
+        # Парный робот
+        _pairs_db = Path('/root/finlab/robots/pairs_robot.db')
+        if _pairs_db.exists():
+            _conn = _sqlite3.connect(_pairs_db)
+            _closed_pairs = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED"', _conn)
+            _open_pairs = pd.read_sql_query('SELECT * FROM positions WHERE status="OPEN"', _conn)
+            _conn.close()
+            _pair_pnl = _closed_pairs['pnl'].sum()
+            _pair_wr = len(_closed_pairs[_closed_pairs['pnl'] > 0]) / len(_closed_pairs) * 100 if len(_closed_pairs) > 0 else 0
+            _robots_stats['📊 Парная торговля'] = {
+                'open': len(_open_pairs),
+                'pnl': _pair_pnl,
+                'wr': _pair_wr,
+                'db': _pairs_db
+            }
+
+        # Фьючерсный робот
+        _fut_db = Path('/root/finlab/robots/futures_robot.db')
+        if _fut_db.exists():
+            _conn = _sqlite3.connect(_fut_db)
+            _closed_fut = pd.read_sql_query('SELECT * FROM futures_positions WHERE status="CLOSED"', _conn)
+            _open_fut = pd.read_sql_query('SELECT * FROM futures_positions WHERE status="OPEN"', _conn)
+            _conn.close()
+            _fut_pnl = _closed_fut['pnl'].sum()
+            _fut_wr = len(_closed_fut[_closed_fut['pnl'] > 0]) / len(_closed_fut) * 100 if len(_closed_fut) > 0 else 0
+            _robots_stats['📉 Робот фьючерсов'] = {
+                'open': len(_open_fut),
+                'pnl': _fut_pnl,
+                'wr': _fut_wr,
+                'db': _fut_db
+            }
+
+        # Общая аналитика
+        _total_pnl_all = sum(s['pnl'] for s in _robots_stats.values())
+        _total_open = sum(s['open'] for s in _robots_stats.values())
+        _active_robots = len([s for s in _robots_stats.values() if s['open'] > 0 or s['pnl'] != 0])
+
+        st.markdown("---")
+        st.subheader("📊 ОБЩАЯ АНАЛИТИКА")
+
+        col_a1, col_a2, col_a3, col_a4 = st.columns(4)
+        with col_a1:
+            st.metric("Общий PnL", f"{_total_pnl_all:+.1f}₽")
+        with col_a2:
+            _all_trades = 0
+            _all_wins = 0
+            for s in _robots_stats.values():
+                _conn = _sqlite3.connect(s['db'])
+                if 'pairs_robot' in str(s['db']):
+                    _df = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED"', _conn)
+                    _all_trades += len(_df)
+                    _all_wins += len(_df[_df['pnl'] > 0])
+                else:
+                    _df = pd.read_sql_query('SELECT * FROM futures_positions WHERE status="CLOSED"', _conn)
+                    _all_trades += len(_df)
+                    _all_wins += len(_df[_df['pnl'] > 0])
+                _conn.close()
+            _total_wr = _all_wins / _all_trades * 100 if _all_trades > 0 else 0
+            st.metric("Общий Win Rate", f"{_total_wr:.1f}%")
+        with col_a3:
+            st.metric("Открытых позиций", _total_open)
+        with col_a4:
+            st.metric("Активных роботов", _active_robots)
+
+        # График PnL
+        _all_closed_dfs = []
+        for s in _robots_stats.values():
+            _conn = _sqlite3.connect(s['db'])
+            if 'pairs_robot' in str(s['db']):
+                _df = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED"', _conn)
+                _df['exit_time'] = pd.to_datetime(_df['exit_time'])
+                _all_closed_dfs.append(_df[['exit_time', 'pnl']])
+            else:
+                _df = pd.read_sql_query('SELECT * FROM futures_positions WHERE status="CLOSED"', _conn)
+                _df['exit_time'] = pd.to_datetime(_df['exit_time'])
+                _all_closed_dfs.append(_df[['exit_time', 'pnl']])
+            _conn.close()
+
+        if _all_closed_dfs:
+            _all_closed = pd.concat(_all_closed_dfs, ignore_index=True)
+            _all_closed['date'] = _all_closed['exit_time'].dt.date
+            _daily_pnl = _all_closed.groupby('date')['pnl'].sum().cumsum()
+            st.markdown("---")
+            st.subheader("📈 График PnL по дням")
+            _chart_df = pd.DataFrame({'Дата': _daily_pnl.index, 'Накопленный PnL': _daily_pnl.values})
+            st.line_chart(_chart_df.set_index('Дата'), use_container_width=True)
+
+        # Карточки роботов
+        st.markdown("---")
+        st.subheader("🤖 Роботы")
+        for _robot_name, _robot_stat in _robots_stats.items():
+            with st.expander(f"{_robot_name} — {_robot_stat['open']} позиций, PnL={_robot_stat['pnl']:+.1f}₽, WR={_robot_stat['wr']:.1f}%"):
+                col_r1, col_r2, col_r3 = st.columns(3)
+                with col_r1:
+                    st.metric("Открытых позиций", _robot_stat['open'])
+                with col_r2:
+                    st.metric("PnL", f"{_robot_stat['pnl']:+.1f}₽")
+                with col_r3:
+                    st.metric("Win Rate", f"{_robot_stat['wr']:.1f}%")
+
+        st.markdown("---")
+
 
     if robot_tab == "📊 Парная торговля":
         st.subheader("📊 Робот парной торговли")
