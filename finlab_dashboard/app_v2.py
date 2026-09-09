@@ -4397,10 +4397,31 @@ elif page == "📊 Торговые роботы":
         _fut_result = subprocess.run(['systemctl', 'is-active', 'finlab-futures-robot'], capture_output=True, text=True)
         _fut_robot_running = _fut_result.stdout.strip() == 'active' 
 
+        # БД робота фьючерсов
+        _fut_db_path = Path('/root/finlab/robots/futures_robot.db')
+
+        # Считаем открытые позиции
+        _fut_open_count = 0
+        if _fut_db_path.exists():
+            try:
+                _conn_count = sqlite3.connect(_fut_db_path)
+                _cursor_count = _conn_count.cursor()
+                _cursor_count.execute('SELECT COUNT(*) FROM futures_positions WHERE status="OPEN"')
+                _fut_open_count = _cursor_count.fetchone()[0]
+                _conn_count.close()
+            except:
+                pass
+
         if _fut_robot_running:
-            st.success("🟢 Робот фьючерсов работает")
+            if _fut_open_count > 0:
+                st.success(f"🟢 Робот фьючерсов работает ({_fut_open_count} откр. позиций)")
+            else:
+                st.success("🟢 Робот фьючерсов работает")
         else:
-            st.error("🔴 Робот фьючерсов остановлен")
+            if _fut_open_count > 0:
+                st.warning(f"🟡 Робот на паузе ({_fut_open_count} откр. позиций)")
+            else:
+                st.error("🔴 Робот фьючерсов остановлен")
 
         # Кнопки управления
         col_fut_start, col_fut_pause, col_fut_stop = st.columns(3)
