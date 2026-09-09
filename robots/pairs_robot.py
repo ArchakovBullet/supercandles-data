@@ -216,7 +216,7 @@ def open_position(pair_name, base_pair, tf, direction, volume, zscore, price_a, 
     # VK
     emoji = '🔴' if direction == 'SHORT_SPREAD' else '🟢'
     action = 'ШОРТ' if direction == 'SHORT_SPREAD' else 'ЛОНГ'
-    message = f"🤖 РОБОТ: {emoji} {action} {base_pair}_{tf}: Z={zscore:.2f}\n"
+    message = f"🤖 ПАРНЫЙ-РОБОТ: {emoji} {action} {base_pair}_{tf}: Z={zscore:.2f}\n"
     message += f"  Нога A: {leg_a_dir} {ticker_a} @ {price_a:.2f}\n"
     message += f"  Нога B: {leg_b_dir} {ticker_b} @ {price_b:.2f}"
     send_vk_message(message)
@@ -279,7 +279,7 @@ def close_position(position_id, pair_name, base_pair, tf, zscore, price_a, price
 
     # VK
     emoji = '🟢' if total_pnl > 0 else '🔴'
-    message = f"🤖 РОБОТ: ЗАКРЫТИЕ {base_pair}_{tf}: PnL={total_pnl:+.2f}₽ (A: {leg_a_pnl:+.2f}₽, B: {leg_b_pnl:+.2f}₽) {emoji}"
+    message = f"🤖 ПАРНЫЙ-РОБОТ: ЗАКРЫТИЕ {base_pair}_{tf}: PnL={total_pnl:+.2f}₽ (A: {leg_a_pnl:+.2f}₽, B: {leg_b_pnl:+.2f}₽) {emoji}"
     send_vk_message(message)
     print(f"✅ Закрыта позиция: {message}")
 
