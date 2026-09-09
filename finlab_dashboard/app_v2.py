@@ -1057,7 +1057,7 @@ with st.sidebar.expander("ℹ️ Как это работает?"):
 
 st.sidebar.markdown("---")
 
-page = st.sidebar.radio("📌 Навигация", ["📊 Сводка", "📋 Статус сборщиков", "📊 Сканер фьючерсов", "📊 Торговые роботы", "📊 Скринер акций", "🔧 Техинфо"], index=0)
+page = st.sidebar.radio("📌 Навигация", ["📊 Сводка", "📋 Статус сборщиков", "📊 Торговые роботы", "📊 Скринер акций", "🔧 Техинфо"], index=0)
 st.sidebar.markdown("---")
 st.sidebar.info("**FinLabPy v0.2.0**\n\nКурс: FutOI + HI2 + ML\n\nСервер: `lvkseaqdin`\nДанные: Parquet")
 # ========== РОУТИНГ СТРАНИЦ ==========
@@ -2598,1072 +2598,1072 @@ elif page == "FUTOI_1H":
                 st.info("⏳ Нет явного сигнала. Ждать.")
             
 
-elif page == "📊 Сканер фьючерсов":
-    st.title("📊 Сканер фьючерсов")
-    st.caption("Объединённый анализ: 1D (стратегия) + 4H (тактика) + 1H (точка входа)")
-    # === ДОБАВЛЕНИЕ НОВОГО ТИКЕРА ===
-    with st.expander("➕ Добавить тикер (вечные, срочные фьючерсы, индексы)", expanded=False):
-        # Счётчик для сброса поля ввода
-        if 'ticker_input_counter' not in st.session_state:
-            st.session_state['ticker_input_counter'] = 0
-        if 'add_ticker_error' in st.session_state:
-            st.warning(st.session_state['add_ticker_error'])
-            if st.button('✕ Скрыть', key='hide_error'):
-                del st.session_state['add_ticker_error']
-                st.rerun()
-        col_type, col_ticker = st.columns([1, 2])
-        with col_type:
-            _asset_type = st.selectbox("Тип актива", ["Вечный фьючерс", "Срочный фьючерс", "Индекс"], key="scan_type")
-        with col_ticker:
-            _input_key = f"scan_ticker_{st.session_state['ticker_input_counter']}"
-            if _asset_type == "Срочный фьючерс":
-                _new_ticker = st.text_input("Короткий код (SI, PT, VI, BR...)", placeholder="Например: SI", key=_input_key).upper().strip()
-            else:
-                _new_ticker = st.text_input("Тикер", placeholder="Например: NVTKF", key=_input_key).upper().strip()
+# elif page == "📊 Сканер фьючерсов":
+#     st.title("📊 Сканер фьючерсов")
+#     st.caption("Объединённый анализ: 1D (стратегия) + 4H (тактика) + 1H (точка входа)")
+#     # === ДОБАВЛЕНИЕ НОВОГО ТИКЕРА ===
+#     with st.expander("➕ Добавить тикер (вечные, срочные фьючерсы, индексы)", expanded=False):
+#         # Счётчик для сброса поля ввода
+#         if 'ticker_input_counter' not in st.session_state:
+#             st.session_state['ticker_input_counter'] = 0
+#         if 'add_ticker_error' in st.session_state:
+#             st.warning(st.session_state['add_ticker_error'])
+#             if st.button('✕ Скрыть', key='hide_error'):
+#                 del st.session_state['add_ticker_error']
+#                 st.rerun()
+#         col_type, col_ticker = st.columns([1, 2])
+#         with col_type:
+#             _asset_type = st.selectbox("Тип актива", ["Вечный фьючерс", "Срочный фьючерс", "Индекс"], key="scan_type")
+#         with col_ticker:
+#             _input_key = f"scan_ticker_{st.session_state['ticker_input_counter']}"
+#             if _asset_type == "Срочный фьючерс":
+#                 _new_ticker = st.text_input("Короткий код (SI, PT, VI, BR...)", placeholder="Например: SI", key=_input_key).upper().strip()
+#             else:
+#                 _new_ticker = st.text_input("Тикер", placeholder="Например: NVTKF", key=_input_key).upper().strip()
         
-        if 'add_ticker_status' in st.session_state:
-            st.toast('✅ Тикер добавлен!', icon='✅')
-            with st.expander('📊 Статус добавления', expanded=False):
-                st.markdown(st.session_state['add_ticker_status'])
-            if st.button('✕ Скрыть', key='hide_status'):
-                del st.session_state['add_ticker_status']
-                st.rerun()
-        def _find_active_contract(sectype_code):
-            """Автоопределение актуального полного кода фьючерса через MOEX API.
-            Ищет по SECTYPE (короткий код базового актива: SV, BR, SI...).
-            Учитывает регистр (Si -> SI)."""
-            import requests
-            from datetime import datetime
-            try:
-                _url = 'https://iss.moex.com/iss/engines/futures/markets/forts/securities.json'
-                _resp = requests.get(_url, timeout=10)
-                if _resp.status_code != 200:
-                    return sectype_code
-                _data = _resp.json()['securities']
-                _cols = _data['columns']
-                _rows = _data['data']
-                _secid_idx = _cols.index('SECID')
-                _sectype_idx = _cols.index('SECTYPE')
+#         if 'add_ticker_status' in st.session_state:
+#             st.toast('✅ Тикер добавлен!', icon='✅')
+#             with st.expander('📊 Статус добавления', expanded=False):
+#                 st.markdown(st.session_state['add_ticker_status'])
+#             if st.button('✕ Скрыть', key='hide_status'):
+#                 del st.session_state['add_ticker_status']
+#                 st.rerun()
+#         def _find_active_contract(sectype_code):
+#             """Автоопределение актуального полного кода фьючерса через MOEX API.
+#             Ищет по SECTYPE (короткий код базового актива: SV, BR, SI...).
+#             Учитывает регистр (Si -> SI)."""
+#             import requests
+#             from datetime import datetime
+#             try:
+#                 _url = 'https://iss.moex.com/iss/engines/futures/markets/forts/securities.json'
+#                 _resp = requests.get(_url, timeout=10)
+#                 if _resp.status_code != 200:
+#                     return sectype_code
+#                 _data = _resp.json()['securities']
+#                 _cols = _data['columns']
+#                 _rows = _data['data']
+#                 _secid_idx = _cols.index('SECID')
+#                 _sectype_idx = _cols.index('SECTYPE')
                 
-                _found = []
-                for _row in _rows:
-                    # Сравниваем без учёта регистра (Si == SI)
-                    if _row[_sectype_idx].upper() == sectype_code.upper():
-                        _found.append(_row[_secid_idx])
+#                 _found = []
+#                 for _row in _rows:
+#                     # Сравниваем без учёта регистра (Si == SI)
+#                     if _row[_sectype_idx].upper() == sectype_code.upper():
+#                         _found.append(_row[_secid_idx])
                 
-                if _found:
-                    # Сортируем по дате экспирации, берём ближайший активный
-                    _today = datetime.now().strftime('%Y-%m-%d')
-                    _lastdate_idx = _cols.index('LASTTRADEDATE') if 'LASTTRADEDATE' in _cols else None
-                    if _lastdate_idx is not None:
-                        # Фильтруем: дата > сегодня (активные контракты)
-                        _active_contracts = []
-                        for _row in _rows:
-                            if _row[_sectype_idx].upper() == sectype_code.upper():
-                                if _row[_lastdate_idx] > _today:
-                                    _active_contracts.append((_row[_lastdate_idx], _row[_secid_idx]))
-                        if _active_contracts:
-                            _active_contracts.sort()
-                            return _active_contracts[0][1]
-                    return _found[0]
-            except:
-                pass
-            return sectype_code  # fallback
+#                 if _found:
+#                     # Сортируем по дате экспирации, берём ближайший активный
+#                     _today = datetime.now().strftime('%Y-%m-%d')
+#                     _lastdate_idx = _cols.index('LASTTRADEDATE') if 'LASTTRADEDATE' in _cols else None
+#                     if _lastdate_idx is not None:
+#                         # Фильтруем: дата > сегодня (активные контракты)
+#                         _active_contracts = []
+#                         for _row in _rows:
+#                             if _row[_sectype_idx].upper() == sectype_code.upper():
+#                                 if _row[_lastdate_idx] > _today:
+#                                     _active_contracts.append((_row[_lastdate_idx], _row[_secid_idx]))
+#                         if _active_contracts:
+#                             _active_contracts.sort()
+#                             return _active_contracts[0][1]
+#                     return _found[0]
+#             except:
+#                 pass
+#             return sectype_code  # fallback
         
-        if st.button("✅ Добавить в сканер", key="scan_add_btn"):
-            if _new_ticker:
-                try:
-                    from pathlib import Path
-                    import subprocess, os, requests
-                    from datetime import datetime, timedelta
+#         if st.button("✅ Добавить в сканер", key="scan_add_btn"):
+#             if _new_ticker:
+#                 try:
+#                     from pathlib import Path
+#                     import subprocess, os, requests
+#                     from datetime import datetime, timedelta
                     
-                    _board = "RFUD" if _asset_type != "Индекс" else "INDEX"
-                    _short_to_full = {
-                        'SI': 'SI', 'PT': 'PLT', 'VI': 'RVI', 'BR': 'BR', 'GD': 'GOLD',
-                        'RI': 'RTS', 'MX': 'MIX', 'ED': 'ED',
-                        'SV': 'SILV', 'PD': 'PLD', 'CL': 'CL', 'NG': 'NG',
-                        'CE': 'COPPER', 'AN': 'ALUM', 'ZC': 'ZINC', 'W4': 'WHEAT',
-                        'Eu': 'Eu', 'CR': 'CNY', 'TY': 'TRY',
-                        'MM': 'MXI', 'OG': 'OGI', 'MA': 'MMI', 'FN': 'FNI',
-                    }
+#                     _board = "RFUD" if _asset_type != "Индекс" else "INDEX"
+#                     _short_to_full = {
+#                         'SI': 'SI', 'PT': 'PLT', 'VI': 'RVI', 'BR': 'BR', 'GD': 'GOLD',
+#                         'RI': 'RTS', 'MX': 'MIX', 'ED': 'ED',
+#                         'SV': 'SILV', 'PD': 'PLD', 'CL': 'CL', 'NG': 'NG',
+#                         'CE': 'COPPER', 'AN': 'ALUM', 'ZC': 'ZINC', 'W4': 'WHEAT',
+#                         'Eu': 'Eu', 'CR': 'CNY', 'TY': 'TRY',
+#                         'MM': 'MXI', 'OG': 'OGI', 'MA': 'MMI', 'FN': 'FNI',
+#                     }
                     
-                    # ===== ВАЛИДАЦИЯ ТИКЕРА =====
-                    _errors = []
+#                     # ===== ВАЛИДАЦИЯ ТИКЕРА =====
+#                     _errors = []
                     
-                    # Проверка на пробелы и спецсимволы
-                    if _new_ticker != _new_ticker.strip():
-                        _errors.append('❌ Тикер содержит пробелы в начале или конце')
-                    if not _new_ticker.replace('_', '').replace('-', '').isalnum():
-                        _errors.append('❌ Тикер содержит недопустимые символы (только A-Z, 0-9, _, -)')
-                    if len(_new_ticker) < 1 or len(_new_ticker) > 20:
-                        _errors.append('❌ Длина тикера должна быть от 1 до 20 символов')
+#                     # Проверка на пробелы и спецсимволы
+#                     if _new_ticker != _new_ticker.strip():
+#                         _errors.append('❌ Тикер содержит пробелы в начале или конце')
+#                     if not _new_ticker.replace('_', '').replace('-', '').isalnum():
+#                         _errors.append('❌ Тикер содержит недопустимые символы (только A-Z, 0-9, _, -)')
+#                     if len(_new_ticker) < 1 or len(_new_ticker) > 20:
+#                         _errors.append('❌ Длина тикера должна быть от 1 до 20 символов')
                     
-                    # Для срочных фьючерсов — _short_to_full как справочник, но не жёсткое ограничение
-                    # Если тикера нет в справочнике, используем его как есть (может работать)
+#                     # Для срочных фьючерсов — _short_to_full как справочник, но не жёсткое ограничение
+#                     # Если тикера нет в справочнике, используем его как есть (может работать)
                     
-                    # Проверка, что тикер не дублируется
-                    _existing_tickers = set()
-                    _futoi_path = DATA_ROOT / 'futoi'
-                    if _futoi_path.exists():
-                        for _pf in _futoi_path.glob('*_futoi.parquet'):
-                            _existing_tickers.add(_pf.stem.replace('_futoi', ''))
-                    if _new_ticker in _existing_tickers:
-                        _errors.append(f'⚠️ Тикер {_new_ticker} уже существует в системе')
+#                     # Проверка, что тикер не дублируется
+#                     _existing_tickers = set()
+#                     _futoi_path = DATA_ROOT / 'futoi'
+#                     if _futoi_path.exists():
+#                         for _pf in _futoi_path.glob('*_futoi.parquet'):
+#                             _existing_tickers.add(_pf.stem.replace('_futoi', ''))
+#                     if _new_ticker in _existing_tickers:
+#                         _errors.append(f'⚠️ Тикер {_new_ticker} уже существует в системе')
                     
-                    if _errors:
-                        st.session_state['add_ticker_error'] = '\n'.join(_errors)
-                        st.session_state['ticker_input_counter'] += 1
-                        st.rerun()
+#                     if _errors:
+#                         st.session_state['add_ticker_error'] = '\n'.join(_errors)
+#                         st.session_state['ticker_input_counter'] += 1
+#                         st.rerun()
                     
-                    # Проверка через MOEX API — существует ли тикер
-                    # Автоопределение полного кода
-                    if _asset_type == 'Срочный фьючерс':
-                        with st.spinner(f'🔍 Ищем актуальный контракт для {_new_ticker}...'):
-                            # Ищем по короткому коду (ключ), не по значению из справочника
-                            _found = _find_active_contract(_new_ticker)
-                            if _found and _found != _new_ticker:
-                                _short_to_full[_new_ticker] = _found
-                                st.toast(f'✅ Найден: {_new_ticker} → {_found}', icon='🔍')
-                    _candle_ticker = _short_to_full.get(_new_ticker, _new_ticker)
-                    _full_code = _short_to_full.get(_new_ticker, _new_ticker)
+#                     # Проверка через MOEX API — существует ли тикер
+#                     # Автоопределение полного кода
+#                     if _asset_type == 'Срочный фьючерс':
+#                         with st.spinner(f'🔍 Ищем актуальный контракт для {_new_ticker}...'):
+#                             # Ищем по короткому коду (ключ), не по значению из справочника
+#                             _found = _find_active_contract(_new_ticker)
+#                             if _found and _found != _new_ticker:
+#                                 _short_to_full[_new_ticker] = _found
+#                                 st.toast(f'✅ Найден: {_new_ticker} → {_found}', icon='🔍')
+#                     _candle_ticker = _short_to_full.get(_new_ticker, _new_ticker)
+#                     _full_code = _short_to_full.get(_new_ticker, _new_ticker)
                     
-                    # Индексы пока не поддерживаются для FutOI
-                    if _board == "INDEX":
-                        st.warning(f'⚠️ Индексы пока не поддерживают FutOI. Добавляем только свечи.')
-                        _skip_futoi = True
-                    else:
-                        _skip_futoi = False
+#                     # Индексы пока не поддерживаются для FutOI
+#                     if _board == "INDEX":
+#                         st.warning(f'⚠️ Индексы пока не поддерживают FutOI. Добавляем только свечи.')
+#                         _skip_futoi = True
+#                     else:
+#                         _skip_futoi = False
                     
-                    _test_url = f"https://iss.moex.com/iss/engines/futures/markets/forts/securities/{_candle_ticker}/candles.json"
-                    if _board == "INDEX":
-                        _test_url = f"https://iss.moex.com/iss/engines/stock/markets/index/securities/{_new_ticker}/candles.json"
-                    try:
-                        # Проверяем за 5 дней (с запасом на выходные)
-                        _test_resp = requests.get(_test_url, params={'from': (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d'), 'till': datetime.now().strftime('%Y-%m-%d'), 'interval': 24}, timeout=10)
-                        if _test_resp.status_code != 200 or 'candles' not in _test_resp.json():
-                            st.session_state['add_ticker_error'] = f'❌ Тикер {_new_ticker} не найден на MOEX. Проверьте правильность кода.'
-                            st.session_state['ticker_input_counter'] += 1
-                            st.rerun()
-                        _data_test = _test_resp.json()['candles']
-                        if not _data_test.get('data'):
-                            st.session_state['add_ticker_error'] = f'❌ Тикер {_new_ticker} найден, но нет свечных данных за последние 5 дней (возможно, выходной).'
-                            st.session_state['ticker_input_counter'] += 1
-                            st.rerun()
-                    except Exception as e:
-                        st.session_state['add_ticker_error'] = f'⚠️ Не удалось проверить тикер {_new_ticker}: {str(e)[:100]}'
-                        st.session_state['ticker_input_counter'] += 1
-                        st.rerun()
-                    # ===== КОНЕЦ ВАЛИДАЦИИ =====
+#                     _test_url = f"https://iss.moex.com/iss/engines/futures/markets/forts/securities/{_candle_ticker}/candles.json"
+#                     if _board == "INDEX":
+#                         _test_url = f"https://iss.moex.com/iss/engines/stock/markets/index/securities/{_new_ticker}/candles.json"
+#                     try:
+#                         # Проверяем за 5 дней (с запасом на выходные)
+#                         _test_resp = requests.get(_test_url, params={'from': (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d'), 'till': datetime.now().strftime('%Y-%m-%d'), 'interval': 24}, timeout=10)
+#                         if _test_resp.status_code != 200 or 'candles' not in _test_resp.json():
+#                             st.session_state['add_ticker_error'] = f'❌ Тикер {_new_ticker} не найден на MOEX. Проверьте правильность кода.'
+#                             st.session_state['ticker_input_counter'] += 1
+#                             st.rerun()
+#                         _data_test = _test_resp.json()['candles']
+#                         if not _data_test.get('data'):
+#                             st.session_state['add_ticker_error'] = f'❌ Тикер {_new_ticker} найден, но нет свечных данных за последние 5 дней (возможно, выходной).'
+#                             st.session_state['ticker_input_counter'] += 1
+#                             st.rerun()
+#                     except Exception as e:
+#                         st.session_state['add_ticker_error'] = f'⚠️ Не удалось проверить тикер {_new_ticker}: {str(e)[:100]}'
+#                         st.session_state['ticker_input_counter'] += 1
+#                         st.rerun()
+#                     # ===== КОНЕЦ ВАЛИДАЦИИ =====
                     
                     
-                    _status = {}
+#                     _status = {}
                     
-                    # 1. Свечи D1, H1
-                    _h1_df = None
-                    for _tf, _interval in [("D1", 24), ("H1", 60)]:
-                        try:
-                            _url = f"https://iss.moex.com/iss/engines/futures/markets/forts/securities/{_candle_ticker}/candles.json"
-                            if _board == "INDEX":
-                                _url = f"https://iss.moex.com/iss/engines/stock/markets/index/securities/{_new_ticker}/candles.json"
-                            _resp = requests.get(_url, params={'from': (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d'), 'till': datetime.now().strftime('%Y-%m-%d'), 'interval': _interval}, timeout=30)
-                            if _resp.status_code == 200 and 'candles' in _resp.json():
-                                _data = _resp.json()['candles']
-                                if _data['data']:
-                                    _df_new = pd.DataFrame(_data['data'], columns=_data['columns'])
-                                    _df_new.to_parquet(DATA_ROOT / "candles" / f"{_new_ticker}_{_tf}.parquet", index=False)
-                                    if _tf == "H1":
-                                        _h1_df = _df_new
-                                    _status[f'Свечи {_tf}'] = '✅'
-                                else:
-                                    _status[f'Свечи {_tf}'] = '⚠️ пусто'
-                            else:
-                                _status[f'Свечи {_tf}'] = f'❌ HTTP {_resp.status_code}'
-                        except Exception as e:
-                            _status[f'Свечи {_tf}'] = f'❌ {str(e)[:50]}'
+#                     # 1. Свечи D1, H1
+#                     _h1_df = None
+#                     for _tf, _interval in [("D1", 24), ("H1", 60)]:
+#                         try:
+#                             _url = f"https://iss.moex.com/iss/engines/futures/markets/forts/securities/{_candle_ticker}/candles.json"
+#                             if _board == "INDEX":
+#                                 _url = f"https://iss.moex.com/iss/engines/stock/markets/index/securities/{_new_ticker}/candles.json"
+#                             _resp = requests.get(_url, params={'from': (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d'), 'till': datetime.now().strftime('%Y-%m-%d'), 'interval': _interval}, timeout=30)
+#                             if _resp.status_code == 200 and 'candles' in _resp.json():
+#                                 _data = _resp.json()['candles']
+#                                 if _data['data']:
+#                                     _df_new = pd.DataFrame(_data['data'], columns=_data['columns'])
+#                                     _df_new.to_parquet(DATA_ROOT / "candles" / f"{_new_ticker}_{_tf}.parquet", index=False)
+#                                     if _tf == "H1":
+#                                         _h1_df = _df_new
+#                                     _status[f'Свечи {_tf}'] = '✅'
+#                                 else:
+#                                     _status[f'Свечи {_tf}'] = '⚠️ пусто'
+#                             else:
+#                                 _status[f'Свечи {_tf}'] = f'❌ HTTP {_resp.status_code}'
+#                         except Exception as e:
+#                             _status[f'Свечи {_tf}'] = f'❌ {str(e)[:50]}'
                     
-                    # 2. H4 из H1
-                    if _h1_df is not None and len(_h1_df) > 0:
-                        try:
-                            _h1_df['begin'] = pd.to_datetime(_h1_df['begin'])
-                            _h1_df['h4_block'] = _h1_df['begin'].dt.floor('4h')
-                            _h4 = _h1_df.groupby('h4_block').agg(
-                                open=('open','first'), high=('high','max'),
-                                low=('low','min'), close=('close','last'), volume=('volume','sum')
-                            ).reset_index().rename(columns={'h4_block': 'begin'})
-                            _h4.to_parquet(DATA_ROOT / "candles" / f"{_new_ticker}_H4.parquet", index=False)
-                            _status['Свечи H4'] = '✅'
-                        except Exception as e:
-                            _status['Свечи H4'] = f'❌ {str(e)[:50]}'
-                    else:
-                        _status['Свечи H4'] = '⚠️ нет H1 для агрегации'
+#                     # 2. H4 из H1
+#                     if _h1_df is not None and len(_h1_df) > 0:
+#                         try:
+#                             _h1_df['begin'] = pd.to_datetime(_h1_df['begin'])
+#                             _h1_df['h4_block'] = _h1_df['begin'].dt.floor('4h')
+#                             _h4 = _h1_df.groupby('h4_block').agg(
+#                                 open=('open','first'), high=('high','max'),
+#                                 low=('low','min'), close=('close','last'), volume=('volume','sum')
+#                             ).reset_index().rename(columns={'h4_block': 'begin'})
+#                             _h4.to_parquet(DATA_ROOT / "candles" / f"{_new_ticker}_H4.parquet", index=False)
+#                             _status['Свечи H4'] = '✅'
+#                         except Exception as e:
+#                             _status['Свечи H4'] = f'❌ {str(e)[:50]}'
+#                     else:
+#                         _status['Свечи H4'] = '⚠️ нет H1 для агрегации'
                     
-                    _futoi_failed = False
-                    # 4. Запускаем сборщик FutOI
-                    env = os.environ.copy()
-                    env['PYTHONPATH'] = '/root/finlab/FinLabPy'
-                    try:
-                        result = subprocess.run(
-                            ['/root/finlab/venv/bin/python', '-c', f'''
-import sys; sys.path.insert(0, "/root/finlab/FinLabPy")
-from DataCollectors.futoi_collector import collect_futoi, merge_with_existing, DATA_DIR
-from MOEXPy.MOEXPy import MOEXPy
-from datetime import datetime
-import os
-api = MOEXPy(token=os.getenv("MOEX_TOKEN"))
-df = collect_futoi("{_new_ticker}", api)
-if len(df) > 0:
-    fp = DATA_DIR / "{_new_ticker}_futoi.parquet"
-    merge_with_existing(df, fp).write_parquet(fp)
-    print(f"OK: {{len(df)}}")
-else:
-    print("EMPTY")
-'''],
-                            env=env, capture_output=True, text=True, timeout=120
-                        )
-                        # Проверяем, создался ли файл с данными
-                        _futoi_file = DATA_ROOT / 'futoi' / f'{_new_ticker}_futoi.parquet'
-                        if _futoi_file.exists():
-                            _futoi_df = pd.read_parquet(_futoi_file)
-                            if len(_futoi_df) > 0:
-                                _status['FutOI сбор'] = f'✅ ({len(_futoi_df)} записей)'
-                            else:
-                                _status['FutOI сбор'] = '❌ нет данных FutOI (актив не поддерживается MOEX)'
-                                _futoi_failed = True
-                        else:
-                            _status['FutOI сбор'] = '❌ нет данных FutOI (файл не создан)'
-                            _futoi_failed = True
-                    except Exception as e:
-                        _status['FutOI сбор'] = f'❌ {str(e)[:50]}'
+#                     _futoi_failed = False
+#                     # 4. Запускаем сборщик FutOI
+#                     env = os.environ.copy()
+#                     env['PYTHONPATH'] = '/root/finlab/FinLabPy'
+#                     try:
+#                         result = subprocess.run(
+#                             ['/root/finlab/venv/bin/python', '-c', f'''
+# import sys; sys.path.insert(0, "/root/finlab/FinLabPy")
+# from DataCollectors.futoi_collector import collect_futoi, merge_with_existing, DATA_DIR
+# from MOEXPy.MOEXPy import MOEXPy
+# from datetime import datetime
+# import os
+# api = MOEXPy(token=os.getenv("MOEX_TOKEN"))
+# df = collect_futoi("{_new_ticker}", api)
+# if len(df) > 0:
+#     fp = DATA_DIR / "{_new_ticker}_futoi.parquet"
+#     merge_with_existing(df, fp).write_parquet(fp)
+#     print(f"OK: {{len(df)}}")
+# else:
+#     print("EMPTY")
+# '''],
+#                             env=env, capture_output=True, text=True, timeout=120
+#                         )
+#                         # Проверяем, создался ли файл с данными
+#                         _futoi_file = DATA_ROOT / 'futoi' / f'{_new_ticker}_futoi.parquet'
+#                         if _futoi_file.exists():
+#                             _futoi_df = pd.read_parquet(_futoi_file)
+#                             if len(_futoi_df) > 0:
+#                                 _status['FutOI сбор'] = f'✅ ({len(_futoi_df)} записей)'
+#                             else:
+#                                 _status['FutOI сбор'] = '❌ нет данных FutOI (актив не поддерживается MOEX)'
+#                                 _futoi_failed = True
+#                         else:
+#                             _status['FutOI сбор'] = '❌ нет данных FutOI (файл не создан)'
+#                             _futoi_failed = True
+#                     except Exception as e:
+#                         _status['FutOI сбор'] = f'❌ {str(e)[:50]}'
                     
-                    # Если FutOI пустой — блокируем добавление
-                    if _futoi_failed:
-                        _status['⚠️ ИТОГ'] = '❌ Актив не добавлен: нет данных FutOI. Попробуйте другой тикер.'
-                        with st.expander('📊 Статус добавления', expanded=True):
-                            for k, v in _status.items():
-                                st.caption(f'{k}: {v}')
-                            if st.button('🔄 Сбросить и вернуться', key='reset_futoi_fail'):
-                                st.session_state.pop('add_ticker_error', None)
-                                st.session_state['ticker_input_counter'] = st.session_state.get('ticker_input_counter', 0) + 1
-                                st.rerun()
-                        st.stop()
+#                     # Если FutOI пустой — блокируем добавление
+#                     if _futoi_failed:
+#                         _status['⚠️ ИТОГ'] = '❌ Актив не добавлен: нет данных FutOI. Попробуйте другой тикер.'
+#                         with st.expander('📊 Статус добавления', expanded=True):
+#                             for k, v in _status.items():
+#                                 st.caption(f'{k}: {v}')
+#                             if st.button('🔄 Сбросить и вернуться', key='reset_futoi_fail'):
+#                                 st.session_state.pop('add_ticker_error', None)
+#                                 st.session_state['ticker_input_counter'] = st.session_state.get('ticker_input_counter', 0) + 1
+#                                 st.rerun()
+#                         st.stop()
 
-                    # 3. Обновляем тикеры во всех сборщиках (только после успешного сбора!)
-                    # Сначала обновляем единый конфиг
-                    _config_path = Path('/root/finlab/FinLabPy/DataCollectors/tickers_config.json')
-                    if _config_path.exists():
-                        import json
-                        with open(_config_path) as f:
-                            _tcfg = json.load(f)
-                        if _asset_type == 'Срочный фьючерс' or _asset_type == 'Вечный фьючерс':
-                            if _new_ticker not in _tcfg.get('futures', []):
-                                _tcfg['futures'].append(_new_ticker)
-                        else:
-                            if _new_ticker not in _tcfg.get('stocks', []):
-                                _tcfg['stocks'].append(_new_ticker)
-                        with open(_config_path, 'w') as f:
-                            json.dump(_tcfg, f, indent=2, ensure_ascii=False)
-                        _status['tickers_config.json'] = '✅ обновлён'
+#                     # 3. Обновляем тикеры во всех сборщиках (только после успешного сбора!)
+#                     # Сначала обновляем единый конфиг
+#                     _config_path = Path('/root/finlab/FinLabPy/DataCollectors/tickers_config.json')
+#                     if _config_path.exists():
+#                         import json
+#                         with open(_config_path) as f:
+#                             _tcfg = json.load(f)
+#                         if _asset_type == 'Срочный фьючерс' or _asset_type == 'Вечный фьючерс':
+#                             if _new_ticker not in _tcfg.get('futures', []):
+#                                 _tcfg['futures'].append(_new_ticker)
+#                         else:
+#                             if _new_ticker not in _tcfg.get('stocks', []):
+#                                 _tcfg['stocks'].append(_new_ticker)
+#                         with open(_config_path, 'w') as f:
+#                             json.dump(_tcfg, f, indent=2, ensure_ascii=False)
+#                         _status['tickers_config.json'] = '✅ обновлён'
 
-                    _base = Path('/root/finlab/FinLabPy/DataCollectors')
-                    _collectors = {
-                        _base / 'futoi_1h_aggregator.py': _new_ticker,
-                        _base / 'futoi_4h_aggregator.py': _new_ticker,
-                        _base / 'futoi_daily_aggregator.py': _new_ticker,
-                        _base / 'hi2_collector.py': _full_code,
-                        _base / 'candles_collector.py': _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker,
-                    }
-                    if not _skip_futoi:
-                        _collectors[_base / 'futoi_collector.py'] = _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker
-                    for _conf_path, _code in _collectors.items():
-                        if _conf_path.exists():
-                            try:
-                                with open(_conf_path) as f:
-                                    _txt = f.read()
-                                _code_in = _code in _txt
-                                if not _code_in:
-                                    _txt = _txt.replace("TICKERS = [", f"TICKERS = ['{_code}', ")
-                                    with open(_conf_path, 'w') as f:
-                                        f.write(_txt)
-                                _status[_conf_path.name] = '✅ уже в конфиге' if _code_in else '✅ добавлен в конфиг'
-                            except Exception as e:
-                                _status[_conf_path.name] = f'❌ {str(e)[:50]}'
+#                     _base = Path('/root/finlab/FinLabPy/DataCollectors')
+#                     _collectors = {
+#                         _base / 'futoi_1h_aggregator.py': _new_ticker,
+#                         _base / 'futoi_4h_aggregator.py': _new_ticker,
+#                         _base / 'futoi_daily_aggregator.py': _new_ticker,
+#                         _base / 'hi2_collector.py': _full_code,
+#                         _base / 'candles_collector.py': _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker,
+#                     }
+#                     if not _skip_futoi:
+#                         _collectors[_base / 'futoi_collector.py'] = _full_code if _asset_type == 'Срочный фьючерс' else _new_ticker
+#                     for _conf_path, _code in _collectors.items():
+#                         if _conf_path.exists():
+#                             try:
+#                                 with open(_conf_path) as f:
+#                                     _txt = f.read()
+#                                 _code_in = _code in _txt
+#                                 if not _code_in:
+#                                     _txt = _txt.replace("TICKERS = [", f"TICKERS = ['{_code}', ")
+#                                     with open(_conf_path, 'w') as f:
+#                                         f.write(_txt)
+#                                 _status[_conf_path.name] = '✅ уже в конфиге' if _code_in else '✅ добавлен в конфиг'
+#                             except Exception as e:
+#                                 _status[_conf_path.name] = f'❌ {str(e)[:50]}'
 
-                    # 5. Запускаем сборщик HI2 (если не индекс)
-                    if not _skip_futoi:
-                        try:
-                            _hi2_result = subprocess.run(
-                                ['/root/finlab/venv/bin/python', '/root/finlab/FinLabPy/DataCollectors/hi2_collector.py'],
-                                env=env, capture_output=True, text=True, timeout=120
-                            )
-                            _hi2_file = DATA_ROOT / 'hi2' / f'{_full_code}_hi2.parquet'
-                            if _hi2_file.exists():
-                                _status['HI2 данные'] = '✅'
-                            else:
-                                _status['HI2 данные'] = '⏳ ждёт cron (раз в сутки)'
-                        except Exception as e:
-                            _status['HI2 данные'] = f'❌ {str(e)[:50]}'
-                    else:
-                        _status['HI2 данные'] = '⏭️ пропущен (индекс)'
+#                     # 5. Запускаем сборщик HI2 (если не индекс)
+#                     if not _skip_futoi:
+#                         try:
+#                             _hi2_result = subprocess.run(
+#                                 ['/root/finlab/venv/bin/python', '/root/finlab/FinLabPy/DataCollectors/hi2_collector.py'],
+#                                 env=env, capture_output=True, text=True, timeout=120
+#                             )
+#                             _hi2_file = DATA_ROOT / 'hi2' / f'{_full_code}_hi2.parquet'
+#                             if _hi2_file.exists():
+#                                 _status['HI2 данные'] = '✅'
+#                             else:
+#                                 _status['HI2 данные'] = '⏳ ждёт cron (раз в сутки)'
+#                         except Exception as e:
+#                             _status['HI2 данные'] = f'❌ {str(e)[:50]}'
+#                     else:
+#                         _status['HI2 данные'] = '⏭️ пропущен (индекс)'
 
-                    # 5.5. Запускаем сборщик свечей
-                    try:
-                        _candles_result = subprocess.run(
-                            ['/root/finlab/venv/bin/python', '/root/finlab/FinLabPy/DataCollectors/candles_collector.py'],
-                            env=env, capture_output=True, text=True, timeout=120
-                        )
-                        _d1_file = DATA_ROOT / 'candles' / f'{_new_ticker}_D1.parquet'
-                        if _d1_file.exists():
-                            _status['Свечи D1'] = '✅'
-                        else:
-                            _status['Свечи D1'] = '⏳ ждёт cron (каждый час)'
-                    except Exception as e:
-                        _status['Свечи D1'] = f'❌ {str(e)[:50]}'
+#                     # 5.5. Запускаем сборщик свечей
+#                     try:
+#                         _candles_result = subprocess.run(
+#                             ['/root/finlab/venv/bin/python', '/root/finlab/FinLabPy/DataCollectors/candles_collector.py'],
+#                             env=env, capture_output=True, text=True, timeout=120
+#                         )
+#                         _d1_file = DATA_ROOT / 'candles' / f'{_new_ticker}_D1.parquet'
+#                         if _d1_file.exists():
+#                             _status['Свечи D1'] = '✅'
+#                         else:
+#                             _status['Свечи D1'] = '⏳ ждёт cron (каждый час)'
+#                     except Exception as e:
+#                         _status['Свечи D1'] = f'❌ {str(e)[:50]}'
 
-                    # 6. Запускаем сборщик TradeStats
-                    if not _skip_futoi:
-                        try:
-                            _ts_result = subprocess.run(
-                                ['/root/finlab/venv/bin/python', '-c', f'''
-import sys; sys.path.insert(0, "/root/finlab/FinLabPy")
-from DataCollectors.tradestats_collector import collect_tradestats, get_active_code
-_code = get_active_code("{_new_ticker}") if "{_new_ticker}" not in ["CNYRUBF","EURRUBF","GAZPF","GLDRUBF","IMOEXF","SBERF","USDRUBF"] else "{_new_ticker}"
-collect_tradestats(_code, "RFUD")
-'''],
-                                env=env, capture_output=True, text=True, timeout=120
-                            )
-                            _ts_file = DATA_ROOT / 'tradestats' / f'{_new_ticker}_tradestats.parquet'
-                            if not _ts_file.exists():
-                                _active = _find_active_contract(_new_ticker)
-                                _ts_file = DATA_ROOT / 'tradestats' / f'{_active}_tradestats.parquet'
-                            _status['TradeStats'] = '✅' if _ts_file.exists() else '⏳ ждёт cron (раз в сутки)'
-                        except Exception as e:
-                            _status['TradeStats'] = f'❌ {str(e)[:50]}'
-                    else:
-                        _status['TradeStats'] = '⏭️ пропущен (индекс)'
+#                     # 6. Запускаем сборщик TradeStats
+#                     if not _skip_futoi:
+#                         try:
+#                             _ts_result = subprocess.run(
+#                                 ['/root/finlab/venv/bin/python', '-c', f'''
+# import sys; sys.path.insert(0, "/root/finlab/FinLabPy")
+# from DataCollectors.tradestats_collector import collect_tradestats, get_active_code
+# _code = get_active_code("{_new_ticker}") if "{_new_ticker}" not in ["CNYRUBF","EURRUBF","GAZPF","GLDRUBF","IMOEXF","SBERF","USDRUBF"] else "{_new_ticker}"
+# collect_tradestats(_code, "RFUD")
+# '''],
+#                                 env=env, capture_output=True, text=True, timeout=120
+#                             )
+#                             _ts_file = DATA_ROOT / 'tradestats' / f'{_new_ticker}_tradestats.parquet'
+#                             if not _ts_file.exists():
+#                                 _active = _find_active_contract(_new_ticker)
+#                                 _ts_file = DATA_ROOT / 'tradestats' / f'{_active}_tradestats.parquet'
+#                             _status['TradeStats'] = '✅' if _ts_file.exists() else '⏳ ждёт cron (раз в сутки)'
+#                         except Exception as e:
+#                             _status['TradeStats'] = f'❌ {str(e)[:50]}'
+#                     else:
+#                         _status['TradeStats'] = '⏭️ пропущен (индекс)'
 
-                    # 6. Итоговая проверка
-                    _status['FutOI файл'] = '✅' if (DATA_ROOT / 'futoi' / f'{_new_ticker}_futoi.parquet').exists() else '⏳ ждёт cron'
+#                     # 6. Итоговая проверка
+#                     _status['FutOI файл'] = '✅' if (DATA_ROOT / 'futoi' / f'{_new_ticker}_futoi.parquet').exists() else '⏳ ждёт cron'
                     
-                    # ====== Уведомление ======
-                    _lines = [f'### 📊 Статус добавления: **{_new_ticker}**']
-                    for _step, _icon in _status.items():
-                        _lines.append(f'{_icon} {_step}')
+#                     # ====== Уведомление ======
+#                     _lines = [f'### 📊 Статус добавления: **{_new_ticker}**']
+#                     for _step, _icon in _status.items():
+#                         _lines.append(f'{_icon} {_step}')
                     
-                    _warnings = [s for s in _status.values() if '❌' in s or '⚠️' in s]
-                    if _warnings:
-                        _lines.append(f'\n⚠️ **Обнаружено проблем: {len(_warnings)}.** Проверьте логи.')
+#                     _warnings = [s for s in _status.values() if '❌' in s or '⚠️' in s]
+#                     if _warnings:
+#                         _lines.append(f'\n⚠️ **Обнаружено проблем: {len(_warnings)}.** Проверьте логи.')
                     
-                    st.session_state['add_ticker_status'] = '\n'.join(_lines)
-                    st.cache_data.clear()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f'❌ Критическая ошибка: {e}')
+#                     st.session_state['add_ticker_status'] = '\n'.join(_lines)
+#                     st.cache_data.clear()
+#                     st.rerun()
+#                 except Exception as e:
+#                     st.error(f'❌ Критическая ошибка: {e}')
     
-    st.markdown("---")
+#     st.markdown("---")
 
     
-    # Автообновление полных кодов для существующих тикеров (раз в сессию)
-    if 'codes_updated' not in st.session_state:
-        _short_to_full = {
-            'SI': 'SI', 'PT': 'PLT', 'VI': 'RVI', 'BR': 'BR', 'GD': 'GOLD',
-            'RI': 'RTS', 'MX': 'MIX', 'ED': 'ED',
-            'SV': 'SV', 'W4': 'WHEAT', 'Eu': 'Eu', 'CR': 'CNY',
-            'SA': 'SUGR', 'AN': 'ALUM', 'PD': 'PLD', 'NG': 'NG',
-            'MM': 'MXI', 'OG': 'OGI', 'MA': 'MMI', 'FN': 'FNI',
-        }
-        _updated_codes = {}
-        _failed_codes = []
-        for _t in _short_to_full:
-            try:
-                _sectype = _short_to_full[_t]
-                _found = _find_active_contract(_sectype) if _t != _sectype else _find_active_contract(_t)
-                if _found and _found != _t:
-                    _updated_codes[_t] = _found
-                elif not _found or _found == _t:
-                    _failed_codes.append(_t)
-            except Exception as _e:
-                _failed_codes.append(f"{_t}: {str(_e)[:50]}")
-        st.session_state['codes_updated'] = True
-        st.session_state['active_codes'] = _updated_codes
-        if _failed_codes:
-            st.session_state['codes_update_errors'] = _failed_codes
-        if _updated_codes and st.session_state.get('page_refreshed'):
-            st.toast(f'🔄 Коды обновлены: {len(_updated_codes)} тикеров', icon='✅')
-            st.session_state['page_refreshed'] = False
-        if _updated_codes and st.session_state.get('page_refreshed'):
-            st.toast(f'🔄 Коды обновлены: {len(_updated_codes)} тикеров', icon='✅')
-            st.session_state['page_refreshed'] = False
+#     # Автообновление полных кодов для существующих тикеров (раз в сессию)
+#     if 'codes_updated' not in st.session_state:
+#         _short_to_full = {
+#             'SI': 'SI', 'PT': 'PLT', 'VI': 'RVI', 'BR': 'BR', 'GD': 'GOLD',
+#             'RI': 'RTS', 'MX': 'MIX', 'ED': 'ED',
+#             'SV': 'SV', 'W4': 'WHEAT', 'Eu': 'Eu', 'CR': 'CNY',
+#             'SA': 'SUGR', 'AN': 'ALUM', 'PD': 'PLD', 'NG': 'NG',
+#             'MM': 'MXI', 'OG': 'OGI', 'MA': 'MMI', 'FN': 'FNI',
+#         }
+#         _updated_codes = {}
+#         _failed_codes = []
+#         for _t in _short_to_full:
+#             try:
+#                 _sectype = _short_to_full[_t]
+#                 _found = _find_active_contract(_sectype) if _t != _sectype else _find_active_contract(_t)
+#                 if _found and _found != _t:
+#                     _updated_codes[_t] = _found
+#                 elif not _found or _found == _t:
+#                     _failed_codes.append(_t)
+#             except Exception as _e:
+#                 _failed_codes.append(f"{_t}: {str(_e)[:50]}")
+#         st.session_state['codes_updated'] = True
+#         st.session_state['active_codes'] = _updated_codes
+#         if _failed_codes:
+#             st.session_state['codes_update_errors'] = _failed_codes
+#         if _updated_codes and st.session_state.get('page_refreshed'):
+#             st.toast(f'🔄 Коды обновлены: {len(_updated_codes)} тикеров', icon='✅')
+#             st.session_state['page_refreshed'] = False
+#         if _updated_codes and st.session_state.get('page_refreshed'):
+#             st.toast(f'🔄 Коды обновлены: {len(_updated_codes)} тикеров', icon='✅')
+#             st.session_state['page_refreshed'] = False
     
-    if 'codes_update_errors' in st.session_state and st.session_state['codes_update_errors']:
-        with st.expander(f'⚠️ Ошибки обновления кодов ({len(st.session_state["codes_update_errors"])} тикеров)', expanded=False):
-            for _err in st.session_state['codes_update_errors']:
-                st.caption(f'• {_err}')
-        if st.button('✕ Скрыть', key='hide_code_errors'):
-            del st.session_state['codes_update_errors']
-            st.rerun()
+#     if 'codes_update_errors' in st.session_state and st.session_state['codes_update_errors']:
+#         with st.expander(f'⚠️ Ошибки обновления кодов ({len(st.session_state["codes_update_errors"])} тикеров)', expanded=False):
+#             for _err in st.session_state['codes_update_errors']:
+#                 st.caption(f'• {_err}')
+#         if st.button('✕ Скрыть', key='hide_code_errors'):
+#             del st.session_state['codes_update_errors']
+#             st.rerun()
 
-    all_data, tickers = load_futoi_data()
-    if all_data is None:
-        st.error("Данные FutOI не найдены")
-    else:
-        selected_ticker = st.selectbox("Выберите тикер", tickers, key="scanner_ticker")
+#     all_data, tickers = load_futoi_data()
+#     if all_data is None:
+#         st.error("Данные FutOI не найдены")
+#     else:
+#         selected_ticker = st.selectbox("Выберите тикер", tickers, key="scanner_ticker")
         
-        # Загружаем данные по трём ТФ
-        df_analytics = prepare_futoi_analytics(all_data[all_data['ticker'] == selected_ticker])
+#         # Загружаем данные по трём ТФ
+#         df_analytics = prepare_futoi_analytics(all_data[all_data['ticker'] == selected_ticker])
         
-        # 4H данные
-        df_4h = None
-        h4_file = DATA_ROOT / "futoi_4h" / "futoi_4h.parquet"
-        if h4_file.exists():
-            df_4h_all = pd.read_parquet(h4_file)
-            df_4h = df_4h_all[df_4h_all['ticker'] == selected_ticker].sort_values('hour')
+#         # 4H данные
+#         df_4h = None
+#         h4_file = DATA_ROOT / "futoi_4h" / "futoi_4h.parquet"
+#         if h4_file.exists():
+#             df_4h_all = pd.read_parquet(h4_file)
+#             df_4h = df_4h_all[df_4h_all['ticker'] == selected_ticker].sort_values('hour')
         
-        # 1H данные
-        df_1h = None
-        h1_file = DATA_ROOT / "futoi_1h" / "futoi_1h.parquet"
-        if h1_file.exists():
-            df_1h_all = pd.read_parquet(h1_file)
-            df_1h = df_1h_all[df_1h_all['ticker'] == selected_ticker].sort_values('hour')
+#         # 1H данные
+#         df_1h = None
+#         h1_file = DATA_ROOT / "futoi_1h" / "futoi_1h.parquet"
+#         if h1_file.exists():
+#             df_1h_all = pd.read_parquet(h1_file)
+#             df_1h = df_1h_all[df_1h_all['ticker'] == selected_ticker].sort_values('hour')
         
-        # D1 тренд
-        d1_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
-        _trend_up = False
-        _trend_down = False
-        if d1_file.exists():
-            _d1_df = pd.read_parquet(d1_file)
-            if len(_d1_df) >= 20:
-                _d1_df['sma20'] = _d1_df['close'].rolling(20).mean()
-                _last = _d1_df['close'].iloc[-1]
-                _sma = _d1_df['sma20'].iloc[-1]
-                if _last > _sma * 1.02: _trend_up = True
-                elif _last < _sma * 0.98: _trend_down = True
+#         # D1 тренд
+#         d1_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
+#         _trend_up = False
+#         _trend_down = False
+#         if d1_file.exists():
+#             _d1_df = pd.read_parquet(d1_file)
+#             if len(_d1_df) >= 20:
+#                 _d1_df['sma20'] = _d1_df['close'].rolling(20).mean()
+#                 _last = _d1_df['close'].iloc[-1]
+#                 _sma = _d1_df['sma20'].iloc[-1]
+#                 if _last > _sma * 1.02: _trend_up = True
+#                 elif _last < _sma * 0.98: _trend_down = True
         
-        # Объединённый вердикт
-        # Получаем HI2 и GARCH для вердикта
-        _hi2_val = None
-        _garch_vol = 0
-        _hi2_data = load_hi2_data()
-        if _hi2_data is not None:
-            _hi2_lookup = selected_ticker
-            if selected_ticker == 'BR': _hi2_lookup = 'BRN6'
-            _hi2_t = _hi2_data[_hi2_data['ticker'] == _hi2_lookup]
-            if len(_hi2_t) > 0:
-                _hi2_agr = _hi2_t[_hi2_t['metric'] == 'hhi_agressive']
-                if len(_hi2_agr) > 0:
-                    _hi2_val = _hi2_agr.sort_values('tradedate').iloc[-1]['value']
+#         # Объединённый вердикт
+#         # Получаем HI2 и GARCH для вердикта
+#         _hi2_val = None
+#         _garch_vol = 0
+#         _hi2_data = load_hi2_data()
+#         if _hi2_data is not None:
+#             _hi2_lookup = selected_ticker
+#             if selected_ticker == 'BR': _hi2_lookup = 'BRN6'
+#             _hi2_t = _hi2_data[_hi2_data['ticker'] == _hi2_lookup]
+#             if len(_hi2_t) > 0:
+#                 _hi2_agr = _hi2_t[_hi2_t['metric'] == 'hhi_agressive']
+#                 if len(_hi2_agr) > 0:
+#                     _hi2_val = _hi2_agr.sort_values('tradedate').iloc[-1]['value']
         
-        _d1_f = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
-        if _d1_f.exists():
-            _d1_df = pd.read_parquet(_d1_f)
-            if len(_d1_df) >= 20:
-                _gr = calculate_garch_for_ticker(_d1_df, selected_ticker)
-                _garch_vol = _gr.get('garch_vol', 0)
+#         _d1_f = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
+#         if _d1_f.exists():
+#             _d1_df = pd.read_parquet(_d1_f)
+#             if len(_d1_df) >= 20:
+#                 _gr = calculate_garch_for_ticker(_d1_df, selected_ticker)
+#                 _garch_vol = _gr.get('garch_vol', 0)
         
-        _is_dist = df_analytics['phys_net'].iloc[-1] > 0 and df_analytics['corp_net'].iloc[-1] < 0 if df_analytics is not None and len(df_analytics) > 0 else False
-        _is_accum = df_analytics['phys_net'].iloc[-1] < 0 and df_analytics['corp_net'].iloc[-1] > 0 if df_analytics is not None and len(df_analytics) > 0 else False
+#         _is_dist = df_analytics['phys_net'].iloc[-1] > 0 and df_analytics['corp_net'].iloc[-1] < 0 if df_analytics is not None and len(df_analytics) > 0 else False
+#         _is_accum = df_analytics['phys_net'].iloc[-1] < 0 and df_analytics['corp_net'].iloc[-1] > 0 if df_analytics is not None and len(df_analytics) > 0 else False
         
-        # HPI для вердикта
-        _hpi_result = None
-        _d1_file_hpi = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
-        if _d1_file_hpi.exists():
-            _d1_df_hpi = pd.read_parquet(_d1_file_hpi)
-            _hpi_result = calculate_hpi(_d1_df_hpi)
+#         # HPI для вердикта
+#         _hpi_result = None
+#         _d1_file_hpi = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
+#         if _d1_file_hpi.exists():
+#             _d1_df_hpi = pd.read_parquet(_d1_file_hpi)
+#             _hpi_result = calculate_hpi(_d1_df_hpi)
         
-        # Zweig Filter
-        _session_scan = get_session_status()
-        _zweig_scan = get_zweig_signal(None, None, _session_scan, _garch_vol)
-        _rvi_val2 = None
-        try:
-            _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
-            if not _rvi_file.exists():
-                _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
-            if _rvi_file.exists():
-                _rvi_df = pd.read_parquet(_rvi_file)
-                if len(_rvi_df) > 0:
-                    _rvi_val2 = _rvi_df["close"].iloc[-1]
-        except:
-            pass
+#         # Zweig Filter
+#         _session_scan = get_session_status()
+#         _zweig_scan = get_zweig_signal(None, None, _session_scan, _garch_vol)
+#         _rvi_val2 = None
+#         try:
+#             _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
+#             if not _rvi_file.exists():
+#                 _rvi_file = DATA_ROOT / "sector_indices" / "RVI_D1.parquet"
+#             if _rvi_file.exists():
+#                 _rvi_df = pd.read_parquet(_rvi_file)
+#                 if len(_rvi_df) > 0:
+#                     _rvi_val2 = _rvi_df["close"].iloc[-1]
+#         except:
+#             pass
         
-        scanner = get_unified_scanner_verdict(
-            df_analytics, df_4h, df_1h, 
-            _trend_up, _trend_down,
-            hi2_value=_hi2_val,
-            garch_vol=_garch_vol,
-            is_distribution=_is_dist,
-            is_accumulation=_is_accum,
-            hpi_signal=_hpi_result['hpi_signal'] if _hpi_result else None,
-            hpi_divergence=_hpi_result['divergence'] if _hpi_result else False,
-            zweig_signal=_zweig_scan['signal'] if '_zweig_scan' in dir() else None,
-            rvi_val=_rvi_val2,
-        )
+#         scanner = get_unified_scanner_verdict(
+#             df_analytics, df_4h, df_1h, 
+#             _trend_up, _trend_down,
+#             hi2_value=_hi2_val,
+#             garch_vol=_garch_vol,
+#             is_distribution=_is_dist,
+#             is_accumulation=_is_accum,
+#             hpi_signal=_hpi_result['hpi_signal'] if _hpi_result else None,
+#             hpi_divergence=_hpi_result['divergence'] if _hpi_result else False,
+#             zweig_signal=_zweig_scan['signal'] if '_zweig_scan' in dir() else None,
+#             rvi_val=_rvi_val2,
+#         )
         
-        # === ВЕРДИКТ ===
-        _dec_emoji = "🟢" if scanner['decision'] == 'LONG' else "🔴" if scanner['decision'] == 'SHORT' else "⚠️" if scanner.get('confidence') == 'нет данных' else "⚪"
-        _dec_text = "ВХОД В ЛОНГ" if scanner['decision'] == 'LONG' else "ВХОД В ШОРТ" if scanner['decision'] == 'SHORT' else ("ВЕРДИКТ НЕ АКТУАЛЕН" if scanner.get('confidence') == 'нет данных' else "НЕ ВХОДИТЬ")
-        if scanner.get('crisis_mode'):
-            _dec_emoji = "🌪️"
-            _dec_text += " | КРИЗИС-РЕЖИМ: приоритет 4H/1H, позиция 25%, стоп 2×"
-        _long_s = scanner['score'] if scanner['decision'] == 'LONG' else (100 - scanner['score']) if scanner['decision'] == 'SHORT' else 50
-        _short_s = 100 - _long_s
+#         # === ВЕРДИКТ ===
+#         _dec_emoji = "🟢" if scanner['decision'] == 'LONG' else "🔴" if scanner['decision'] == 'SHORT' else "⚠️" if scanner.get('confidence') == 'нет данных' else "⚪"
+#         _dec_text = "ВХОД В ЛОНГ" if scanner['decision'] == 'LONG' else "ВХОД В ШОРТ" if scanner['decision'] == 'SHORT' else ("ВЕРДИКТ НЕ АКТУАЛЕН" if scanner.get('confidence') == 'нет данных' else "НЕ ВХОДИТЬ")
+#         if scanner.get('crisis_mode'):
+#             _dec_emoji = "🌪️"
+#             _dec_text += " | КРИЗИС-РЕЖИМ: приоритет 4H/1H, позиция 25%, стоп 2×"
+#         _long_s = scanner['score'] if scanner['decision'] == 'LONG' else (100 - scanner['score']) if scanner['decision'] == 'SHORT' else 50
+#         _short_s = 100 - _long_s
 
-        col_v, col_m = st.columns([3, 2])
-        with col_v:
-            if scanner['decision'] == 'LONG':
-                _color = '#00ff00' if scanner['score'] >= 80 else '#88ff00' if scanner['score'] >= 60 else '#ffff00'
-                st.markdown(f"""<div style='background: {_color}22; border-left: 5px solid {_color}; padding: 15px; border-radius: 8px;'>
-                <h2 style='margin:0; color: {_color};'>🎯 ОБЪЕДИНЁННЫЙ ВЕРДИКТ: {_dec_emoji} {_dec_text}</h2>
-                <p style='margin:5px 0;'>Уверенность: {scanner['confidence']} | Скор: {scanner['score']}/100</p>
-                </div>""", unsafe_allow_html=True)
-            elif scanner['decision'] == 'SHORT':
-                _color = '#ff0000' if scanner['score'] >= 80 else '#ff4444' if scanner['score'] >= 60 else '#ff8800'
-                st.markdown(f"""<div style='background: {_color}22; border-left: 5px solid {_color}; padding: 15px; border-radius: 8px;'>
-                <h2 style='margin:0; color: {_color};'>🎯 ОБЪЕДИНЁННЫЙ ВЕРДИКТ: {_dec_emoji} {_dec_text}</h2>
-                <p style='margin:5px 0;'>Уверенность: {scanner['confidence']} | Скор: {scanner['score']}/100</p>
-                </div>""", unsafe_allow_html=True)
-            else:
-                st.markdown(f"""<div style='background: #88888822; border-left: 5px solid #888888; padding: 15px; border-radius: 8px;'>
-                <h2 style='margin:0; color: #aaaaaa;'>🎯 ОБЪЕДИНЁННЫЙ ВЕРДИКТ: {_dec_emoji} {_dec_text}</h2>
-                <p style='margin:5px 0;'>Уверенность: {scanner['confidence']} | Скор: {scanner['score']}/100</p>
-                </div>""", unsafe_allow_html=True)
-            st.caption(scanner['recommendation'])
-            # === СВЕТОФОР: ослабляющие факторы ===
-            _factors = scanner.get('factors', {})
-            _warnings = []
-            # Дистрибуция
-            if _factors.get('distr_mod', 0) < 0:
-                _warnings.append("🔴 Дистрибуция — юрики продают, будь осторожнее в лонге")
-            # HPI
-            if _factors.get('hpi_mod', 0) < 0:
-                _warnings.append("🟡 HPI: капитал уходит — рост может быть неустойчивым")
-            elif _factors.get('hpi_mod', 0) > 0:
-                _warnings.append("🟢 HPI подтверждает направление")
-            # Zweig
-            if _factors.get('zweig_mod', 0) < 0:
-                _warnings.append("🟡 Рынок нестабилен (Zweig) — уменьши позицию")
-            # HI2
-            if _factors.get('hi2_penalty', 0) < 0:
-                _warnings.append("🟡 Концентрация позиций высокая — риск манипуляции")
-            # Перекупленность (из Renaissance Scanner)
-            _fiz_buy = scanner.get('signals', {}).get('1D', {}).get('details', {}).get('fiz_buy', 0)
-            if _fiz_buy > 80:
-                _warnings.append("🔴 Перекупленность (fiz_buy > 80) — исторически 67% вероятность коррекции (GAZPF/IMOEXF)")
-            # GARCH
-            if _factors.get('garch_penalty', 0) < 0:
-                _warnings.append("🟡 Волатильность повышена — стоп шире обычного")
-            # RVI
-            _rvi_val_factor = _factors.get('rvi_val')
-            if _rvi_val_factor is not None:
-                _warnings.append(f"📊 RVI={_rvi_val_factor:.1f} — индекс волатильности рынка")
-            # Volume Spike
-            if _factors.get('volume_mod', 0) > 0:
-                _warnings.append(f"📊 Volume Spike! Аномальный объём (+{_factors['volume_mod']} к скору)")
+#         col_v, col_m = st.columns([3, 2])
+#         with col_v:
+#             if scanner['decision'] == 'LONG':
+#                 _color = '#00ff00' if scanner['score'] >= 80 else '#88ff00' if scanner['score'] >= 60 else '#ffff00'
+#                 st.markdown(f"""<div style='background: {_color}22; border-left: 5px solid {_color}; padding: 15px; border-radius: 8px;'>
+#                 <h2 style='margin:0; color: {_color};'>🎯 ОБЪЕДИНЁННЫЙ ВЕРДИКТ: {_dec_emoji} {_dec_text}</h2>
+#                 <p style='margin:5px 0;'>Уверенность: {scanner['confidence']} | Скор: {scanner['score']}/100</p>
+#                 </div>""", unsafe_allow_html=True)
+#             elif scanner['decision'] == 'SHORT':
+#                 _color = '#ff0000' if scanner['score'] >= 80 else '#ff4444' if scanner['score'] >= 60 else '#ff8800'
+#                 st.markdown(f"""<div style='background: {_color}22; border-left: 5px solid {_color}; padding: 15px; border-radius: 8px;'>
+#                 <h2 style='margin:0; color: {_color};'>🎯 ОБЪЕДИНЁННЫЙ ВЕРДИКТ: {_dec_emoji} {_dec_text}</h2>
+#                 <p style='margin:5px 0;'>Уверенность: {scanner['confidence']} | Скор: {scanner['score']}/100</p>
+#                 </div>""", unsafe_allow_html=True)
+#             else:
+#                 st.markdown(f"""<div style='background: #88888822; border-left: 5px solid #888888; padding: 15px; border-radius: 8px;'>
+#                 <h2 style='margin:0; color: #aaaaaa;'>🎯 ОБЪЕДИНЁННЫЙ ВЕРДИКТ: {_dec_emoji} {_dec_text}</h2>
+#                 <p style='margin:5px 0;'>Уверенность: {scanner['confidence']} | Скор: {scanner['score']}/100</p>
+#                 </div>""", unsafe_allow_html=True)
+#             st.caption(scanner['recommendation'])
+#             # === СВЕТОФОР: ослабляющие факторы ===
+#             _factors = scanner.get('factors', {})
+#             _warnings = []
+#             # Дистрибуция
+#             if _factors.get('distr_mod', 0) < 0:
+#                 _warnings.append("🔴 Дистрибуция — юрики продают, будь осторожнее в лонге")
+#             # HPI
+#             if _factors.get('hpi_mod', 0) < 0:
+#                 _warnings.append("🟡 HPI: капитал уходит — рост может быть неустойчивым")
+#             elif _factors.get('hpi_mod', 0) > 0:
+#                 _warnings.append("🟢 HPI подтверждает направление")
+#             # Zweig
+#             if _factors.get('zweig_mod', 0) < 0:
+#                 _warnings.append("🟡 Рынок нестабилен (Zweig) — уменьши позицию")
+#             # HI2
+#             if _factors.get('hi2_penalty', 0) < 0:
+#                 _warnings.append("🟡 Концентрация позиций высокая — риск манипуляции")
+#             # Перекупленность (из Renaissance Scanner)
+#             _fiz_buy = scanner.get('signals', {}).get('1D', {}).get('details', {}).get('fiz_buy', 0)
+#             if _fiz_buy > 80:
+#                 _warnings.append("🔴 Перекупленность (fiz_buy > 80) — исторически 67% вероятность коррекции (GAZPF/IMOEXF)")
+#             # GARCH
+#             if _factors.get('garch_penalty', 0) < 0:
+#                 _warnings.append("🟡 Волатильность повышена — стоп шире обычного")
+#             # RVI
+#             _rvi_val_factor = _factors.get('rvi_val')
+#             if _rvi_val_factor is not None:
+#                 _warnings.append(f"📊 RVI={_rvi_val_factor:.1f} — индекс волатильности рынка")
+#             # Volume Spike
+#             if _factors.get('volume_mod', 0) > 0:
+#                 _warnings.append(f"📊 Volume Spike! Аномальный объём (+{_factors['volume_mod']} к скору)")
             
-            if _warnings:
-                for _w in _warnings:
-                    st.caption(_w)
+#             if _warnings:
+#                 for _w in _warnings:
+#                     st.caption(_w)
             
-            # === ОЦЕНКА РИСКА ===
-            _total_mod = _factors.get('total_mod', 0)
-            _score = scanner['score']
-            if _score >= 70:
-                _risk_pct = max(25, 100 + _total_mod * 2)
-                _risk_level = "🟢 ПОНИЖЕННЫЙ РИСК"
-                _risk_action = f"Можно входить. Рекомендуемая позиция: {_risk_pct:.0f}% от стандартной."
-            elif _score >= 50:
-                _risk_pct = max(15, 75 + _total_mod * 2)
-                _risk_level = "🟡 СРЕДНИЙ РИСК"
-                _risk_action = f"Входить осторожно. Позиция: {_risk_pct:.0f}% от стандартной."
-            else:
-                _risk_pct = max(5, 50 + _total_mod * 2)
-                _risk_level = "🔴 ПОВЫШЕННЫЙ РИСК"
-                _risk_action = f"Лучше воздержаться. Максимальная позиция: {_risk_pct:.0f}%."
+#             # === ОЦЕНКА РИСКА ===
+#             _total_mod = _factors.get('total_mod', 0)
+#             _score = scanner['score']
+#             if _score >= 70:
+#                 _risk_pct = max(25, 100 + _total_mod * 2)
+#                 _risk_level = "🟢 ПОНИЖЕННЫЙ РИСК"
+#                 _risk_action = f"Можно входить. Рекомендуемая позиция: {_risk_pct:.0f}% от стандартной."
+#             elif _score >= 50:
+#                 _risk_pct = max(15, 75 + _total_mod * 2)
+#                 _risk_level = "🟡 СРЕДНИЙ РИСК"
+#                 _risk_action = f"Входить осторожно. Позиция: {_risk_pct:.0f}% от стандартной."
+#             else:
+#                 _risk_pct = max(5, 50 + _total_mod * 2)
+#                 _risk_level = "🔴 ПОВЫШЕННЫЙ РИСК"
+#                 _risk_action = f"Лучше воздержаться. Максимальная позиция: {_risk_pct:.0f}%."
             
-            st.caption(f"{_risk_level}: {_risk_action}")
+#             st.caption(f"{_risk_level}: {_risk_action}")
             
-            # === СЕЗОННОСТЬ: предупреждение о дне недели ===
-            from datetime import datetime
-            _wd = datetime.now().weekday()
-            _wd_names = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
-            if _wd == 3:
-                st.caption("📅 Четверг — исторически худший день (win-rate 43%). Будь осторожнее.")
-            elif _wd == 2:
-                st.caption("📅 Среда — исторически лучший день (win-rate 53%). Хорошее время для входа.")
-            elif _wd >= 6:
-                st.caption("📅 Выходной — рынок закрыт, сигналы неактуальны.")
+#             # === СЕЗОННОСТЬ: предупреждение о дне недели ===
+#             from datetime import datetime
+#             _wd = datetime.now().weekday()
+#             _wd_names = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
+#             if _wd == 3:
+#                 st.caption("📅 Четверг — исторически худший день (win-rate 43%). Будь осторожнее.")
+#             elif _wd == 2:
+#                 st.caption("📅 Среда — исторически лучший день (win-rate 53%). Хорошее время для входа.")
+#             elif _wd >= 6:
+#                 st.caption("📅 Выходной — рынок закрыт, сигналы неактуальны.")
             
-            # === VOLUME SPIKE: проверка аномалий объёма ===
-            try:
-                from My_Indicators.volume_analyzer import VolumeAnomalyDetector
-                _vd = VolumeAnomalyDetector()
-                _d1_file = DATA_ROOT / 'candles' / f'{selected_ticker}_D1.parquet'
-                if _d1_file.exists():
-                    _vdf = pd.read_parquet(_d1_file)
-                    if 'volume' in _vdf.columns and len(_vdf) > 25:
-                        _spikes = _vd.detect_spikes(_vdf['volume'])
-                        if _spikes['spikes'].iloc[-1]:
-                            st.caption("📊 Volume Spike! Аномальный объём — возможно движение цены (SV:75%, SI:65% win-rate).")
-            except:
-                pass
-        with col_m:
-            cols = st.columns(2)
-            cols[0].metric("Лонг", f"{_long_s}/100")
-            cols[1].metric("Шорт", f"{_short_s}/100")
+#             # === VOLUME SPIKE: проверка аномалий объёма ===
+#             try:
+#                 from My_Indicators.volume_analyzer import VolumeAnomalyDetector
+#                 _vd = VolumeAnomalyDetector()
+#                 _d1_file = DATA_ROOT / 'candles' / f'{selected_ticker}_D1.parquet'
+#                 if _d1_file.exists():
+#                     _vdf = pd.read_parquet(_d1_file)
+#                     if 'volume' in _vdf.columns and len(_vdf) > 25:
+#                         _spikes = _vd.detect_spikes(_vdf['volume'])
+#                         if _spikes['spikes'].iloc[-1]:
+#                             st.caption("📊 Volume Spike! Аномальный объём — возможно движение цены (SV:75%, SI:65% win-rate).")
+#             except:
+#                 pass
+#         with col_m:
+#             cols = st.columns(2)
+#             cols[0].metric("Лонг", f"{_long_s}/100")
+#             cols[1].metric("Шорт", f"{_short_s}/100")
         
-        st.caption(f"Тренд D1: {scanner['trend']} | 1D: {scanner['signals']['1D']['signal']} | 4H: {scanner['signals']['4H']['signal']} | 1H: {scanner['signals']['1H']['signal']}")
+#         st.caption(f"Тренд D1: {scanner['trend']} | 1D: {scanner['signals']['1D']['signal']} | 4H: {scanner['signals']['4H']['signal']} | 1H: {scanner['signals']['1H']['signal']}")
             
-        with st.expander("🔍 Факторы вердикта (как формируется решение)"):
-            st.markdown(f"""
-**Базовый ТФ-скор:** {scanner['factors']['tf_score']:.0f}/100 (1D=50%, 4H=30%, 1H=20%)
-**Взвешенный сигнал:** {scanner['factors']['tf_weighted']:+.2f}
+#         with st.expander("🔍 Факторы вердикта (как формируется решение)"):
+#             st.markdown(f"""
+# **Базовый ТФ-скор:** {scanner['factors']['tf_score']:.0f}/100 (1D=50%, 4H=30%, 1H=20%)
+# **Взвешенный сигнал:** {scanner['factors']['tf_weighted']:+.2f}
 
-**Корректирующие факторы:**
-- {scanner['factors']['hi2_note']}
-- {scanner['factors']['garch_note']}
-- {scanner['factors']['trend_note']}
-- {scanner['factors']['distr_note']}
-- {scanner['factors']['hpi_note']}
-- {scanner['factors']['zweig_note']}
+# **Корректирующие факторы:**
+# - {scanner['factors']['hi2_note']}
+# - {scanner['factors']['garch_note']}
+# - {scanner['factors']['trend_note']}
+# - {scanner['factors']['distr_note']}
+# - {scanner['factors']['hpi_note']}
+# - {scanner['factors']['zweig_note']}
 
-**Итого корректировка:** {scanner['factors']['total_mod']:+d}
-**Финальный скор:** {scanner['score']}/100
+# **Итого корректировка:** {scanner['factors']['total_mod']:+d}
+# **Финальный скор:** {scanner['score']}/100
 
-**Zweig Filter:** объединяет режим рынка, TRIN, сессию и GARCH. BLOCKED = вход запрещён, CAUTION = штраф -5.
-**Индекс Херрика (HPI):** объединяет Цену + Объём + Открытый интерес. Показывает приток/отток капитала. HPI>0 = деньги заходят, HPI<0 = деньги уходят. Дивергенция HPI = цена и потоки расходятся → предупреждение.
-**Volume Spike Detector:** обнаруживает аномальные всплески объёма (Z-score > 2.5). На исторических данных: SV 75%, SI 65%, BR 64% win-rate после спайка. Подтверждает направление сигнала (+5 к скору).
-                        """)
+# **Zweig Filter:** объединяет режим рынка, TRIN, сессию и GARCH. BLOCKED = вход запрещён, CAUTION = штраф -5.
+# **Индекс Херрика (HPI):** объединяет Цену + Объём + Открытый интерес. Показывает приток/отток капитала. HPI>0 = деньги заходят, HPI<0 = деньги уходят. Дивергенция HPI = цена и потоки расходятся → предупреждение.
+# **Volume Spike Detector:** обнаруживает аномальные всплески объёма (Z-score > 2.5). На исторических данных: SV 75%, SI 65%, BR 64% win-rate после спайка. Подтверждает направление сигнала (+5 к скору).
+#                         """)
         
-        with st.expander("🌪️ Что такое КРИЗИС-РЕЖИМ?"):
-            st.markdown("""
-**КРИЗИС-РЕЖИМ** — особый режим торговли при экстремальной волатильности.
+#         with st.expander("🌪️ Что такое КРИЗИС-РЕЖИМ?"):
+#             st.markdown("""
+# **КРИЗИС-РЕЖИМ** — особый режим торговли при экстремальной волатильности.
 
-**Триггеры (для фьючерсов):**
-- **RVI > 40%** — волатильность выше критического порога
-- **RVI > 70** — индекс волатильности рынка превысил норму
+# **Триггеры (для фьючерсов):**
+# - **RVI > 40%** — волатильность выше критического порога
+# - **RVI > 70** — индекс волатильности рынка превысил норму
 
-**Что меняется:**
-| Параметр | Обычный | Кризис |
-|----------|--------|-------|
-| Веса ТФ | 1D:50%, 4H:30%, 1H:20% | 1D:20%, 4H:50%, 1H:30% |
-| Порог LONG | 60 | 80 |
-| Порог SHORT | 40 | 80 |
-| Позиция | 100% | 25% |
-| Стоп | 1× ATR | 2× ATR |
-| Тейк | стандартный | 1.5× ATR |
+# **Что меняется:**
+# | Параметр | Обычный | Кризис |
+# |----------|--------|-------|
+# | Веса ТФ | 1D:50%, 4H:30%, 1H:20% | 1D:20%, 4H:50%, 1H:30% |
+# | Порог LONG | 60 | 80 |
+# | Порог SHORT | 40 | 80 |
+# | Позиция | 100% | 25% |
+# | Стоп | 1× ATR | 2× ATR |
+# | Тейк | стандартный | 1.5× ATR |
 
-**Запреты при кризисе:**
-- HI2 > 500 — высокая концентрация
-- Дивергенция HPI — капитал уходит против сигнала
-- Низкий объём — нет ликвидности
+# **Запреты при кризисе:**
+# - HI2 > 500 — высокая концентрация
+# - Дивергенция HPI — капитал уходит против сигнала
+# - Низкий объём — нет ликвидности
 
-**Логика:** Приоритет краткосрочным сигналам (4H, 1H). Дневные сигналы в кризис часто запаздывают.
-            """)
+# **Логика:** Приоритет краткосрочным сигналам (4H, 1H). Дневные сигналы в кризис часто запаздывают.
+#             """)
 
-        # === ТРИ ТАЙМФРЕЙМА ===
-        st.markdown("---")
-        # === ZWEIG MASTER FILTER ===
-    _session_scan = get_session_status()
-    tab1, tab2, tab3 = st.tabs(["📅 1D — Стратегия", "🕐 4H — Тактика", "⏱️ 1H — Точка входа"])
+#         # === ТРИ ТАЙМФРЕЙМА ===
+#         st.markdown("---")
+#         # === ZWEIG MASTER FILTER ===
+#     _session_scan = get_session_status()
+#     tab1, tab2, tab3 = st.tabs(["📅 1D — Стратегия", "🕐 4H — Тактика", "⏱️ 1H — Точка входа"])
         
-    with tab1:
-        st.subheader(f"1D: {scanner['signals']['1D']['signal']} (скор: {scanner['signals']['1D']['score']}/100)")
-        d1 = scanner['signals']['1D']['details']
-        st.caption(f"fiz_buy: {d1.get('fiz_buy', '—')}% | Δ: {d1.get('fiz_delta', 0):+.2f}%")
+#     with tab1:
+#         st.subheader(f"1D: {scanner['signals']['1D']['signal']} (скор: {scanner['signals']['1D']['score']}/100)")
+#         d1 = scanner['signals']['1D']['details']
+#         st.caption(f"fiz_buy: {d1.get('fiz_buy', '—')}% | Δ: {d1.get('fiz_delta', 0):+.2f}%")
         
-        # === ДАННЫЕ ДЛЯ 1D АНАЛИЗА ===
-        candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
-        df_d1 = pd.read_parquet(candle_file) if candle_file.exists() else None
-        tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
-        df_ts = pd.read_parquet(tradestats_file) if tradestats_file.exists() else None
-        atr_info, _ = calculate_atr(df_d1) if df_d1 is not None else (None, None)
+#         # === ДАННЫЕ ДЛЯ 1D АНАЛИЗА ===
+#         candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
+#         df_d1 = pd.read_parquet(candle_file) if candle_file.exists() else None
+#         tradestats_file = DATA_ROOT / "tradestats" / f"{selected_ticker}_tradestats.parquet"
+#         df_ts = pd.read_parquet(tradestats_file) if tradestats_file.exists() else None
+#         atr_info, _ = calculate_atr(df_d1) if df_d1 is not None else (None, None)
         
-        # HI2
-        hi2_info = None
-        hi2_value = None
-        hi2_level = "—"
-        hi2_emoji = "—"
-        hi2_data = load_hi2_data()
-        if hi2_data is not None:
-            _hi2_lookup = selected_ticker
-            if selected_ticker == 'BR': _hi2_lookup = 'BRN6'
-            hi2_ticker = hi2_data[hi2_data['ticker'] == _hi2_lookup]
-            if len(hi2_ticker) > 0:
-                hi2_agressive = hi2_ticker[hi2_ticker['metric'] == 'hhi_agressive']
-                if len(hi2_agressive) > 0:
-                    hi2_sorted = hi2_agressive.sort_values('tradedate')
-                    last_hi2 = hi2_sorted.iloc[-1]
-                    hi2_value = last_hi2['value']
-                    hi2_delta = None
-                    if len(hi2_sorted) >= 2:
-                        hi2_delta = hi2_value - hi2_sorted.iloc[-2]['value']
-                    if hi2_value > 500:
-                        hi2_level = "Экстремальная"
-                        hi2_emoji = "🔴"
-                    elif hi2_value > 150:
-                        hi2_level = "Очень высокая"
-                        hi2_emoji = "🔴"
-                    elif hi2_value > 70:
-                        hi2_level = "Высокая"
-                        hi2_emoji = "🟡"
-                    elif hi2_value > 40:
-                        hi2_level = "Средняя"
-                        hi2_emoji = "🟢"
-                    else:
-                        hi2_level = "Низкая"
-                        hi2_emoji = "🟢"
-                    hi2_info = {
-                        'value': hi2_value,
-                        'level': hi2_level,
-                            'emoji': hi2_emoji,
-                        'delta': hi2_delta
-                    }
+#         # HI2
+#         hi2_info = None
+#         hi2_value = None
+#         hi2_level = "—"
+#         hi2_emoji = "—"
+#         hi2_data = load_hi2_data()
+#         if hi2_data is not None:
+#             _hi2_lookup = selected_ticker
+#             if selected_ticker == 'BR': _hi2_lookup = 'BRN6'
+#             hi2_ticker = hi2_data[hi2_data['ticker'] == _hi2_lookup]
+#             if len(hi2_ticker) > 0:
+#                 hi2_agressive = hi2_ticker[hi2_ticker['metric'] == 'hhi_agressive']
+#                 if len(hi2_agressive) > 0:
+#                     hi2_sorted = hi2_agressive.sort_values('tradedate')
+#                     last_hi2 = hi2_sorted.iloc[-1]
+#                     hi2_value = last_hi2['value']
+#                     hi2_delta = None
+#                     if len(hi2_sorted) >= 2:
+#                         hi2_delta = hi2_value - hi2_sorted.iloc[-2]['value']
+#                     if hi2_value > 500:
+#                         hi2_level = "Экстремальная"
+#                         hi2_emoji = "🔴"
+#                     elif hi2_value > 150:
+#                         hi2_level = "Очень высокая"
+#                         hi2_emoji = "🔴"
+#                     elif hi2_value > 70:
+#                         hi2_level = "Высокая"
+#                         hi2_emoji = "🟡"
+#                     elif hi2_value > 40:
+#                         hi2_level = "Средняя"
+#                         hi2_emoji = "🟢"
+#                     else:
+#                         hi2_level = "Низкая"
+#                         hi2_emoji = "🟢"
+#                     hi2_info = {
+#                         'value': hi2_value,
+#                         'level': hi2_level,
+#                             'emoji': hi2_emoji,
+#                         'delta': hi2_delta
+#                     }
         
-        # Сигналы (упрощённо, без полного calculate_signals)
-        latest = df_analytics.iloc[-1] if df_analytics is not None else None
+#         # Сигналы (упрощённо, без полного calculate_signals)
+#         latest = df_analytics.iloc[-1] if df_analytics is not None else None
         
-        # График fiz/yur
-        if df_analytics is not None and len(df_analytics) > 5:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=df_analytics['datetime'], y=df_analytics['fiz_buy_ratio'], mode='lines', name='Физ %', line=dict(color='#00BFFF')))
-            fig.add_trace(go.Scatter(x=df_analytics['datetime'], y=df_analytics['yur_buy_ratio'], mode='lines', name='Юр %', line=dict(color='#FF6B6B')))
-            fig.update_layout(height=300, template='plotly_dark', title='FutOI 1D')
-            st.plotly_chart(fig, use_container_width=True)
+#         # График fiz/yur
+#         if df_analytics is not None and len(df_analytics) > 5:
+#             fig = go.Figure()
+#             fig.add_trace(go.Scatter(x=df_analytics['datetime'], y=df_analytics['fiz_buy_ratio'], mode='lines', name='Физ %', line=dict(color='#00BFFF')))
+#             fig.add_trace(go.Scatter(x=df_analytics['datetime'], y=df_analytics['yur_buy_ratio'], mode='lines', name='Юр %', line=dict(color='#FF6B6B')))
+#             fig.update_layout(height=300, template='plotly_dark', title='FutOI 1D')
+#             st.plotly_chart(fig, use_container_width=True)
         
-        # Ключевые метрики
-        if latest is not None:
-            col1, col2, col3 = st.columns(3)
-            fiz_long_pct = latest['pos_long_fiz'] / (latest['pos_long_fiz'] + latest['pos_short_fiz'] + 1) * 100
-            yur_short_pct = latest['pos_short_yur'] / (latest['pos_long_yur'] + latest['pos_short_yur'] + 1) * 100
-            with col1:
-                st.metric("Открытый интерес", f"{abs(latest['phys_net']):,.0f}".replace(",", " "))
-            with col2:
-                st.metric("% физ", f"{latest['fiz_buy_ratio']:.1f}%")
-            with col3:
-                st.metric("% юр", f"{latest['yur_buy_ratio']:.1f}%")
+#         # Ключевые метрики
+#         if latest is not None:
+#             col1, col2, col3 = st.columns(3)
+#             fiz_long_pct = latest['pos_long_fiz'] / (latest['pos_long_fiz'] + latest['pos_short_fiz'] + 1) * 100
+#             yur_short_pct = latest['pos_short_yur'] / (latest['pos_long_yur'] + latest['pos_short_yur'] + 1) * 100
+#             with col1:
+#                 st.metric("Открытый интерес", f"{abs(latest['phys_net']):,.0f}".replace(",", " "))
+#             with col2:
+#                 st.metric("% физ", f"{latest['fiz_buy_ratio']:.1f}%")
+#             with col3:
+#                 st.metric("% юр", f"{latest['yur_buy_ratio']:.1f}%")
         
-        # HI2 и GARCH
-        if hi2_value or atr_info:
-            col_r1, col_r2 = st.columns(2)
-            with col_r1:
-                if hi2_value:
-                    st.metric("HI2", f"{hi2_value:.0f}", delta=hi2_level)
-            with col_r2:
-                if df_d1 is not None:
-                    garch_result = calculate_garch_for_ticker(df_d1, selected_ticker)
-                    if garch_result.get('garch_vol'):
-                        st.metric("GARCH", f"{garch_result['garch_vol']:.1f}%", delta=garch_result.get('trend', '—'))
+#         # HI2 и GARCH
+#         if hi2_value or atr_info:
+#             col_r1, col_r2 = st.columns(2)
+#             with col_r1:
+#                 if hi2_value:
+#                     st.metric("HI2", f"{hi2_value:.0f}", delta=hi2_level)
+#             with col_r2:
+#                 if df_d1 is not None:
+#                     garch_result = calculate_garch_for_ticker(df_d1, selected_ticker)
+#                     if garch_result.get('garch_vol'):
+#                         st.metric("GARCH", f"{garch_result['garch_vol']:.1f}%", delta=garch_result.get('trend', '—'))
         
-        # Order Flow
-        if df_ts is not None:
-            ofi = calculate_ofi(df_ts)
-            cd = calculate_cumulative_delta(df_ts)
-            st.markdown("---")
-            st.subheader("📊 Order Flow & Cumulative Delta")
-            col_ofi1, col_ofi2, col_ofi3 = st.columns(3)
-            with col_ofi1:
-                ofi_val = ofi['ofi']
-                emoji = "🟢" if ofi_val > 0.1 else "🔴" if ofi_val < -0.1 else "⚪"
-                st.metric("OFI", f"{ofi_val:+.3f}", delta=f"{emoji} {ofi['pressure']}")
-            with col_ofi2:
-                delta_emoji = "📈" if cd['delta_trend'] == 'растёт' else "📉"
-                st.metric("Cumulative Delta", f"{cd['cum_delta']:,.0f}".replace(",", " "), delta=f"{delta_emoji} {cd['delta_trend']}")
-            with col_ofi3:
-                div_text = "⚠️ Дивергенция!" if cd['divergence'] or ofi['divergence'] else "✅ Нет дивергенции"
-                st.metric("Дивергенция", div_text)
+#         # Order Flow
+#         if df_ts is not None:
+#             ofi = calculate_ofi(df_ts)
+#             cd = calculate_cumulative_delta(df_ts)
+#             st.markdown("---")
+#             st.subheader("📊 Order Flow & Cumulative Delta")
+#             col_ofi1, col_ofi2, col_ofi3 = st.columns(3)
+#             with col_ofi1:
+#                 ofi_val = ofi['ofi']
+#                 emoji = "🟢" if ofi_val > 0.1 else "🔴" if ofi_val < -0.1 else "⚪"
+#                 st.metric("OFI", f"{ofi_val:+.3f}", delta=f"{emoji} {ofi['pressure']}")
+#             with col_ofi2:
+#                 delta_emoji = "📈" if cd['delta_trend'] == 'растёт' else "📉"
+#                 st.metric("Cumulative Delta", f"{cd['cum_delta']:,.0f}".replace(",", " "), delta=f"{delta_emoji} {cd['delta_trend']}")
+#             with col_ofi3:
+#                 div_text = "⚠️ Дивергенция!" if cd['divergence'] or ofi['divergence'] else "✅ Нет дивергенции"
+#                 st.metric("Дивергенция", div_text)
         
-        # === ИНДЕКС ВЫПЛАТ ХЕРРИКА (HPI) ===
-        if df_d1 is not None:
-            _oi_file = DATA_ROOT / "futoi" / f"{selected_ticker}_futoi.parquet"
-            _df_oi = None
-            if _oi_file.exists():
-                _fut = pd.read_parquet(_oi_file)
-                # Агрегируем ОИ по дням
-                _fut['tradedate'] = pd.to_datetime(_fut['tradedate'])
-                _oi_daily = _fut.groupby('tradedate').last().reset_index()
-                if 'oi_close' not in _oi_daily.columns and 'pos' in _oi_daily.columns:
-                    _oi_daily['oi_close'] = _oi_daily['pos'].abs()
-                _df_oi = _oi_daily
+#         # === ИНДЕКС ВЫПЛАТ ХЕРРИКА (HPI) ===
+#         if df_d1 is not None:
+#             _oi_file = DATA_ROOT / "futoi" / f"{selected_ticker}_futoi.parquet"
+#             _df_oi = None
+#             if _oi_file.exists():
+#                 _fut = pd.read_parquet(_oi_file)
+#                 # Агрегируем ОИ по дням
+#                 _fut['tradedate'] = pd.to_datetime(_fut['tradedate'])
+#                 _oi_daily = _fut.groupby('tradedate').last().reset_index()
+#                 if 'oi_close' not in _oi_daily.columns and 'pos' in _oi_daily.columns:
+#                     _oi_daily['oi_close'] = _oi_daily['pos'].abs()
+#                 _df_oi = _oi_daily
             
-            _hpi_result = calculate_hpi(df_d1, _df_oi)
-            if _hpi_result:
-                st.markdown("---")
-                st.subheader("📊 Индекс выплат Херрика (HPI)")
-                col_h1, col_h2, col_h3 = st.columns(3)
-                with col_h1:
-                    _hpi_emoji = "🟢" if _hpi_result['hpi_signal'] == 'LONG' else "🔴" if _hpi_result['hpi_signal'] == 'SHORT' else "⚪"
-                    st.metric("HPI", f"{_hpi_result['hpi']:.2f}", delta=f"{_hpi_emoji} {_hpi_result['hpi_signal']}")
-                with col_h2:
-                    st.metric("Объём", f"{_hpi_result['volume']:,}".replace(",", " "))
-                    with col_h3:
-                        _oi_delta = "▲" if _hpi_result['oi_change'] > 0 else "▼" if _hpi_result['oi_change'] < 0 else "—"
-                        st.metric("Δ ОИ", f"{_hpi_result['oi_change']:+,}".replace(",", " "))
+#             _hpi_result = calculate_hpi(df_d1, _df_oi)
+#             if _hpi_result:
+#                 st.markdown("---")
+#                 st.subheader("📊 Индекс выплат Херрика (HPI)")
+#                 col_h1, col_h2, col_h3 = st.columns(3)
+#                 with col_h1:
+#                     _hpi_emoji = "🟢" if _hpi_result['hpi_signal'] == 'LONG' else "🔴" if _hpi_result['hpi_signal'] == 'SHORT' else "⚪"
+#                     st.metric("HPI", f"{_hpi_result['hpi']:.2f}", delta=f"{_hpi_emoji} {_hpi_result['hpi_signal']}")
+#                 with col_h2:
+#                     st.metric("Объём", f"{_hpi_result['volume']:,}".replace(",", " "))
+#                     with col_h3:
+#                         _oi_delta = "▲" if _hpi_result['oi_change'] > 0 else "▼" if _hpi_result['oi_change'] < 0 else "—"
+#                         st.metric("Δ ОИ", f"{_hpi_result['oi_change']:+,}".replace(",", " "))
                     
-                    if _hpi_result.get('note'):
-                        st.caption(f"ℹ️ {_hpi_result['note']}")
-                    if _hpi_result['divergence']:
-                        _hpi_val = _hpi_result['hpi']
-                        if _hpi_val > 0:
-                            _hpi_msg = f"⚠️ Дивергенция HPI: капитал заходит (HPI={_hpi_val:+.1f}), но цена не растёт — возможен скрытый набор позиции."
-                        else:
-                            _hpi_msg = f"⚠️ Дивергенция HPI: капитал уходит (HPI={_hpi_val:+.1f}), но цена не падает — рост может быть неустойчивым."
-                        st.warning(_hpi_msg)
+#                     if _hpi_result.get('note'):
+#                         st.caption(f"ℹ️ {_hpi_result['note']}")
+#                     if _hpi_result['divergence']:
+#                         _hpi_val = _hpi_result['hpi']
+#                         if _hpi_val > 0:
+#                             _hpi_msg = f"⚠️ Дивергенция HPI: капитал заходит (HPI={_hpi_val:+.1f}), но цена не растёт — возможен скрытый набор позиции."
+#                         else:
+#                             _hpi_msg = f"⚠️ Дивергенция HPI: капитал уходит (HPI={_hpi_val:+.1f}), но цена не падает — рост может быть неустойчивым."
+#                         st.warning(_hpi_msg)
             
-            # Уровни и риск-менеджмент
-            if df_d1 is not None:
-                _close = df_d1['close'].iloc[-1]
-                _atr = atr_info['atr'] if atr_info else (_close * 0.01)
-                _risk = calculate_risk(selected_ticker, _close, atr=_atr, deposit=_deposit)
-                st.markdown("---")
-                st.subheader("💰 Риск-менеджмент")
-                col_rm1, col_rm2 = st.columns(2)
-                with col_rm1:
-                    st.metric("ГО (1 лот)", f"{_risk['go']:,.0f} ₽".replace(",", " "))
-                with col_rm2:
-                    st.metric("Стоимость контракта", f"{_risk['contract_cost']:,.0f} ₽".replace(",", " "))
+#             # Уровни и риск-менеджмент
+#             if df_d1 is not None:
+#                 _close = df_d1['close'].iloc[-1]
+#                 _atr = atr_info['atr'] if atr_info else (_close * 0.01)
+#                 _risk = calculate_risk(selected_ticker, _close, atr=_atr, deposit=_deposit)
+#                 st.markdown("---")
+#                 st.subheader("💰 Риск-менеджмент")
+#                 col_rm1, col_rm2 = st.columns(2)
+#                 with col_rm1:
+#                     st.metric("ГО (1 лот)", f"{_risk['go']:,.0f} ₽".replace(",", " "))
+#                 with col_rm2:
+#                     st.metric("Стоимость контракта", f"{_risk['contract_cost']:,.0f} ₽".replace(",", " "))
         
-            # === ТАБЛИЦА УЧАСТНИКОВ ===
-            if latest is not None:
-                st.markdown("---")
-                st.subheader("👥 Участники рынка")
-                fiz_pct = latest['fiz_buy_ratio']
-                yur_pct = latest['yur_buy_ratio']
-                is_distribution = latest['phys_net'] > 0 and latest['corp_net'] < 0
-                is_accumulation = latest['phys_net'] < 0 and latest['corp_net'] > 0
+#             # === ТАБЛИЦА УЧАСТНИКОВ ===
+#             if latest is not None:
+#                 st.markdown("---")
+#                 st.subheader("👥 Участники рынка")
+#                 fiz_pct = latest['fiz_buy_ratio']
+#                 yur_pct = latest['yur_buy_ratio']
+#                 is_distribution = latest['phys_net'] > 0 and latest['corp_net'] < 0
+#                 is_accumulation = latest['phys_net'] < 0 and latest['corp_net'] > 0
                 
-                _lines = []
-                _lines.append("| Группа | % | Доминирование | Действие |")
-                _lines.append("| :--- | :--- | :--- | :--- |")
+#                 _lines = []
+#                 _lines.append("| Группа | % | Доминирование | Действие |")
+#                 _lines.append("| :--- | :--- | :--- | :--- |")
                 
-                fiz_dom = "Доминируют" if fiz_pct > 65 or fiz_pct < 35 else "—"
-                yur_dom = "Доминируют" if yur_pct > 65 or yur_pct < 35 else "—"
-                action_fiz = "Покупают" if latest['phys_net'] > 0 else "Продают"
-                action_yur = "Покупают" if latest['corp_net'] > 0 else "Продают"
+#                 fiz_dom = "Доминируют" if fiz_pct > 65 or fiz_pct < 35 else "—"
+#                 yur_dom = "Доминируют" if yur_pct > 65 or yur_pct < 35 else "—"
+#                 action_fiz = "Покупают" if latest['phys_net'] > 0 else "Продают"
+#                 action_yur = "Покупают" if latest['corp_net'] > 0 else "Продают"
                 
-                _lines.append(f"| Физики | {fiz_pct:.1f}% покупателей | {fiz_dom} | {action_fiz} |")
-                _lines.append(f"| Юрики | {yur_pct:.1f}% покупателей | {yur_dom} | {action_yur} |")
+#                 _lines.append(f"| Физики | {fiz_pct:.1f}% покупателей | {fiz_dom} | {action_fiz} |")
+#                 _lines.append(f"| Юрики | {yur_pct:.1f}% покупателей | {yur_dom} | {action_yur} |")
                 
-                if is_distribution:
-                    _lines.append(f"| Общее | — | — | 🔴 Дистрибуция |")
-                elif is_accumulation:
-                    _lines.append(f"| Общее | — | — | 🟢 Аккумуляция |")
-                else:
-                    _lines.append(f"| Общее | — | — | — |")
+#                 if is_distribution:
+#                     _lines.append(f"| Общее | — | — | 🔴 Дистрибуция |")
+#                 elif is_accumulation:
+#                     _lines.append(f"| Общее | — | — | 🟢 Аккумуляция |")
+#                 else:
+#                     _lines.append(f"| Общее | — | — | — |")
                 
-                st.markdown("\n".join(_lines))
+#                 st.markdown("\n".join(_lines))
             
-            # === УРОВНИ ===
-            if df_d1 is not None:
-                st.markdown("---")
-                st.subheader("📐 Уровни (VP + FutOI + HI2)")
-                _hi2_adv = load_hi2_data()
-                _atr_val = atr_info['atr'] if atr_info else None
-                adv_levels = calculate_advanced_levels(df_d1, df_analytics, _hi2_adv, selected_ticker, _atr_val)
+#             # === УРОВНИ ===
+#             if df_d1 is not None:
+#                 st.markdown("---")
+#                 st.subheader("📐 Уровни (VP + FutOI + HI2)")
+#                 _hi2_adv = load_hi2_data()
+#                 _atr_val = atr_info['atr'] if atr_info else None
+#                 adv_levels = calculate_advanced_levels(df_d1, df_analytics, _hi2_adv, selected_ticker, _atr_val)
                 
-                if adv_levels['support'] or adv_levels['resistance']:
-                    col_s, col_r = st.columns(2)
-                    with col_s:
-                        if adv_levels['support']:
-                            src = ', '.join(adv_levels['support_sources'])
-                            strength = '💪' if adv_levels['support_strength'] == 'сильный' else '🤏'
-                            st.metric("Поддержка", f"{adv_levels['support']:.2f}", delta=f"{strength} {src}")
-                    with col_r:
-                        if adv_levels['resistance']:
-                            src = ', '.join(adv_levels['resistance_sources'])
-                            strength = '💪' if adv_levels['resistance_strength'] == 'сильный' else '🤏'
-                            st.metric("Сопротивление", f"{adv_levels['resistance']:.2f}", delta=f"{strength} {src}")
-                    if adv_levels['poc']:
-                        st.caption(f"🎯 POC: {adv_levels['poc']:.2f}")
+#                 if adv_levels['support'] or adv_levels['resistance']:
+#                     col_s, col_r = st.columns(2)
+#                     with col_s:
+#                         if adv_levels['support']:
+#                             src = ', '.join(adv_levels['support_sources'])
+#                             strength = '💪' if adv_levels['support_strength'] == 'сильный' else '🤏'
+#                             st.metric("Поддержка", f"{adv_levels['support']:.2f}", delta=f"{strength} {src}")
+#                     with col_r:
+#                         if adv_levels['resistance']:
+#                             src = ', '.join(adv_levels['resistance_sources'])
+#                             strength = '💪' if adv_levels['resistance_strength'] == 'сильный' else '🤏'
+#                             st.metric("Сопротивление", f"{adv_levels['resistance']:.2f}", delta=f"{strength} {src}")
+#                     if adv_levels['poc']:
+#                         st.caption(f"🎯 POC: {adv_levels['poc']:.2f}")
             
-            # === УРОВНИ ВХОДА/ВЫХОДА + КАЛЬКУЛЯТОР + ТРЕЙЛИНГ-СТОП ===
-            if scanner['decision'] != 'WAIT':
-                st.markdown("---")
-                st.subheader("📐 Уровни входа/выхода")
+#             # === УРОВНИ ВХОДА/ВЫХОДА + КАЛЬКУЛЯТОР + ТРЕЙЛИНГ-СТОП ===
+#             if scanner['decision'] != 'WAIT':
+#                 st.markdown("---")
+#                 st.subheader("📐 Уровни входа/выхода")
                 
-                _atr_val = atr_info['atr'] if atr_info else 0.05
-                _support = adv_levels.get('support', 0)
-                _resistance = adv_levels.get('resistance', 0)
-                _close = df_d1['close'].iloc[-1] if df_d1 is not None and len(df_d1) > 0 else 0
+#                 _atr_val = atr_info['atr'] if atr_info else 0.05
+#                 _support = adv_levels.get('support', 0)
+#                 _resistance = adv_levels.get('resistance', 0)
+#                 _close = df_d1['close'].iloc[-1] if df_d1 is not None and len(df_d1) > 0 else 0
                 
-                if scanner['decision'] == 'LONG':
-                    _entry = _support if _support > 0 else _close
-                    _stop = _entry - _atr_val * 1.5
-                    _target = _resistance if _resistance > _entry else _entry + _atr_val * 3
-                else:
-                    _entry = _resistance if _resistance > 0 else _close
-                    _stop = _entry + _atr_val * 1.5
-                    _target = _support if _support < _entry else _entry - _atr_val * 3
+#                 if scanner['decision'] == 'LONG':
+#                     _entry = _support if _support > 0 else _close
+#                     _stop = _entry - _atr_val * 1.5
+#                     _target = _resistance if _resistance > _entry else _entry + _atr_val * 3
+#                 else:
+#                     _entry = _resistance if _resistance > 0 else _close
+#                     _stop = _entry + _atr_val * 1.5
+#                     _target = _support if _support < _entry else _entry - _atr_val * 3
                 
-                col_e, col_s, col_t = st.columns(3)
-                with col_e: st.metric("Вход", f"{_entry:.2f}")
-                with col_s: st.metric("Стоп-лосс", f"{_stop:.2f}", delta=f"{abs(_entry - _stop):.2f}")
-                with col_t:
-                    _pot = abs(_target - _entry) / _entry * 100 if _entry > 0 else 0
-                    st.metric("Цель", f"{_target:.2f}", delta=f"+{_pot:.1f}%" if _pot > 0 else None)
+#                 col_e, col_s, col_t = st.columns(3)
+#                 with col_e: st.metric("Вход", f"{_entry:.2f}")
+#                 with col_s: st.metric("Стоп-лосс", f"{_stop:.2f}", delta=f"{abs(_entry - _stop):.2f}")
+#                 with col_t:
+#                     _pot = abs(_target - _entry) / _entry * 100 if _entry > 0 else 0
+#                     st.metric("Цель", f"{_target:.2f}", delta=f"+{_pot:.1f}%" if _pot > 0 else None)
                 
-                _risk_rub = _deposit * _risk_pct / 100
-                _lot = 1000 if selected_ticker in ['CNYRUBF', 'USDRUBF', 'EURRUBF'] else 10
-                _risk_per_contract = abs(_entry - _stop) * _lot
-                if _risk_per_contract > 0:
-                    _position_size = int(_risk_rub / _risk_per_contract)
-                    if _position_size > 0:
-                        st.success(f"💰 Позиция: **{_position_size}** контрактов (риск {_risk_rub:,.0f} ₽ = {_risk_pct}% от {_deposit:,.0f} ₽)".replace(",", " "))
+#                 _risk_rub = _deposit * _risk_pct / 100
+#                 _lot = 1000 if selected_ticker in ['CNYRUBF', 'USDRUBF', 'EURRUBF'] else 10
+#                 _risk_per_contract = abs(_entry - _stop) * _lot
+#                 if _risk_per_contract > 0:
+#                     _position_size = int(_risk_rub / _risk_per_contract)
+#                     if _position_size > 0:
+#                         st.success(f"💰 Позиция: **{_position_size}** контрактов (риск {_risk_rub:,.0f} ₽ = {_risk_pct}% от {_deposit:,.0f} ₽)".replace(",", " "))
                 
-                with st.expander("🔒 Трейлинг-стоп", expanded=False):
-                    _trail_activate = _entry + 2*_atr_val if scanner['decision'] == 'LONG' else _entry - 2*_atr_val
-                    st.markdown(f"""
-**Как работает:** после входа стоп подтягивается за ценой. При движении в плюс на 2×ATR → стоп на 1×ATR от цены.
-**ATR:** {_atr_val:.2f} | **Стоп:** {_stop:.2f} | **Активация:** {_trail_activate:.2f}
-                    """)
+#                 with st.expander("🔒 Трейлинг-стоп", expanded=False):
+#                     _trail_activate = _entry + 2*_atr_val if scanner['decision'] == 'LONG' else _entry - 2*_atr_val
+#                     st.markdown(f"""
+# **Как работает:** после входа стоп подтягивается за ценой. При движении в плюс на 2×ATR → стоп на 1×ATR от цены.
+# **ATR:** {_atr_val:.2f} | **Стоп:** {_stop:.2f} | **Активация:** {_trail_activate:.2f}
+#                     """)
             
-            # === ГРАФИК D1 С УРОВНЯМИ ===
-            with st.expander("📈 График D1 с уровнями", expanded=False):
-                _candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
-                if _candle_file.exists():
-                    _df_d1_graph = pd.read_parquet(_candle_file)
-                    if len(_df_d1_graph) > 0:
-                        _df_d1_graph["begin"] = pd.to_datetime(_df_d1_graph["begin"])
-                        _fig_g = go.Figure()
-                        _fig_g.add_trace(go.Candlestick(x=_df_d1_graph["begin"], open=_df_d1_graph["open"], high=_df_d1_graph["high"], low=_df_d1_graph["low"], close=_df_d1_graph["close"], name="D1"))
-                        if adv_levels.get("support"):
-                            _fig_g.add_hline(y=adv_levels["support"], line_dash="dash", line_color="green", annotation_text=f"Поддержка: {adv_levels["support"]:.2f}")
-                        if adv_levels.get("resistance"):
-                            _fig_g.add_hline(y=adv_levels["resistance"], line_dash="dash", line_color="red", annotation_text=f"Сопротивление: {adv_levels["resistance"]:.2f}")
-                        if adv_levels.get("poc"):
-                            _fig_g.add_hline(y=adv_levels["poc"], line_dash="dot", line_color="white", annotation_text=f"POC: {adv_levels["poc"]:.2f}")
-                        _fig_g.update_layout(height=400, template="plotly_dark", title=f"{selected_ticker} D1 с уровнями")
-                        st.plotly_chart(_fig_g, use_container_width=True)
-                else:
-                    st.info("Нет данных свечей")
+#             # === ГРАФИК D1 С УРОВНЯМИ ===
+#             with st.expander("📈 График D1 с уровнями", expanded=False):
+#                 _candle_file = DATA_ROOT / "candles" / f"{selected_ticker}_D1.parquet"
+#                 if _candle_file.exists():
+#                     _df_d1_graph = pd.read_parquet(_candle_file)
+#                     if len(_df_d1_graph) > 0:
+#                         _df_d1_graph["begin"] = pd.to_datetime(_df_d1_graph["begin"])
+#                         _fig_g = go.Figure()
+#                         _fig_g.add_trace(go.Candlestick(x=_df_d1_graph["begin"], open=_df_d1_graph["open"], high=_df_d1_graph["high"], low=_df_d1_graph["low"], close=_df_d1_graph["close"], name="D1"))
+#                         if adv_levels.get("support"):
+#                             _fig_g.add_hline(y=adv_levels["support"], line_dash="dash", line_color="green", annotation_text=f"Поддержка: {adv_levels["support"]:.2f}")
+#                         if adv_levels.get("resistance"):
+#                             _fig_g.add_hline(y=adv_levels["resistance"], line_dash="dash", line_color="red", annotation_text=f"Сопротивление: {adv_levels["resistance"]:.2f}")
+#                         if adv_levels.get("poc"):
+#                             _fig_g.add_hline(y=adv_levels["poc"], line_dash="dot", line_color="white", annotation_text=f"POC: {adv_levels["poc"]:.2f}")
+#                         _fig_g.update_layout(height=400, template="plotly_dark", title=f"{selected_ticker} D1 с уровнями")
+#                         st.plotly_chart(_fig_g, use_container_width=True)
+#                 else:
+#                     st.info("Нет данных свечей")
 
 
-            with st.expander("🔔 MegaAlerts", expanded=False):
-                _alerts = get_mega_alerts(selected_ticker, market='fo', days=2)
-                if _alerts:
-                    for _a in _alerts:
-                        _sev = "🔴" if _a["severity"] == "high" else "🟡"
-                        st.caption(f"{_a["time"]} | {_a["type"]}")
-                else:
-                    st.caption("Нет алертов")
+#             with st.expander("🔔 MegaAlerts", expanded=False):
+#                 _alerts = get_mega_alerts(selected_ticker, market='fo', days=2)
+#                 if _alerts:
+#                     for _a in _alerts:
+#                         _sev = "🔴" if _a["severity"] == "high" else "🟡"
+#                         st.caption(f"{_a["time"]} | {_a["type"]}")
+#                 else:
+#                     st.caption("Нет алертов")
 
-        with tab2:
-            st.subheader(f"4H: {scanner['signals']['4H']['signal']} (скор: {scanner['signals']['4H']['score']}/100)")
-            d4 = scanner['signals']['4H']['details']
-            st.caption(f"fiz_buy: {d4.get('fiz_buy', '—')}% | Δ: {d4.get('fiz_delta', 0):+.2f}%")
+#         with tab2:
+#             st.subheader(f"4H: {scanner['signals']['4H']['signal']} (скор: {scanner['signals']['4H']['score']}/100)")
+#             d4 = scanner['signals']['4H']['details']
+#             st.caption(f"fiz_buy: {d4.get('fiz_buy', '—')}% | Δ: {d4.get('fiz_delta', 0):+.2f}%")
             
-            # График fiz/yur (если есть данные)
-            if df_4h is not None and len(df_4h) > 3:
-                fig2 = go.Figure()
-                fig2.add_trace(go.Scatter(x=df_4h['hour'], y=df_4h['fiz_buy_ratio'], mode='lines+markers', name='Физ %', line=dict(color='#00BFFF')))
-                fig2.add_trace(go.Scatter(x=df_4h['hour'], y=df_4h['yur_buy_ratio'], mode='lines+markers', name='Юр %', line=dict(color='#FF6B6B')))
-                fig2.update_layout(height=300, template='plotly_dark', title='FutOI 4H')
-                st.plotly_chart(fig2, use_container_width=True)
+#             # График fiz/yur (если есть данные)
+#             if df_4h is not None and len(df_4h) > 3:
+#                 fig2 = go.Figure()
+#                 fig2.add_trace(go.Scatter(x=df_4h['hour'], y=df_4h['fiz_buy_ratio'], mode='lines+markers', name='Физ %', line=dict(color='#00BFFF')))
+#                 fig2.add_trace(go.Scatter(x=df_4h['hour'], y=df_4h['yur_buy_ratio'], mode='lines+markers', name='Юр %', line=dict(color='#FF6B6B')))
+#                 fig2.update_layout(height=300, template='plotly_dark', title='FutOI 4H')
+#                 st.plotly_chart(fig2, use_container_width=True)
 
             
-            # Свечной график H1 (агрегируем до 4H)
-            _h1_file = DATA_ROOT / "candles" / f"{selected_ticker}_H1.parquet"
-            if _h1_file.exists():
-                _h1_df = pd.read_parquet(_h1_file)
-                if len(_h1_df) > 10:
-                    _h1_df['begin'] = pd.to_datetime(_h1_df['begin'])
-                    _h1_df = _h1_df.sort_values('begin')
-                    # Агрегируем в 4H
-                    _h1_df['h4_block'] = _h1_df['begin'].dt.floor('4h')
-                    _h4_candles = _h1_df.groupby('h4_block').agg(
-                        open=('open', 'first'),
-                        high=('high', 'max'),
-                        low=('low', 'min'),
-                        close=('close', 'last'),
-                        volume=('volume', 'sum')
-                    ).reset_index()
+#             # Свечной график H1 (агрегируем до 4H)
+#             _h1_file = DATA_ROOT / "candles" / f"{selected_ticker}_H1.parquet"
+#             if _h1_file.exists():
+#                 _h1_df = pd.read_parquet(_h1_file)
+#                 if len(_h1_df) > 10:
+#                     _h1_df['begin'] = pd.to_datetime(_h1_df['begin'])
+#                     _h1_df = _h1_df.sort_values('begin')
+#                     # Агрегируем в 4H
+#                     _h1_df['h4_block'] = _h1_df['begin'].dt.floor('4h')
+#                     _h4_candles = _h1_df.groupby('h4_block').agg(
+#                         open=('open', 'first'),
+#                         high=('high', 'max'),
+#                         low=('low', 'min'),
+#                         close=('close', 'last'),
+#                         volume=('volume', 'sum')
+#                     ).reset_index()
                     
-                    st.subheader("🕯️ Свечи 4H (из H1)")
-                    _fig_h4 = go.Figure()
-                    _fig_h4.add_trace(go.Candlestick(
-                        x=_h4_candles['h4_block'],
-                        open=_h4_candles['open'],
-                        high=_h4_candles['high'],
-                        low=_h4_candles['low'],
-                        close=_h4_candles['close'],
-                        name='4H'
-                    ))
-                    _fig_h4.update_layout(height=350, template='plotly_dark')
-                    st.plotly_chart(_fig_h4, use_container_width=True)
+#                     st.subheader("🕯️ Свечи 4H (из H1)")
+#                     _fig_h4 = go.Figure()
+#                     _fig_h4.add_trace(go.Candlestick(
+#                         x=_h4_candles['h4_block'],
+#                         open=_h4_candles['open'],
+#                         high=_h4_candles['high'],
+#                         low=_h4_candles['low'],
+#                         close=_h4_candles['close'],
+#                         name='4H'
+#                     ))
+#                     _fig_h4.update_layout(height=350, template='plotly_dark')
+#                     st.plotly_chart(_fig_h4, use_container_width=True)
                     
-                    # Уровни VP на основе 4H свечей
-                    if len(_h4_candles) >= 20:
-                        _h4_candles['typical_price'] = (_h4_candles['high'] + _h4_candles['low'] + _h4_candles['close']) / 3
-                        _vp = _h4_candles.groupby(_h4_candles['typical_price'].round(1))['volume'].sum().reset_index()
-                        _vp = _vp.sort_values('volume', ascending=False)
-                        if len(_vp) > 0:
-                            _poc = _vp.iloc[0]['typical_price']
-                            st.caption(f"🎯 POC (4H): {_poc:.2f} (макс. объём)")
+#                     # Уровни VP на основе 4H свечей
+#                     if len(_h4_candles) >= 20:
+#                         _h4_candles['typical_price'] = (_h4_candles['high'] + _h4_candles['low'] + _h4_candles['close']) / 3
+#                         _vp = _h4_candles.groupby(_h4_candles['typical_price'].round(1))['volume'].sum().reset_index()
+#                         _vp = _vp.sort_values('volume', ascending=False)
+#                         if len(_vp) > 0:
+#                             _poc = _vp.iloc[0]['typical_price']
+#                             st.caption(f"🎯 POC (4H): {_poc:.2f} (макс. объём)")
         
-        with tab3:
-            st.subheader(f"1H: {scanner['signals']['1H']['signal']} (скор: {scanner['signals']['1H']['score']}/100)")
-            d1h = scanner['signals']['1H']['details']
-            st.caption(f"fiz_buy: {d1h.get('fiz_buy', '—')}% | Δ: {d1h.get('fiz_delta', 0):+.2f}%")
+#         with tab3:
+#             st.subheader(f"1H: {scanner['signals']['1H']['signal']} (скор: {scanner['signals']['1H']['score']}/100)")
+#             d1h = scanner['signals']['1H']['details']
+#             st.caption(f"fiz_buy: {d1h.get('fiz_buy', '—')}% | Δ: {d1h.get('fiz_delta', 0):+.2f}%")
             
-            # График fiz/yur 1H
-            if df_1h is not None and len(df_1h) > 5:
-                fig3 = go.Figure()
-                fig3.add_trace(go.Scatter(x=df_1h['hour'], y=df_1h['fiz_buy_ratio'], mode='lines', name='Физ %', line=dict(color='#00BFFF')))
-                fig3.add_trace(go.Scatter(x=df_1h['hour'], y=df_1h['yur_buy_ratio'], mode='lines', name='Юр %', line=dict(color='#FF6B6B')))
-                fig3.update_layout(height=300, template='plotly_dark', title='FutOI 1H')
-                st.plotly_chart(fig3, use_container_width=True)
+#             # График fiz/yur 1H
+#             if df_1h is not None and len(df_1h) > 5:
+#                 fig3 = go.Figure()
+#                 fig3.add_trace(go.Scatter(x=df_1h['hour'], y=df_1h['fiz_buy_ratio'], mode='lines', name='Физ %', line=dict(color='#00BFFF')))
+#                 fig3.add_trace(go.Scatter(x=df_1h['hour'], y=df_1h['yur_buy_ratio'], mode='lines', name='Юр %', line=dict(color='#FF6B6B')))
+#                 fig3.update_layout(height=300, template='plotly_dark', title='FutOI 1H')
+#                 st.plotly_chart(fig3, use_container_width=True)
             
-            # Метрики 1H
-            if df_1h is not None and len(df_1h) >= 2:
-                _latest_1h = df_1h.iloc[-1]
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("% физ (1H)", f"{_latest_1h['fiz_buy_ratio']:.1f}%", delta=f"{_latest_1h['fiz_ratio_delta']:+.1f}%" if pd.notna(_latest_1h.get('fiz_ratio_delta')) else None)
-                with col2:
-                    st.metric("% юр (1H)", f"{_latest_1h['yur_buy_ratio']:.1f}%", delta=f"{_latest_1h['yur_ratio_delta']:+.1f}%" if pd.notna(_latest_1h.get('yur_ratio_delta')) else None)
-                with col3:
-                    _phys = _latest_1h['fiz_long'] - _latest_1h['fiz_short']
-                    st.metric("Нетто физиков", f"{_phys:+,.0f}".replace(",", " "))
+#             # Метрики 1H
+#             if df_1h is not None and len(df_1h) >= 2:
+#                 _latest_1h = df_1h.iloc[-1]
+#                 col1, col2, col3 = st.columns(3)
+#                 with col1:
+#                     st.metric("% физ (1H)", f"{_latest_1h['fiz_buy_ratio']:.1f}%", delta=f"{_latest_1h['fiz_ratio_delta']:+.1f}%" if pd.notna(_latest_1h.get('fiz_ratio_delta')) else None)
+#                 with col2:
+#                     st.metric("% юр (1H)", f"{_latest_1h['yur_buy_ratio']:.1f}%", delta=f"{_latest_1h['yur_ratio_delta']:+.1f}%" if pd.notna(_latest_1h.get('yur_ratio_delta')) else None)
+#                 with col3:
+#                     _phys = _latest_1h['fiz_long'] - _latest_1h['fiz_short']
+#                     st.metric("Нетто физиков", f"{_phys:+,.0f}".replace(",", " "))
             
-            # GARCH и тренд 1H
-            _h1_file = DATA_ROOT / "candles" / f"{selected_ticker}_H1.parquet"
-            if _h1_file.exists():
-                _df_h1 = pd.read_parquet(_h1_file)
-                if len(_df_h1) >= 20:
-                    _garch_1h = calculate_garch_for_ticker(_df_h1, selected_ticker)
-                    _df_h1['sma20'] = _df_h1['close'].rolling(20).mean()
-                    _h1_trend = "📈 Бычий" if _df_h1['close'].iloc[-1] > _df_h1['sma20'].iloc[-1] * 1.002 else ("📉 Медвежий" if _df_h1['close'].iloc[-1] < _df_h1['sma20'].iloc[-1] * 0.998 else "◼ Боковик")
+#             # GARCH и тренд 1H
+#             _h1_file = DATA_ROOT / "candles" / f"{selected_ticker}_H1.parquet"
+#             if _h1_file.exists():
+#                 _df_h1 = pd.read_parquet(_h1_file)
+#                 if len(_df_h1) >= 20:
+#                     _garch_1h = calculate_garch_for_ticker(_df_h1, selected_ticker)
+#                     _df_h1['sma20'] = _df_h1['close'].rolling(20).mean()
+#                     _h1_trend = "📈 Бычий" if _df_h1['close'].iloc[-1] > _df_h1['sma20'].iloc[-1] * 1.002 else ("📉 Медвежий" if _df_h1['close'].iloc[-1] < _df_h1['sma20'].iloc[-1] * 0.998 else "◼ Боковик")
                     
-                    col_r1, col_r2 = st.columns(2)
-                    with col_r1:
-                        st.metric("GARCH (1H)", f"{_garch_1h.get('garch_vol', 0):.1f}%", delta=_garch_1h.get('trend', '—'))
-                    with col_r2:
-                        st.metric("Тренд 1H", _h1_trend)
+#                     col_r1, col_r2 = st.columns(2)
+#                     with col_r1:
+#                         st.metric("GARCH (1H)", f"{_garch_1h.get('garch_vol', 0):.1f}%", delta=_garch_1h.get('trend', '—'))
+#                     with col_r2:
+#                         st.metric("Тренд 1H", _h1_trend)
             
-            # Дельта за 1 час (таблица)
-            if df_1h is not None and len(df_1h) >= 3:
-                st.markdown("---")
-                with st.expander("📊 Дельта за 1 час (последние 10)", expanded=False):
-                    _delta_df = df_1h.tail(10)[["hour", "fiz_ratio_delta", "yur_ratio_delta"]].copy()
-                    _delta_lines = []
-                    for _, row in _delta_df.iterrows():
-                        fiz_d = row['fiz_ratio_delta']
-                        yur_d = row['yur_ratio_delta']
-                        f_arrow = "▲" if fiz_d > 0 else "▼" if fiz_d < 0 else "▬"
-                        y_arrow = "▲" if yur_d > 0 else "▼" if yur_d < 0 else "▬"
-                        if fiz_d > 0.05 and yur_d < -0.05:
-                            _action = "Физики покупают, юрики продают"
-                        elif fiz_d < -0.05 and yur_d > 0.05:
-                            _action = "Физики продают, юрики покупают"
-                        elif fiz_d > 0.05 and yur_d > 0.05:
-                            _action = "Обе группы покупают"
-                        elif fiz_d < -0.05 and yur_d < -0.05:
-                            _action = "Обе группы продают"
-                        else:
-                            _action = "Нейтрально"
-                        _t = pd.to_datetime(row['hour']).strftime("%H:%M")
-                        _delta_lines.append(f"{_t} Физ:{f_arrow}{abs(fiz_d):.1f}% Юр:{y_arrow}{abs(yur_d):.1f}% → {_action}")
-                    _delta_text = "\n".join(_delta_lines)
-                    st.text(_delta_text)
+#             # Дельта за 1 час (таблица)
+#             if df_1h is not None and len(df_1h) >= 3:
+#                 st.markdown("---")
+#                 with st.expander("📊 Дельта за 1 час (последние 10)", expanded=False):
+#                     _delta_df = df_1h.tail(10)[["hour", "fiz_ratio_delta", "yur_ratio_delta"]].copy()
+#                     _delta_lines = []
+#                     for _, row in _delta_df.iterrows():
+#                         fiz_d = row['fiz_ratio_delta']
+#                         yur_d = row['yur_ratio_delta']
+#                         f_arrow = "▲" if fiz_d > 0 else "▼" if fiz_d < 0 else "▬"
+#                         y_arrow = "▲" if yur_d > 0 else "▼" if yur_d < 0 else "▬"
+#                         if fiz_d > 0.05 and yur_d < -0.05:
+#                             _action = "Физики покупают, юрики продают"
+#                         elif fiz_d < -0.05 and yur_d > 0.05:
+#                             _action = "Физики продают, юрики покупают"
+#                         elif fiz_d > 0.05 and yur_d > 0.05:
+#                             _action = "Обе группы покупают"
+#                         elif fiz_d < -0.05 and yur_d < -0.05:
+#                             _action = "Обе группы продают"
+#                         else:
+#                             _action = "Нейтрально"
+#                         _t = pd.to_datetime(row['hour']).strftime("%H:%M")
+#                         _delta_lines.append(f"{_t} Физ:{f_arrow}{abs(fiz_d):.1f}% Юр:{y_arrow}{abs(yur_d):.1f}% → {_action}")
+#                     _delta_text = "\n".join(_delta_lines)
+#                     st.text(_delta_text)
     
-    st.markdown("---")
+#     st.markdown("---")
 
 # elif page == "📊 Парная торговля":
 #     st.title("📊 Парная торговля")
