@@ -74,8 +74,12 @@ def analyze_pair(df_a, df_b, price_col='close', window=20):
     # Выравниваем по датам
     if 'begin' in df_a.columns:
         df_a['date'] = pd.to_datetime(df_a['begin'])
+    elif 'tradedate' in df_a.columns:
+        df_a['date'] = pd.to_datetime(df_a['tradedate'])
     if 'begin' in df_b.columns:
         df_b['date'] = pd.to_datetime(df_b['begin'])
+    elif 'tradedate' in df_b.columns:
+        df_b['date'] = pd.to_datetime(df_b['tradedate'])
     
     merged = pd.merge(
         df_a[['date', price_col]].rename(columns={price_col: 'price_a'}),
