@@ -4383,8 +4383,6 @@ elif page == "📊 Торговые роботы":
 
                 # Сравнение с LQDT
                 st.markdown("---")
-                # Сравнение с LQDT (бенчмарк)
-                st.markdown("---")
                 st.subheader("📊 Сравнение с LQDT (бенчмарк)")
                 st.caption("LQDT — фонд ликвидности MOEX (безрисковый ориентир). Сравниваем доходность за одинаковые периоды.")
 
@@ -4399,6 +4397,11 @@ elif page == "📊 Торговые роботы":
                     _robot_end = pd.to_datetime(_closed_df['exit_time'].max())
 
                     _lqdt_period = _lqdt_df[(_lqdt_df['begin'] >= _robot_start) & (_lqdt_df['begin'] <= _robot_end)]
+
+                    # Если данных мало, берём ближайшие доступные записи
+                    if len(_lqdt_period) < 2:
+                        _lqdt_before = _lqdt_df[_lqdt_df['begin'] <= _fut_end].tail(2)
+                        _lqdt_period = _lqdt_before
 
                     if len(_lqdt_period) > 1:
                         _lqdt_start_price = _lqdt_period['close'].iloc[0]
@@ -4622,6 +4625,54 @@ elif page == "📊 Торговые роботы":
                     st.metric("Средний PnL (убыточные)", f"{_avg_loss:+.1f}₽")
 
                 # Журнал
+                # Сравнение с LQDT
+                st.markdown("---")
+                st.subheader("📊 Сравнение с LQDT (бенчмарк)")
+                st.caption("LQDT — фонд ликвидности MOEX (безрисковый ориентир).")
+
+                _lqdt_file = Path('/root/finlab/data/candles/LQDT_D1.parquet')
+                if _lqdt_file.exists():
+                    _lqdt_df = pd.read_parquet(_lqdt_file)
+                    _lqdt_df['begin'] = pd.to_datetime(_lqdt_df['begin'])
+                    _lqdt_df = _lqdt_df.sort_values('begin')
+
+                    _fut_start = pd.to_datetime(_fut_closed_df['entry_time'].min())
+                    _fut_end = pd.to_datetime(_fut_closed_df['exit_time'].max())
+
+                    _lqdt_period = _lqdt_df[(_lqdt_df['begin'] >= _fut_start) & (_lqdt_df['begin'] <= _fut_end)]
+
+                    # Если данных мало, берём ближайшие доступные записи
+                    if len(_lqdt_period) < 2:
+                        _lqdt_before = _lqdt_df[_lqdt_df['begin'] <= _fut_end].tail(2)
+                        _lqdt_period = _lqdt_before
+
+                    if len(_lqdt_period) > 1:
+                        _lqdt_start_price = _lqdt_period['close'].iloc[0]
+                        _lqdt_end_price = _lqdt_period['close'].iloc[-1]
+                        _lqdt_return = (_lqdt_end_price - _lqdt_start_price) / _lqdt_start_price * 100
+
+                        _fut_total_pnl = _fut_closed_df['pnl'].sum()
+                        _fut_robot_return = _fut_total_pnl / _deposit * 100
+                        _fut_diff = _fut_robot_return - _lqdt_return
+
+                        col_lqdt1, col_lqdt2, col_lqdt3 = st.columns(3)
+                        with col_lqdt1:
+                            st.metric("Общий PnL", f"{_fut_total_pnl:+.1f}₽")
+                        with col_lqdt2:
+                            st.metric("Робот (доходность)", f"{_fut_robot_return:+.2f}%")
+                        with col_lqdt3:
+                            st.metric("LQDT (бенчмарк)", f"{_lqdt_return:+.2f}%")
+
+                        if _fut_diff > 0:
+                            st.success(f"✅ Робот опережает LQDT на {_fut_diff:+.2f}%")
+                        else:
+                            st.error(f"❌ Робот отстаёт от LQDT на {_fut_diff:+.2f}%")
+                    else:
+                        st.info("Недостаточно данных LQDT для сравнения")
+                else:
+                    st.info("LQDT данные не найдены")
+
+
                 st.subheader("📝 Журнал сделок")
                 _fut_closed_display = _fut_closed_df[['ticker', 'direction', 'entry_price', 'exit_price', 'pnl', 'exit_reason', 'entry_time', 'exit_time']].copy()
                 _fut_closed_display.columns = ['Тикер', 'Направление', 'Вход', 'Выход', 'PnL (₽)', 'Причина', 'Время входа', 'Время выхода']
