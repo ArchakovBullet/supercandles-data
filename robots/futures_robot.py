@@ -212,20 +212,58 @@ def main():
                     fiz['phys_net'] = fiz['pos_long'] - fiz['pos_short']
                     yur['corp_net'] = yur['pos_long'] - yur['pos_short']
                     
-                    # Агрегируем по дням
+                    # Агрегируем по дням (D1)
                     fiz_d1 = fiz.groupby('tradedate').agg({'buy_ratio': 'last', 'phys_net': 'last'}).rename(columns={'buy_ratio': 'fiz_buy_ratio'})
                     yur_d1 = yur.groupby('tradedate').agg({'buy_ratio': 'last', 'corp_net': 'last'}).rename(columns={'buy_ratio': 'yur_buy_ratio'})
                     
                     df_futoi_d1 = fiz_d1.join(yur_d1, on='tradedate')
                     df_futoi_d1 = df_futoi_d1.reset_index()
                     
-                    # Объединяем со свечами
+                    # Объединяем со свечами D1
                     df_d1['begin'] = pd.to_datetime(df_d1['begin'])
                     df_d1 = pd.merge(df_d1, df_futoi_d1, left_on='begin', right_on='tradedate', how='left')
                     df_d1 = df_d1.ffill()
                     df_d1['fiz_buy_ratio'] = df_d1['fiz_buy_ratio'].fillna(50)
                     df_d1['phys_net'] = df_d1['phys_net'].fillna(0)
                     df_d1['corp_net'] = df_d1['corp_net'].fillna(0)
+                    
+                    # Агрегируем FutOI в 4H
+                    fiz_4h = fiz.copy()
+                    fiz_4h['tradedate_4h'] = fiz_4h['tradedate'] + pd.to_timedelta((fiz_4h['tradedate'].dt.hour // 4) * 4, unit='h')
+                    yur_4h = yur.copy()
+                    yur_4h['tradedate_4h'] = yur_4h['tradedate'] + pd.to_timedelta((yur_4h['tradedate'].dt.hour // 4) * 4, unit='h')
+                    
+                    fiz_4h_agg = fiz_4h.groupby('tradedate_4h').agg({'buy_ratio': 'last', 'phys_net': 'last'}).rename(columns={'buy_ratio': 'fiz_buy_ratio'})
+                    yur_4h_agg = yur_4h.groupby('tradedate_4h').agg({'buy_ratio': 'last', 'corp_net': 'last'}).rename(columns={'buy_ratio': 'yur_buy_ratio'})
+                    
+                    df_futoi_4h = fiz_4h_agg.join(yur_4h_agg, on='tradedate_4h').reset_index()
+                    
+                    # Объединяем со свечами 4H
+                    df_4h['tradedate'] = pd.to_datetime(df_4h['tradedate'])
+                    df_4h = pd.merge(df_4h, df_futoi_4h, left_on='tradedate', right_on='tradedate_4h', how='left')
+                    df_4h = df_4h.ffill()
+                    df_4h['fiz_buy_ratio'] = df_4h['fiz_buy_ratio'].fillna(50)
+                    df_4h['phys_net'] = df_4h['phys_net'].fillna(0)
+                    df_4h['corp_net'] = df_4h['corp_net'].fillna(0)
+                    
+                    # Агрегируем FutOI в 1H
+                    fiz_1h = fiz.copy()
+                    fiz_1h['tradedate_1h'] = fiz_1h['tradedate'] + pd.to_timedelta(fiz_1h['tradedate'].dt.hour, unit='h')
+                    yur_1h = yur.copy()
+                    yur_1h['tradedate_1h'] = yur_1h['tradedate'] + pd.to_timedelta(yur_1h['tradedate'].dt.hour, unit='h')
+                    
+                    fiz_1h_agg = fiz_1h.groupby('tradedate_1h').agg({'buy_ratio': 'last', 'phys_net': 'last'}).rename(columns={'buy_ratio': 'fiz_buy_ratio'})
+                    yur_1h_agg = yur_1h.groupby('tradedate_1h').agg({'buy_ratio': 'last', 'corp_net': 'last'}).rename(columns={'buy_ratio': 'yur_buy_ratio'})
+                    
+                    df_futoi_1h = fiz_1h_agg.join(yur_1h_agg, on='tradedate_1h').reset_index()
+                    
+                    # Объединяем со свечами 1H
+                    df_1h['tradedate'] = pd.to_datetime(df_1h['begin'])
+                    df_1h = pd.merge(df_1h, df_futoi_1h, left_on='tradedate', right_on='tradedate_1h', how='left')
+                    df_1h = df_1h.ffill()
+                    df_1h['fiz_buy_ratio'] = df_1h['fiz_buy_ratio'].fillna(50)
+                    df_1h['phys_net'] = df_1h['phys_net'].fillna(0)
+                    df_1h['corp_net'] = df_1h['corp_net'].fillna(0)
                 else:
                     df_d1['fiz_buy_ratio'] = 50
                     df_d1['phys_net'] = 0
