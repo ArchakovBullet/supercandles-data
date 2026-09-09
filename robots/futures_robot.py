@@ -335,4 +335,8 @@ def main():
     print("\n✅ Проверка завершена")
 
 if __name__ == '__main__':
-    main()
+    # Бесконечный цикл для systemd
+    while True:
+        main()
+        print('Ожидание 1 час...')
+        time.sleep(3600)  # Проверка каждый час

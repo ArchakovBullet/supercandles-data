@@ -4385,7 +4385,112 @@ elif page == "📊 Торговые роботы":
         st.info("🚧 В разработке")
 
     elif robot_tab == "📉 Робот фьючерсов":
-        st.info("🚧 В разработке")
+        st.subheader("📉 Робот фьючерсов")
+        st.info("Бумажный режим — виртуальные сделки без реального исполнения")
+
+        # Проверка статуса робота
+        import subprocess
+        import sqlite3
+        _fut_robot_running = False
+
+        # Проверяем через systemd
+        _fut_result = subprocess.run(['systemctl', 'is-active', 'finlab-futures-robot'], capture_output=True, text=True)
+        _fut_robot_running = _fut_result.stdout.strip() == 'active' 
+
+        if _fut_robot_running:
+            st.success("🟢 Робот фьючерсов работает")
+        else:
+            st.error("🔴 Робот фьючерсов остановлен")
+
+        # Кнопки управления
+        col_fut_start, col_fut_pause, col_fut_stop = st.columns(3)
+        
+        with col_fut_start:
+            if _fut_robot_running:
+                st.button("▶️ Старт", type="primary", use_container_width=True, key="fut_start_running", disabled=True)
+            else:
+                if st.button("▶️ Старт", type="primary", use_container_width=True, key="fut_start_stopped"):
+                    subprocess.run(['systemctl', 'start', 'finlab-futures-robot'], capture_output=True)
+                    st.rerun()
+        
+        with col_fut_pause:
+            if _fut_robot_running:
+                if st.button("⏸️ Пауза", type="secondary", use_container_width=True, key="fut_pause_running"):
+                    subprocess.run(['systemctl', 'stop', 'finlab-futures-robot'], capture_output=True)
+                    st.warning("Робот на паузе. Открытые позиции заморожены.")
+                    st.rerun()
+            else:
+                st.button("⏸️ Пауза", type="secondary", use_container_width=True, key="fut_pause_stopped", disabled=True)
+        
+        with col_fut_stop:
+            if _fut_robot_running:
+                if st.button("🛑 Стоп", type="secondary", use_container_width=True, key="fut_stop_running"):
+                    # Закрываем все позиции
+                    if _fut_db_path.exists():
+                        _conn_stop = sqlite3.connect(_fut_db_path)
+                        _cursor_stop = _conn_stop.cursor()
+                        _cursor_stop.execute('UPDATE futures_positions SET status="CLOSED", exit_time=?, exit_reason="MANUAL_STOP" WHERE status="OPEN"', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),))
+                        _conn_stop.commit()
+                        _conn_stop.close()
+                    subprocess.run(['systemctl', 'stop', 'finlab-futures-robot'], capture_output=True)
+                    st.error("Робот остановлен! Все позиции закрыты.")
+                    st.rerun()
+            else:
+                st.button("🛑 Стоп", type="secondary", use_container_width=True, key="fut_stop_stopped", disabled=True)
+
+        # БД робота фьючерсов
+        _fut_db_path = Path('/root/finlab/robots/futures_robot.db')
+
+        if _fut_db_path.exists():
+            _conn = sqlite3.connect(_fut_db_path)
+            _fut_open_df = pd.read_sql_query('SELECT * FROM futures_positions WHERE status="OPEN"', _conn)
+            _fut_closed_df = pd.read_sql_query('SELECT * FROM futures_positions WHERE status="CLOSED"', _conn)
+            _conn.close()
+
+            # Открытые позиции
+            if len(_fut_open_df) > 0:
+                st.subheader("📊 Открытые позиции")
+                _fut_open_display = _fut_open_df[['ticker', 'direction', 'volume', 'entry_score', 'entry_price', 'entry_time']].copy()
+                _fut_open_display.columns = ['Тикер', 'Направление', 'Объём', 'Скор', 'Цена входа', 'Время входа']
+                st.dataframe(_fut_open_display, use_container_width=True, hide_index=True)
+
+            # Статистика
+            if len(_fut_closed_df) > 0:
+                st.subheader("📈 Статистика сделок")
+                _profitable = _fut_closed_df[_fut_closed_df['pnl'] > 0]
+                _unprofitable = _fut_closed_df[_fut_closed_df['pnl'] <= 0]
+                _total_pnl = _fut_closed_df['pnl'].sum()
+                _win_rate = len(_profitable) / len(_fut_closed_df) * 100 if len(_fut_closed_df) > 0 else 0
+
+                col_f1, col_f2, col_f3, col_f4 = st.columns(4)
+                with col_f1:
+                    st.metric("Всего сделок", len(_fut_closed_df))
+                with col_f2:
+                    st.metric("Прибыльных", len(_profitable))
+                with col_f3:
+                    st.metric("Убыточных", len(_unprofitable))
+                with col_f4:
+                    st.metric("Win Rate", f"{_win_rate:.1f}%")
+
+                col_p1, col_p2, col_p3 = st.columns(3)
+                with col_p1:
+                    st.metric("Общий PnL", f"{_total_pnl:+.1f}₽")
+                with col_p2:
+                    _avg_win = _profitable['pnl'].mean() if len(_profitable) > 0 else 0
+                    st.metric("Средний PnL (прибыльные)", f"{_avg_win:+.1f}₽")
+                with col_p3:
+                    _avg_loss = _unprofitable['pnl'].mean() if len(_unprofitable) > 0 else 0
+                    st.metric("Средний PnL (убыточные)", f"{_avg_loss:+.1f}₽")
+
+                # Журнал
+                st.subheader("📝 Журнал сделок")
+                _fut_closed_display = _fut_closed_df[['ticker', 'direction', 'entry_price', 'exit_price', 'pnl', 'exit_reason', 'entry_time', 'exit_time']].copy()
+                _fut_closed_display.columns = ['Тикер', 'Направление', 'Вход', 'Выход', 'PnL (₽)', 'Причина', 'Время входа', 'Время выхода']
+                st.dataframe(_fut_closed_display, use_container_width=True, hide_index=True)
+            else:
+                st.info("Закрытых сделок пока нет")
+        else:
+            st.info("БД робота фьючерсов не найдена")
 
 elif page == "📊 Скринер акций":
     st.title("📊 Скринер акций")
