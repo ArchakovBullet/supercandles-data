@@ -46,7 +46,7 @@ VK_GROUP_ID = os.getenv('VK_GROUP_ID', '497763452')
 DEPOSIT = 100_000  # Виртуальный капитал
 VOLUME_TYPE = 'contracts'  # contracts / contract_currency / deposit_percent
 VOLUME = 1.0  # 1 контракт/акция
-CHECK_INTERVALS = {'M10': 600, 'H1': 3600}  # секунд
+CHECK_INTERVALS = {'M10': 600, 'H1': 3600, 'H4': 14400}  # секунд
 ENTRY_Z_DEFAULT = 3.0
 EXIT_Z_DEFAULT = 0.5
 
@@ -311,7 +311,7 @@ def main():
         pairs_config = json.load(f)
     
     running = True
-    last_check = {'M10': 0, 'H1': 0}
+    last_check = {'M10': 0, 'H1': 0, 'H4': 0}
     
     while running:
         try:
