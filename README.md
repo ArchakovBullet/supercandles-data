@@ -60,7 +60,7 @@
 
 ## WORK_LOG
 
-Актуальный дневник разработки: [WORK_LOG.md](https://github.com/ArchakovBullet/finlab-dashboard/blob/master/WORK_LOG.md)
+Актуальный дневник разработки: [WORK_LOG.md](https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/WORK_LOG.md)
 
 ---
 
