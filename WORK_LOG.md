@@ -602,3 +602,23 @@
 - [ ] Дождаться ответа от поддержки MOEX
 - [ ] Робот акций
 - [ ] Оптимизация стоп-лосса фьючерсного робота
+
+## 10.09.2026 (финальная сессия)
+
+### ✅ Выполнено
+
+**Безопасность:**
+- Удалены все токены из Git (vk_bot.py, scripts/*.py, TOKENS_INFO.md)
+- Заменены на os.getenv("VK_TOKEN", "")
+- Репозиторий supercandles-data сделан публичным
+- Ссылки WORK_LOG.md и README.md теперь работают (HTTP 200)
+
+**Workflow:**
+- Новый запрос для старта чата:
+  - https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/WORK_LOG.md
+  - https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/README.md
+
+### 🎯 На следующий раз
+- [ ] Дождаться ответа от поддержки MOEX
+- [ ] Робот акций
+- [ ] Оптимизация стоп-лосса фьючерсного робота
