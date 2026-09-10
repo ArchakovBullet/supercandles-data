@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Еженедельная переоптимизация парной торговли."""
+import os
 import sys
 import json
 from pathlib import Path
@@ -16,7 +17,7 @@ import numpy as np
 import vk_api
 
 # ========== КОНФИГ ==========
-TOKEN = "vk1.a.SlI9YR5W8dTnTYhVLlhNxXEmgDo6rImtWM1jEIpsZKb9KR8EB_x325YDm_Piu1QZffsffqKethgXWlBH3G0e_6h9DUmZEVzbCmXajTm3jW33hE1F49dUOVtjHGRLYN_5pYOnLN0ZiFpdu_DVVqPHLfShNWDBN1prFS7Yf1ec-PE75C_hhs5Mo7SANbnE_uWzA3dGP3_l3So8HfcUVW3f8A"
+TOKEN = os.getenv("VK_TOKEN", "")
 ADMIN_ID = 497763452
 
 CANDLES_DIR = Path('/root/finlab/data/candles')
