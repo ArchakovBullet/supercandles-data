@@ -47,6 +47,52 @@ DEPOSIT = 100_000  # Виртуальный капитал
 VOLUME_TYPE = 'contracts'  # contracts / contract_currency / deposit_percent
 VOLUME = 1.0  # 1 контракт/акция
 CHECK_INTERVALS = {'M10': 600, 'H1': 3600, 'H4': 14400}  # секунд
+
+# Пороги свежести данных (в часах)
+FRESHNESS_THRESHOLDS = {
+    'M10': 2,
+    'H1': 4,
+    'H4': 12,
+    'D1': 24,
+}
+
+def is_tf_fresh(tf):
+    """Проверить, что данные ТФ свежие (хотя бы половина пар)"""
+    import time as _time
+    max_age = FRESHNESS_THRESHOLDS.get(tf, 4) * 3600
+    
+    try:
+        with open(CONFIG_PATH, 'r') as f:
+            pairs_config = json.load(f)
+    except:
+        return False
+    
+    fresh_count = 0
+    total_count = 0
+    
+    for pair_name in pairs_config.get('pairs', {}):
+        if not pair_name.endswith(f'_{tf}'):
+            continue
+        base_pair = pair_name.replace(f'_{tf}', '')
+        if '-' not in base_pair:
+            continue
+        
+        ticker_a, ticker_b = base_pair.split('-')
+        file_a = CANDLES_DIR / f'{ticker_a}_{tf}.parquet'
+        file_b = CANDLES_DIR / f'{ticker_b}_{tf}.parquet'
+        
+        if not file_a.exists() or not file_b.exists():
+            continue
+        
+        total_count += 1
+        age = _time.time() - file_a.stat().st_mtime
+        if age < max_age:
+            fresh_count += 1
+    
+    if total_count == 0:
+        return False
+    
+    return fresh_count >= total_count / 2
 ENTRY_Z_DEFAULT = 3.0
 EXIT_Z_DEFAULT = 0.5
 
@@ -351,6 +397,17 @@ def check_signals_by_tf(pairs_config, tf):
     """Проверить сигналы по парам на конкретном ТФ"""
     print(f"\n📊 Проверка сигналов {tf}...")
     
+    # === ПРОВЕРКА СВЕЖЕСТИ ДАННЫХ ===
+    # В боевом режиме: не закрываем позиции при сбое, только не открываем новые
+    # Открытые позиции ждут восстановления данных (стопы на бирже защитят)
+    if not is_tf_fresh(tf):
+        print(f"  ⚠️ Данные {tf} устарели! Новые позиции по {tf} не открываются.")
+        # Отправляем уведомление (один раз)
+        send_vk_message(f"⚠️ Данные {tf} устарели! Новые позиции по {tf} приостановлены. Открытые позиции ждут восстановления.")
+        return
+
+
+
     for pair_name, pair_data in pairs_config.get('pairs', {}).items():
         if not pair_name.endswith(f'_{tf}'):
             continue
