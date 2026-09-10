@@ -107,13 +107,13 @@ def calculate_zscore(df_a, df_b, window=20):
         import numpy as np
         
         # Выравниваем по времени (begin)
-        merged = pd.merge(df_a[['begin', 'close']], df_b[['begin', 'close']], 
+        # Выравниваем по времени (begin или tradedate)
+        _time_col_a = 'begin' if 'begin' in df_a.columns else 'tradedate'
+        _time_col_b = 'begin' if 'begin' in df_b.columns else 'tradedate'
+        df_a_renamed = df_a[[_time_col_a, 'close']].rename(columns={_time_col_a: 'begin'})
+        df_b_renamed = df_b[[_time_col_b, 'close']].rename(columns={_time_col_b: 'begin'})
+        merged = pd.merge(df_a_renamed, df_b_renamed,
                           on='begin', suffixes=('_a', '_b'))
-        
-        if len(merged) < window:
-            return None
-        
-        # Логарифмический спред
         log_a = np.log(merged['close_a'])
         log_b = np.log(merged['close_b'])
         spread = log_a - log_b
@@ -398,7 +398,7 @@ def check_signals_by_tf(pairs_config, tf):
                 _now_msk = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=3)))
                 _hour = _now_msk.hour
                 _minute = _now_msk.minute
-                _is_trading_time = (_hour < 18) or (_hour == 18 and _minute == 0)
+                _is_trading_time = (7 <= _hour < 18)
                 
                 # Фильтр волатильности: std не должна быть аномально высокой
                 _std = result.get('std', 0)

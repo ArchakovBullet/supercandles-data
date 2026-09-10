@@ -359,13 +359,20 @@ def main():
                             open_tickers.discard(ticker)
                             break
             else:
+                # Фильтр времени: не входить до 10:00 и после 18:00 МСК
+                import datetime as _dt
+                _now_msk = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=3)))
+                _hour = _now_msk.hour
+                _is_trading_time = (10 <= _hour < 18)
+
                 # Проверяем вход
-                if decision == 'LONG' and score >= entry_threshold:
-                    open_position(ticker, 'LONG', 1.0, score, entry_price, atr)
-                    open_tickers.add(ticker)
-                elif decision == 'SHORT' and score >= entry_threshold:
-                    open_position(ticker, 'SHORT', 1.0, score, entry_price, atr)
-                    open_tickers.add(ticker)
+                if _is_trading_time:
+                    if decision == 'LONG' and score >= entry_threshold:
+                        open_position(ticker, 'LONG', 1.0, score, entry_price, atr)
+                        open_tickers.add(ticker)
+                    elif decision == 'SHORT' and score >= entry_threshold:
+                        open_position(ticker, 'SHORT', 1.0, score, entry_price, atr)
+                        open_tickers.add(ticker)
         
         except Exception as e:
             print(f"  ❌ {ticker}: {e}")
