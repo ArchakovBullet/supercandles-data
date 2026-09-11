@@ -4044,7 +4044,10 @@ elif page == "📊 Торговые роботы":
         _pairs_db = Path('/root/finlab/robots/pairs_robot.db')
         if _pairs_db.exists():
             _conn = _sqlite3.connect(_pairs_db)
-            _closed_pairs = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED"', _conn)
+            _closed_pairs = pd.read_sql_query(
+                'SELECT * FROM positions WHERE status="CLOSED" AND (exit_price_a != 0 AND exit_price_b != 0)',
+                _conn
+            )
             _open_pairs = pd.read_sql_query('SELECT * FROM positions WHERE status="OPEN"', _conn)
             _conn.close()
             _pair_pnl = _closed_pairs['pnl'].sum()
@@ -4089,7 +4092,7 @@ elif page == "📊 Торговые роботы":
             for s in _robots_stats.values():
                 _conn = _sqlite3.connect(s['db'])
                 if 'pairs_robot' in str(s['db']):
-                    _df = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED"', _conn)
+                    _df = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED" AND (exit_price_a != 0 AND exit_price_b != 0)', _conn)
                     _all_trades += len(_df)
                     _all_wins += len(_df[_df['pnl'] > 0])
                 else:
@@ -4109,7 +4112,10 @@ elif page == "📊 Торговые роботы":
         for s in _robots_stats.values():
             _conn = _sqlite3.connect(s['db'])
             if 'pairs_robot' in str(s['db']):
-                _df = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED"', _conn)
+                _df = pd.read_sql_query(
+                    'SELECT * FROM positions WHERE status="CLOSED" AND (exit_price_a != 0 AND exit_price_b != 0)',
+                    _conn
+                )
                 _df['exit_time'] = pd.to_datetime(_df['exit_time'])
                 _all_closed_dfs.append(_df[['exit_time', 'pnl']])
             else:
