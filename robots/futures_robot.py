@@ -30,6 +30,14 @@ from My_Indicators.herrick_payoff_index import calculate_hpi
 ROOT = Path('/root/finlab')
 DATA_ROOT = ROOT / 'data'
 DB_PATH = ROOT / 'robots' / 'futures_robot.db'
+
+# Загружаем справочник стоимости пункта
+CONTRACT_POINTS_PATH = ROOT / 'robots' / 'contract_points.json'
+try:
+    with open(CONTRACT_POINTS_PATH, 'r') as _f:
+        CONTRACT_POINTS = json.load(_f)
+except Exception:
+    CONTRACT_POINTS = {}
 STATE_FILE = ROOT / 'robots' / 'futures_robot_state.json'
 COMMAND_FILE = ROOT / 'robots' / 'futures_robot_command.txt'
 
@@ -156,11 +164,12 @@ def close_position(position_id, ticker, direction, exit_score, exit_price, reaso
     
     entry_price, entry_atr, volume = pos
     
-    # Расчёт PnL
+    # Расчёт PnL с учётом стоимости пункта
+    point_value = CONTRACT_POINTS.get(ticker, 1.0)
     if direction == 'LONG':
-        pnl = (exit_price - entry_price) * volume
+        pnl = (exit_price - entry_price) * point_value * volume
     else:
-        pnl = (entry_price - exit_price) * volume
+        pnl = (entry_price - exit_price) * point_value * volume
     
     cursor.execute('''
         UPDATE futures_positions SET 
