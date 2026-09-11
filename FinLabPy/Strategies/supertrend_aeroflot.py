@@ -1,4 +1,4 @@
-﻿"""
+"""
 SuperTrend стратегия для Аэрофлота (без HMM).
 Вход: SuperTrend UP (зелёный)
 Выход: SuperTrend DOWN (красный)

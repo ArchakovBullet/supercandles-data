@@ -1,4 +1,4 @@
-﻿"""HMM на дневных данных GLDRUBF (из CSV)"""
+"""HMM на дневных данных GLDRUBF (из CSV)"""
 import sys
 from pathlib import Path
 import polars as pl

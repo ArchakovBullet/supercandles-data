@@ -1,4 +1,4 @@
-﻿"""
+"""
 HMM + SuperTrend стратегия v2.1: смягчённый фильтр (ИЛИ).
 Вход: HMM UP ИЛИ SuperTrend UP
 Выход: HMM NOT UP И SuperTrend DOWN

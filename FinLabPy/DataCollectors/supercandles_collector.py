@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Сборщик данных Super Candles (tradestats) через Algopack API
 Аналогичен сборщикам FutOI и HI2

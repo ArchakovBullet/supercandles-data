@@ -1,4 +1,4 @@
-﻿"""
+"""
 SBERF ML Screener v1.0
 ML фильтр + байесовская оптимизация через scikit-optimize
 """

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Сборщик ставок фандинга (SWAPRATE) вечных фьючерсов через MOEX ISS API.
 Запускается раз в день через cron, накапливает историю в parquet.
 
@@ -45,7 +45,7 @@ class FundingCollector:
         }
 
         try:
-            resp = requests.get(url, params=params, timeout=10, verify=False)
+            resp = requests.get(url, params=params, timeout=10)
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Eternal Futures Screener v1.0
 Мульти-инструментальная стратегия для вечных фьючерсов
 SBERF | GAZPF | IMOEXF | D1

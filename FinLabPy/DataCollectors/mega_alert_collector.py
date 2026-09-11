@@ -39,7 +39,7 @@ class MegaAlertCollector:
         
         try:
             url = "https://iss.moex.com/iss/engines/futures/markets/forts/securities.json"
-            r = requests.get(url, timeout=10, verify=False)
+            r = requests.get(url, timeout=10)
             data = r.json()["securities"]
             cols = data["columns"]
             rows = data["data"]

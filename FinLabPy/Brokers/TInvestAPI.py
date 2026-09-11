@@ -1,4 +1,4 @@
-﻿# Переходим в корень проекта
+# Переходим в корень проекта
 cd E:\Python\FinLabProject
 
 # Создаём папку Brokers (если её нет)
@@ -48,7 +48,7 @@ class TInvestAPI:
             list: Список счетов
         """
         url = f"{self.base_url}/tinkoff.public.invest.api.contract.v1.UsersService/GetAccounts"
-        r = requests.post(url, headers=self.headers, verify=False, json={})
+        r = requests.post(url, headers=self.headers, json={})
         if r.status_code == 200:
             return r.json().get('accounts', [])
         else:
@@ -66,7 +66,7 @@ class TInvestAPI:
             dict: Информация о портфеле
         """
         url = f"{self.base_url}/tinkoff.public.invest.api.contract.v1.OperationsService/GetPortfolio"
-        r = requests.post(url, headers=self.headers, verify=False, 
+        r = requests.post(url, headers=self.headers, 
                          json={'accountId': account_id})
         if r.status_code == 200:
             return r.json()
@@ -85,7 +85,7 @@ class TInvestAPI:
             list: Список позиций
         """
         url = f"{self.base_url}/tinkoff.public.invest.api.contract.v1.OperationsService/GetPositions"
-        r = requests.post(url, headers=self.headers, verify=False,
+        r = requests.post(url, headers=self.headers,
                          json={'accountId': account_id})
         if r.status_code == 200:
             return r.json().get('securities', [])
@@ -121,7 +121,7 @@ class TInvestAPI:
         if price and order_type == "LIMIT":
             data['price'] = str(price)
         
-        r = requests.post(url, headers=self.headers, verify=False, json=data)
+        r = requests.post(url, headers=self.headers, json=data)
         if r.status_code == 200:
             return r.json()
         else:
@@ -141,7 +141,7 @@ class TInvestAPI:
             dict: Статус ордера
         """
         url = f"{self.base_url}/tinkoff.public.invest.api.contract.v1.OrdersService/GetOrderState"
-        r = requests.post(url, headers=self.headers, verify=False,
+        r = requests.post(url, headers=self.headers,
                          json={'accountId': account_id, 'orderId': order_id})
         if r.status_code == 200:
             return r.json()
@@ -161,7 +161,7 @@ class TInvestAPI:
             bool: True если успешно
         """
         url = f"{self.base_url}/tinkoff.public.invest.api.contract.v1.OrdersService/CancelOrder"
-        r = requests.post(url, headers=self.headers, verify=False,
+        r = requests.post(url, headers=self.headers,
                          json={'accountId': account_id, 'orderId': order_id})
         return r.status_code == 200
 

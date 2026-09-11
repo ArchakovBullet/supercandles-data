@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 import backtrader as bt
 
 class MyCSVData(bt.feeds.GenericCSVData):

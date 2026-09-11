@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 HMM-классификатор режимов рынка
 Использует hmmlearn.GaussianHMM + TA-Lib для признаков

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Загрузчик свечей из OsEngine (txt формат).
 Формат: YYYYMMDD,HHMMSS,OPEN,HIGH,LOW,CLOSE,VOLUME,0
 """

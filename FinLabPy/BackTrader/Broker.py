@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 from backtrader import BrokerBase
 
 from FinLabPy.BackTrader import Store

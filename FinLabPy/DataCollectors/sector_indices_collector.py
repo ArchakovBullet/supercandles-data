@@ -47,7 +47,7 @@ def collect_index(ticker, filename):
     }
     
     try:
-        r = session.get(url, params=params, timeout=30, verify=False)
+        r = session.get(url, params=params, timeout=30)
         if r.status_code != 200:
             logger.warning(f'{ticker}: HTTP {r.status_code}')
             return 0
