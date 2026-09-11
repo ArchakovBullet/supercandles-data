@@ -847,3 +847,40 @@
 - Python `certifi`: `/root/finlab/venv/lib/python3.12/site-packages/certifi/cacert.pem`
 - `.env` содержит `REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt`
 - Все 58 тикеров из БД покрыты в `contract_points.json`
+
+## 11.09.2026 (ночная сессия — сборщики)
+
+### ✅ Выполнено
+
+**Диагностика сборщиков:**
+- Обнаружено 2059 ошибок в логах (futoi — 1689, hi2 — 272, mega_alert — 91, ...)
+- Создан скрипт `scripts/check_collectors.py` — полная проверка сборщиков и агрегаторов
+
+**Патчи сборщиков:**
+- `funding_collector.py` — retry (3 попытки, задержка)
+- `futoi_collector.py` — проверка длины `row` (защита от коротких строк)
+- `hi2_collector.py` — откат из git (патч сломал синтаксис)
+- `MOEXPy.py` — alias `stock='eq'` (в `engine_map`)
+- `sector_indices_collector.py` — retry (3 попытки)
+- `mega_alert_collector.py` — нормализация типов перед DataFrame
+
+**Очистка:**
+- Старые логи архивированы в `logs/archive_20260911/`
+- `data/hi2/.git` удалён (репозиторий `hi2-data` больше не используется)
+- Cron-задача push в `hi2-data` убрана
+- `data/hi2/hi2_daily.parquet` удалён (дубль)
+
+**Результат:**
+- Все 8 сборщиков — **0 ошибок**
+- Все 7 агрегаторов — **0 ошибок**
+- `hi2_daily` — данные свежие (было 386ч, стало 0.3ч)
+
+### 🎯 На следующий раз
+- [ ] Проверить `futures_h4_aggregator` (нет данных)
+- [ ] Проверить `mega_alert_collector.py` после ручного патча
+- [ ] Обновить README (раздел про сборщики)
+
+### 📝 Заметки
+- `hi2_collector.py` — использует `engine='stock'` (alias в MOEXPy)
+- `mega_alert_collector.py` — `engine='stocks'/'futures'`
+- Все коллекторы — retry по 3 попытки
