@@ -32,7 +32,6 @@
         "CC",
         "KC",
         "Eu",
-        "AU",
         "UC",
         "AF",
         "AL",
@@ -60,11 +59,6 @@
         "HS",
         "DX",
         "X5",
-        "IB",
-        "COPPER",
-        "PLDM",
-        "PLT",
-        "SUGAR",
-        "WHEAT"
+        "IB"
     ]
 }
