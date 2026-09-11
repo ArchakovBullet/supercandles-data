@@ -91,7 +91,11 @@ def collect_futoi(ticker: str, api: MOEXPy) -> pl.DataFrame:
         col_idx = {name: i for i, name in enumerate(columns)}
 
         rows = []
+        skipped = 0
         for row in data_rows:
+            if len(row) < len(columns):
+                skipped += 1
+                continue
             pos_short_val = row[col_idx['pos_short']]
             rows.append({
                 'sess_id': row[col_idx['sess_id']],
@@ -106,6 +110,9 @@ def collect_futoi(ticker: str, api: MOEXPy) -> pl.DataFrame:
                 'pos_long_num': int(row[col_idx['pos_long_num']]),
                 'pos_short_num': int(row[col_idx['pos_short_num']]),
             })
+
+        if skipped > 0:
+            logger.warning(f"{ticker}: пропущено {skipped} коротких строк")
 
         df = pl.DataFrame(rows)
         logger.info(f"{ticker}: загружено {len(df)} записей")

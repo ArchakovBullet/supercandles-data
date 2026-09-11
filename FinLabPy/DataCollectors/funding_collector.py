@@ -44,13 +44,22 @@ class FundingCollector:
             'marketdata.columns': 'SECID,SWAPRATE,LAST'
         }
 
-        try:
-            resp = requests.get(url, params=params, timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
-        except Exception as e:
-            logger.error(f'Ошибка запроса: {e}')
-            return
+        import time
+        last_error = None
+        for attempt in range(1, 4):  # 3 попытки
+            try:
+                resp = requests.get(url, params=params, timeout=15)
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except Exception as e:
+                last_error = e
+                if attempt < 3:
+                    logger.warning(f'Попытка {attempt}/3 не удалась: {e}. Повтор через {attempt * 3}с...')
+                    time.sleep(attempt * 3)
+                else:
+                    logger.error(f'Ошибка запроса после 3 попыток: {e}')
+                    return
 
         marketdata = data.get('marketdata', {})
         cols = marketdata.get('columns', [])

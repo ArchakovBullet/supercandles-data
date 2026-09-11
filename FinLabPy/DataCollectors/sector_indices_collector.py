@@ -46,10 +46,23 @@ def collect_index(ticker, filename):
         'interval': 24  # D1
     }
     
+    import time
+    r = None
+    for attempt in range(1, 4):
+        try:
+            r = session.get(url, params=params, timeout=30)
+            if r.status_code == 200:
+                break
+            else:
+                logger.warning(f'{ticker}: HTTP {r.status_code} (попытка {attempt}/3)')
+        except Exception as e:
+            logger.warning(f'{ticker}: ошибка (попытка {attempt}/3): {e}')
+        if attempt < 3:
+            time.sleep(attempt * 5)
+
     try:
-        r = session.get(url, params=params, timeout=30)
-        if r.status_code != 200:
-            logger.warning(f'{ticker}: HTTP {r.status_code}')
+        if r is None or r.status_code != 200:
+            logger.error(f'{ticker}: не удалось получить данные после 3 попыток')
             return 0
         
         data = r.json()
