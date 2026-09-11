@@ -1,3 +1,11 @@
+# Переходим в корень проекта
+cd E:\Python\FinLabProject
+
+# Создаём папку Brokers (если её нет)
+New-Item -Path "FinLabPy\Brokers" -ItemType Directory -Force
+
+# ==================== ФАЙЛ 1: TInvestAPI.py ====================
+@"
 """
 TInvestAPI.py - Модуль для работы с Т-Инвест API через REST
 Автор: Денис
@@ -5,8 +13,11 @@ TInvestAPI.py - Модуль для работы с Т-Инвест API чере
 """
 
 import requests
+import urllib3
 import os
 
+# Отключаем предупреждения SSL
+urllib3.disable_warnings()
 
 
 class TInvestAPI:
