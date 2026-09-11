@@ -791,3 +791,59 @@
 - [ ] Проверить SFIN-SH_H1 (9 сделок, PnL = -6₽)
 - [ ] Поднять Win Rate до 85%
 - [ ] Дождаться ответа от поддержки Beget
+
+## 11.09.2026 (вечерняя сессия — большая)
+
+### ✅ Выполнено
+
+**MOEX TLS-сертификаты (критично):**
+- Обнаружена проблема: отзыв TLS-сертификатов MOEX (21.08.2026)
+- Решено: установлен корневой сертификат НУЦ Минцифры
+- `curl` и Python `requests` работают с `iss.moex.com` и `apim.moex.com`
+- Создан скрипт `scripts/fix_moex_certs.sh` для восстановления
+- Beget уведомлён, но проблема решена самостоятельно
+
+**Очистка кода:**
+- Удалён BOM (Byte Order Mark) из 53 файлов `.py` (бэкапы в `backups/bom_cleanup_*`)
+- Удалён `verify=False` из всех сборщиков и MOEXPy
+- Исправлен `TInvestAPI.py` (убран PowerShell-мусор, `urllib3` не нужен)
+
+**Фьючерсный робот:**
+- Убран `[:10]` — теперь обрабатывает все готовые тикеры (59 из 165)
+- Добавлена проверка `is_futoi_fresh()` — новые позиции не открываются при устаревшем FutOI
+- Заменена самодельная агрегация FutOI на готовые `futoi_4h` / `futoi_1h` (убран баг со сдвигом дат)
+- PnL теперь считается с учётом `point_value` (× стоимость пункта)
+
+**Contract points:**
+- Создан скрипт `scripts/build_contract_points.py`
+- Формула: `point_value = STEPPRICE × MINSTEP` (проверено на MOEX ISS)
+- `contract_points.json` — 58 тикеров (41 фьючерс + 17 акций)
+- Акции: `point_value = 1.0`
+- Вечные фьючерсы (CNYRUBF, EURRUBF, GAZPF, GLDRUBF, IMOEXF, RGBIF, SBERF, USDRUBF) — SECID = тикер
+
+**Пересчёт PnL:**
+- Фьючерсный робот: 10 сделок пересчитано. Было −1215.65₽, стало −915.49₽
+- Парный робот: 5 сделок пересчитано (SFIN-SH). Было 143.80₽, стало 164.73₽
+- Аннулировано 29 фейковых сделок парного робота (`exit_price = 0`) → `pnl = 0`
+
+**Дашборд:**
+- Фильтр legacy сделок в агрегациях: WR, график PnL, сводка
+- SQL: `AND (exit_price_a != 0 AND exit_price_b != 0)`
+
+**Git:**
+- Коммиты: `f9d6f44` (contract_points), `353f831` (PnL × point_value), ...
+- Все запушены в `supercandles-data`
+
+### 🎯 На следующий раз
+- [ ] Обновить README — структура, сертификаты, роботы, cron
+- [ ] Проверить дашборд в браузере — корректность отображения PnL
+- [ ] Пересмотреть лимиты позиций (сейчас 23 открытых у фьючерс-робота)
+- [ ] Добавить пометку "LEGACY" в журнал сделок
+- [ ] Ответить Beget: проблема решена
+
+### 📝 Важные заметки
+- Репозиторий `supercandles-data` — публичный
+- MOEX-сертификаты: `/usr/local/share/ca-certificates/russian_trusted_ca.crt`
+- Python `certifi`: `/root/finlab/venv/lib/python3.12/site-packages/certifi/cacert.pem`
+- `.env` содержит `REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt`
+- Все 58 тикеров из БД покрыты в `contract_points.json`
