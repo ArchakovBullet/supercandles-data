@@ -48,6 +48,24 @@ VOLUME_TYPE = 'contracts'  # contracts / contract_currency / deposit_percent
 VOLUME = 1.0  # 1 контракт/акция
 CHECK_INTERVALS = {'M10': 600, 'H1': 3600, 'H4': 14400}  # секунд
 
+# Состояние свежести данных (сохраняется в файл, чтобы не спамить при перезапуске)
+TF_FRESH_STATE_FILE = ROOT / 'robots' / 'tf_fresh_state.json'
+
+def load_tf_fresh_state():
+    """Загрузить состояние свежести из файла"""
+    try:
+        with open(TF_FRESH_STATE_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        return {'M10': True, 'H1': True, 'H4': True}
+
+def save_tf_fresh_state(state):
+    """Сохранить состояние свежести в файл"""
+    with open(TF_FRESH_STATE_FILE, 'w') as f:
+        json.dump(state, f)
+
+TF_FRESH_STATE = load_tf_fresh_state()
+
 # Пороги свежести данных (в часах)
 FRESHNESS_THRESHOLDS = {
     'M10': 2,
@@ -57,9 +75,9 @@ FRESHNESS_THRESHOLDS = {
 }
 
 def is_tf_fresh(tf):
-    """Проверить, что данные ТФ свежие (хотя бы половина пар)"""
-    import time as _time
-    max_age = FRESHNESS_THRESHOLDS.get(tf, 4) * 3600
+    """Проверить, что данные ТФ свежие (по дате последней свечи)"""
+    from datetime import datetime as _dt, timedelta as _td
+    max_age_hours = FRESHNESS_THRESHOLDS.get(tf, 4)
     
     try:
         with open(CONFIG_PATH, 'r') as f:
@@ -69,6 +87,10 @@ def is_tf_fresh(tf):
     
     fresh_count = 0
     total_count = 0
+    
+    # Порог: дата последней свечи не старше N часов от текущего времени
+    # Для M10: последняя свеча должна быть за последние 2 часа
+    now = _dt.now()
     
     for pair_name in pairs_config.get('pairs', {}):
         if not pair_name.endswith(f'_{tf}'):
@@ -85,9 +107,21 @@ def is_tf_fresh(tf):
             continue
         
         total_count += 1
-        age = _time.time() - file_a.stat().st_mtime
-        if age < max_age:
-            fresh_count += 1
+        
+        try:
+            df = pd.read_parquet(file_a)
+            # Проверяем колонку с датой
+            date_col = 'begin' if 'begin' in df.columns else 'tradedate'
+            if date_col in df.columns and len(df) > 0:
+                last_candle = pd.to_datetime(df[date_col].iloc[-1])
+                # Если last_candle без timezone — добавляем
+                if last_candle.tzinfo is None:
+                    last_candle = last_candle.tz_localize(None)
+                age_hours = (now - last_candle.replace(tzinfo=None)).total_seconds() / 3600
+                if age_hours < max_age_hours:
+                    fresh_count += 1
+        except Exception as e:
+            pass
     
     if total_count == 0:
         return False
@@ -400,11 +434,24 @@ def check_signals_by_tf(pairs_config, tf):
     # === ПРОВЕРКА СВЕЖЕСТИ ДАННЫХ ===
     # В боевом режиме: не закрываем позиции при сбое, только не открываем новые
     # Открытые позиции ждут восстановления данных (стопы на бирже защитят)
-    if not is_tf_fresh(tf):
+    global TF_FRESH_STATE
+    
+    _is_fresh = is_tf_fresh(tf)
+    
+    if not _is_fresh:
         print(f"  ⚠️ Данные {tf} устарели! Новые позиции по {tf} не открываются.")
-        # Отправляем уведомление (один раз)
-        send_vk_message(f"⚠️ Данные {tf} устарели! Новые позиции по {tf} приостановлены. Открытые позиции ждут восстановления.")
+        # Отправляем уведомление ТОЛЬКО при смене состояния
+        if TF_FRESH_STATE.get(tf, True):
+            send_vk_message(f"⚠️ Данные {tf} устарели! Новые позиции по {tf} приостановлены. Открытые позиции ждут восстановления.")
+            TF_FRESH_STATE[tf] = False
+            save_tf_fresh_state(TF_FRESH_STATE)
         return
+    else:
+        # Данные свежие — проверяем, было ли восстановление
+        if not TF_FRESH_STATE.get(tf, True):
+            send_vk_message(f"✅ Данные {tf} восстановлены! Торговля по {tf} возобновлена.")
+            TF_FRESH_STATE[tf] = True
+            save_tf_fresh_state(TF_FRESH_STATE)
 
 
 
