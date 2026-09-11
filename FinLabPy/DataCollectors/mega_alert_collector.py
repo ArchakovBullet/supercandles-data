@@ -123,18 +123,36 @@ class MegaAlertCollector:
         # Сохраняем (всегда перезапись)
         file_path = self.data_dir / f'{ticker}_alerts.parquet'
         
-        # Создаём DataFrame и приводим все числовые колонки к Float64
-        df = pl.DataFrame(all_rows)
-        
-        # Приводим все числовые колонки к Float64
-        for col in df.columns:
-            if df[col].dtype in [pl.Int64, pl.Int32, pl.Float32]:
-                try:
-                    df = df.with_columns(pl.col(col).cast(pl.Float64, strict=False))
-                except:
-                    pass
-        
-        df.write_parquet(file_path)
+        # Нормализация типов перед созданием DataFrame
+        if not all_rows:
+            return []
+
+        all_cols = sorted(set().union(*(r.keys() for r in all_rows)))
+
+        normalized = []
+        for row in all_rows:
+            new_row = {}
+            for col in all_cols:
+                val = row.get(col)
+                if val is None:
+                    new_row[col] = None
+                elif isinstance(val, (int, float)):
+                    new_row[col] = float(val)
+                elif isinstance(val, str):
+                    try:
+                        new_row[col] = float(val)
+                    except ValueError:
+                        new_row[col] = val
+                else:
+                    new_row[col] = str(val)
+            normalized.append(new_row)
+
+        try:
+            df = pl.DataFrame(normalized)
+            df.write_parquet(file_path)
+        except Exception as e:
+            logger.warning(f'{ticker}: ошибка создания DataFrame: {e}')
+            return all_rows
         return all_rows
 
 
