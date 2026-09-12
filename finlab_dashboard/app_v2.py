@@ -162,6 +162,21 @@ def get_folder_stats(folder_path: Path) -> dict:
     else:
         status = "✅"
     return {"status": status, "files": len(parquet_files), "total_rows": total_rows, "last_modified": last_modified, "age_days": age_of_newest}
+# Точный маппинг сборщик → cron-лог
+CRON_LOG_MAPPING = {
+    "futoi": "futoi_collect_cron.log",
+    "hi2": "hi2_collect_cron.log",
+    "funding": "funding_collect_cron.log",
+    "supercandles": "supercandles_collect_cron.log",
+    "supercandles_h4": "supercandles_h4_aggregate_cron.log",
+    "tradestats": "tradestats_collect_cron.log",
+    "candles": "candles_collect_cron.log",
+    "futoi_1h": "futoi_1h_cron.log",
+    "futoi_4h": "futoi_4h_cron.log",
+    "sector_indices": "sector_indices_cron.log",
+}
+
+
 def get_cron_errors(collector_name: str) -> tuple:
     """Посчитать ошибки в cron-логе сборщика.
     Возвращает (count, log_name).
@@ -169,18 +184,24 @@ def get_cron_errors(collector_name: str) -> tuple:
     if not LOGS_ROOT.exists():
         return 0, None
 
-    # Ищем cron-лог
-    pattern = f"*{collector_name}*cron*.log"
-    logs = sorted(LOGS_ROOT.glob(pattern), reverse=True)
-    if not logs:
-        # Если нет cron-лога — ищем основной
-        pattern = f"*{collector_name}*.log"
-        logs = sorted(LOGS_ROOT.glob(pattern), reverse=True)
+    # Сначала — точный маппинг
+    log_file = CRON_LOG_MAPPING.get(collector_name)
+    log_path = None
 
-    if not logs:
+    if log_file:
+        candidate = LOGS_ROOT / log_file
+        if candidate.exists():
+            log_path = candidate
+
+    # Fallback — поиск по паттерну
+    if not log_path:
+        logs = sorted(LOGS_ROOT.glob(f"*{collector_name}*cron*.log"), reverse=True)
+        if logs:
+            log_path = logs[0]
+
+    if not log_path:
         return 0, None
 
-    log_path = logs[0]
     try:
         text = log_path.read_text(encoding='utf-8', errors='ignore')
         count = text.count('ERROR')
