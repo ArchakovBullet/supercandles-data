@@ -94,6 +94,11 @@ def is_moex_trading_day():
 def is_tf_fresh(tf):
     """Проверить, что данные ТФ свежие (по дате последней свечи)"""
     from datetime import datetime as _dt, timedelta as _td
+
+    # В неторговые дни данные считаем свежими
+    if not is_moex_trading_day():
+        return True
+
     max_age_hours = FRESHNESS_THRESHOLDS.get(tf, 4)
     
     try:

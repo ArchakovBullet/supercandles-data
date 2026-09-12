@@ -53,8 +53,31 @@ FRESHNESS_THRESHOLDS = {
     'futoi': 24,
 }
 
+
+def is_moex_trading_day():
+    """Проверить, что сегодня торговый день MOEX (упрощённо, 2026)."""
+    from datetime import datetime as _dt
+    now = _dt.now()
+    no_trade_weekends = [
+        (1,3),(1,4),(1,10),(1,11),(2,14),(2,15),(3,7),(3,8),
+        (3,21),(3,22),(5,9),(5,10),(6,20),(6,21),(8,1),(8,2),
+        (8,15),(8,16),(9,12),(9,13),(10,24),(10,25),(12,5),(12,6),
+    ]
+    no_trade_holidays = [
+        (1,1),(1,2),(1,5),(1,6),(1,7),(1,8),(3,8),(5,9),(12,31),
+    ]
+    md = (now.month, now.day)
+    if md in no_trade_weekends or md in no_trade_holidays:
+        return False
+    return True
+
+
 def is_futoi_fresh(ticker):
     """Проверить свежесть FutOI. Возвращает (fresh: bool, age_hours: float|None)."""
+    # В неторговые дни данные считаем свежими
+    if not is_moex_trading_day():
+        return True, 0.0
+
     futoi_file = DATA_ROOT / 'futoi' / f'{ticker}_futoi.parquet'
     if not futoi_file.exists():
         return False, None
