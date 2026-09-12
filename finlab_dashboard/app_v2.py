@@ -1500,8 +1500,36 @@ if page == "📋 Статус сборщиков":
             if info.get("last_modified"):
                 dt = datetime.fromtimestamp(info["last_modified"])
                 last_mod_formatted = dt.strftime("%d.%m.%Y %H:%M")
-            detail_data.append({"Сборщик": name, "Статус": info['status'], "Файлов": info['files'], "Записей": f"{info['total_rows']:,}".replace(",", " "), "Данные от": last_mod_formatted, "Лог": info.get('last_log_name', '—')})
+
+            # Счётчик ошибок
+            err_count = info.get("errors_count", 0)
+            if err_count == 0:
+                err_display = "✅ 0"
+            elif err_count <= 10:
+                err_display = f"⚠️ {err_count}"
+            else:
+                err_display = f"🔴 {err_count}"
+
+            detail_data.append({
+                "Сборщик": name,
+                "Статус": info['status'],
+                "Ошибок": err_display,
+                "Файлов": info['files'],
+                "Записей": f"{info['total_rows']:,}".replace(",", " "),
+                "Данные от": last_mod_formatted,
+                "Лог": info.get('last_log_name', '—'),
+                "Cron-лог": info.get('errors_log', '—'),
+            })
         st.dataframe(pd.DataFrame(detail_data), use_container_width=True, hide_index=True)
+
+        # === ПРЕДУПРЕЖДЕНИЕ ОБ ОШИБКАХ ===
+        total_errors = sum(info.get("errors_count", 0) for info in collectors_info.values())
+        if total_errors > 0:
+            problem_collectors = [name for name, info in collectors_info.items() if info.get("errors_count", 0) > 10]
+            if problem_collectors:
+                st.error(f"🔴 Проблемы в сборщиках: {', '.join(problem_collectors)}")
+            else:
+                st.warning(f"⚠️ Обнаружено {total_errors} ошибок в логах сборщиков")
     with col2:
         st.subheader("📊 Все Parquet-файлы")
         if DATA_ROOT.exists():
