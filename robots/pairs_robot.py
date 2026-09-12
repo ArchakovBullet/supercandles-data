@@ -70,8 +70,8 @@ TF_FRESH_STATE = load_tf_fresh_state()
 FRESHNESS_THRESHOLDS = {
     'M10': 2,
     'H1': 4,
-    'H4': 12,
-    'D1': 24,
+    'H4': 25,
+    'D1': 25,
 }
 
 def is_tf_fresh(tf):
