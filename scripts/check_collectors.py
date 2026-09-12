@@ -33,8 +33,7 @@ AGGREGATORS = {
     'futoi_daily': ('futoi_aggregate_cron.log', DATA / 'futoi_daily.parquet', 24),
     'hi2_daily': ('hi2_aggregate_cron.log', DATA / 'hi2_daily.parquet', 24),
     'supercandles_daily': ('supercandles_aggregate_cron.log', DATA / 'supercandles_daily.parquet', 24),
-    'supercandles_h4': ('supercandles_h4_aggregate_cron.log', DATA / 'supercandles_h4', 12),
-    'futures_h4': ('futures_h4_aggregate_cron.log', DATA / 'futures_h4', 12),
+    'supercandles_h4': ('supercandles_h4_aggregate_cron.log', DATA / 'supercandles_h4', 25),
 }
 
 
