@@ -40,6 +40,34 @@ def send_vk_message(msg):
 
 problems = []
 
+# ========== ПРОВЕРКА ОШИБОК В CRON-ЛОГАХ ==========
+LOGS_DIR = Path('/root/finlab/logs')
+MAX_ERRORS_WARN = 10  # > 10 ошибок — проблема
+
+CRON_LOGS = {
+    'FutOI': 'futoi_collect_cron.log',
+    'Candles': 'candles_collect_cron.log',
+    'HI2': 'hi2_collect_cron.log',
+    'SuperCandles': 'supercandles_collect_cron.log',
+    'Funding': 'funding_collect_cron.log',
+    'TradeStats': 'tradestats_collect_cron.log',
+    'MegaAlert': 'mega_alert_cron.log',
+    'SectorIndices': 'sector_indices_cron.log',
+}
+
+for name, log_file in CRON_LOGS.items():
+    log_path = LOGS_DIR / log_file
+    if not log_path.exists():
+        continue
+    try:
+        text = log_path.read_text(encoding='utf-8', errors='ignore')
+        err_count = text.count('ERROR')
+        if err_count > MAX_ERRORS_WARN:
+            problems.append(f'🔴 {name}: {err_count} ошибок в {log_file}')
+    except Exception:
+        pass
+
+# ========== ПРОВЕРКА СВЕЖЕСТИ ==========
 # Проверка FutOI
 for f in sorted((DATA / 'futoi').glob('*_futoi.parquet')):
     ticker = f.stem.replace('_futoi', '')

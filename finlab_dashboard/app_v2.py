@@ -162,6 +162,36 @@ def get_folder_stats(folder_path: Path) -> dict:
     else:
         status = "✅"
     return {"status": status, "files": len(parquet_files), "total_rows": total_rows, "last_modified": last_modified, "age_days": age_of_newest}
+def get_cron_errors(collector_name: str) -> tuple:
+    """Посчитать ошибки в cron-логе сборщика.
+    Возвращает (count, log_name).
+    """
+    if not LOGS_ROOT.exists():
+        return 0, None
+
+    # Ищем cron-лог
+    pattern = f"*{collector_name}*cron*.log"
+    logs = sorted(LOGS_ROOT.glob(pattern), reverse=True)
+    if not logs:
+        # Если нет cron-лога — ищем основной
+        pattern = f"*{collector_name}*.log"
+        logs = sorted(LOGS_ROOT.glob(pattern), reverse=True)
+
+    if not logs:
+        return 0, None
+
+    log_path = logs[0]
+    try:
+        text = log_path.read_text(encoding='utf-8', errors='ignore')
+        count = text.count('ERROR')
+        # Игнорируем keyring/token
+        if 'keyring_pass.cfg' in text:
+            count -= text.count('keyring_pass.cfg')
+        return max(0, count), log_path.name
+    except Exception:
+        return 0, log_path.name
+
+
 def get_last_log_info(collector_name: str) -> tuple:
     if not LOGS_ROOT.exists():
         return None, "нет логов"
@@ -941,11 +971,13 @@ futoi_stats = get_folder_stats(DATA_ROOT / "futoi")
 futoi_date, futoi_log = get_last_log_info("futoi_collector")
 futoi_stats["last_log_date"] = futoi_date
 futoi_stats["last_log_name"] = futoi_log
+futoi_stats["errors_count"], futoi_stats["errors_log"] = get_cron_errors("futoi")
 collectors_info["FutOI"] = futoi_stats
 hi2_stats = get_folder_stats(DATA_ROOT / "hi2")
 hi2_date, hi2_log = get_last_log_info("hi2_collector")
 hi2_stats["last_log_date"] = hi2_date
 hi2_stats["last_log_name"] = hi2_log
+hi2_stats["errors_count"], hi2_stats["errors_log"] = get_cron_errors("hi2")
 collectors_info["HI2"] = hi2_stats
 funding_file = DATA_ROOT / "funding" / "funding.parquet"
 if funding_file.exists():
@@ -954,41 +986,49 @@ if funding_file.exists():
     funding_stats = {"status": "✅", "files": 1, "total_rows": len(df_funding), "last_modified": os.path.getmtime(funding_file), "last_log_date": funding_date, "last_log_name": funding_log}
 else:
     funding_stats = {"status": "❌", "files": 0, "total_rows": 0, "last_modified": None, "last_log_date": None, "last_log_name": "нет"}
+funding_stats["errors_count"], funding_stats["errors_log"] = get_cron_errors("funding")
 collectors_info["Funding"] = funding_stats
 sc_stats = get_folder_stats(DATA_ROOT / "supercandles")
 sc_date, sc_log = get_last_log_info("supercandles_collector")
 sc_stats["last_log_date"] = sc_date
 sc_stats["last_log_name"] = sc_log
+sc_stats["errors_count"], sc_stats["errors_log"] = get_cron_errors("supercandles")
 collectors_info["Super Candles"] = sc_stats
 h4_stats = get_folder_stats(DATA_ROOT / "supercandles_h4")
 h4_date, h4_log = get_last_log_info("supercandles")
 h4_stats["last_log_date"] = h4_date
 h4_stats["last_log_name"] = h4_log
+h4_stats["errors_count"], h4_stats["errors_log"] = get_cron_errors("supercandles_h4")
 collectors_info["Super Candles H4"] = h4_stats
 tradestats_stats = get_folder_stats(DATA_ROOT / "tradestats")
 tradestats_date, tradestats_log = get_last_log_info("tradestats_collector")
 tradestats_stats["last_log_date"] = tradestats_date
 tradestats_stats["last_log_name"] = tradestats_log
+tradestats_stats["errors_count"], tradestats_stats["errors_log"] = get_cron_errors("tradestats")
 collectors_info["TradeStats"] = tradestats_stats
 candles_stats = get_folder_stats(DATA_ROOT / "candles")
 candles_date, candles_log = get_last_log_info("candles_collector")
 candles_stats["last_log_date"] = candles_date
 candles_stats["last_log_name"] = candles_log
+candles_stats["errors_count"], candles_stats["errors_log"] = get_cron_errors("candles")
 collectors_info["Candles"] = candles_stats
 futoi1h_stats = get_folder_stats(DATA_ROOT / "futoi_1h")
 futoi1h_date, futoi1h_log = get_last_log_info("futoi_1h")
 futoi1h_stats["last_log_date"] = futoi1h_date
 futoi1h_stats["last_log_name"] = futoi1h_log
+futoi1h_stats["errors_count"], futoi1h_stats["errors_log"] = get_cron_errors("futoi_1h")
 collectors_info["FutOI 1H"] = futoi1h_stats
 futoi4h_stats = get_folder_stats(DATA_ROOT / "futoi_4h")
 futoi4h_date, futoi4h_log = get_last_log_info("futoi_4h")
 futoi4h_stats["last_log_date"] = futoi4h_date
 futoi4h_stats["last_log_name"] = futoi4h_log
+futoi4h_stats["errors_count"], futoi4h_stats["errors_log"] = get_cron_errors("futoi_4h")
 collectors_info["FutOI 4H"] = futoi4h_stats
 sector_stats = get_folder_stats(DATA_ROOT / "sector_indices")
 sector_date, sector_log = get_last_log_info("sector_indices")
 sector_stats["last_log_date"] = sector_date
 sector_stats["last_log_name"] = sector_log
+sector_stats["errors_count"], sector_stats["errors_log"] = get_cron_errors("sector_indices")
 collectors_info["Сектора"] = sector_stats
 # ========== НАСТРОЙКИ СТРАНИЦЫ ==========
 st.set_page_config(page_title="FinLabPy Terminal", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
