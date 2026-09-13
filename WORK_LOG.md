@@ -1021,3 +1021,100 @@
 - [ ] Проверить `tf_fresh_state.json` — все true
 - [ ] Обсудить `MAX_POSITIONS`
 
+
+## 13.09.2026 (воскресная сессия — большая)
+
+### ✅ Выполнено
+
+**VK-уведомления:**
+- `weekly_pairs_optimization.py` — добавлен `load_dotenv('/root/finlab/.env')`
+- Убран дубликат `load_dotenv`
+- VK-уведомления восстановлены
+
+**Переоптимизация пар:**
+- `pairs_config.json` обновлён (19 стационарных, +2: LKOH-ROSN_H1, ROSN-TATN_H1)
+- 0 потерь стационарности
+- Коммит после сравнения метрик (Sharpe: 5 лучше, 10 хуже, 49 так же)
+
+**Контроль риска (Саймонс-подход):**
+
+**1. MAX_POSITIONS = 10** — в обоих роботах
+- `futures_robot.py` (строка 51)
+- `pairs_robot.py` (строка 153)
+- Проверка перед `open_position` (пропуск при лимите)
+
+**2. check_stops_only()** — проверка стопов каждые 10 минут
+- `futures_robot.py` — по M10 (high/low)
+- Закрытие по `stop_price` (не по low/high) — реалистично
+- Цикл: `main()` → 6×10 мин `check_stops_only()` → `main()`
+- В неторговые дни — не работает (`is_moex_trading_day`)
+
+**3. COOLDOWN_HOURS = 4** — после STOP/убытка
+- `futures_robot.py` — `is_in_cooldown(ticker)` после STOP
+- `pairs_robot.py` — `is_pair_in_cooldown(pair_name)` после убытка (pnl < 0)
+- Защита от whipsaw (CE, MG, USDRUBF — повторные входы через 1ч)
+- 3 критичных случая блокируются, нормальные (16ч+) — нет
+
+**4. is_moex_trading_day()** — календарь MOEX
+- Список неторговых дней 2026 (выходные + праздники)
+- В `is_tf_fresh`, `is_futoi_fresh`, `check_stops_only`
+- 12–13.09 — неторговые (исключение)
+
+**Управление парами:**
+- `enabled: true/false` в `pairs_config.json`
+- `pairs_robot.py` — читает `enabled` (строка 502)
+- `pairs_optimizer.py` — сохраняет `enabled` при переоптимизации
+- `weekly_pairs_optimization.py` — использует длинные коды (короткие не вернутся)
+
+**Чистка пар:**
+- Дубликаты D1 (короткие: HY-IR, LK-HY, ...) — отключены (6 шт)
+- Убыточные D1 (5 шт) — отключены ранее
+- Итого: 53 включены, 11 отключены
+
+**README:**
+- Добавлен раздел «Контроль риска (Саймонс-подход)»
+- Описаны: MAX_POSITIONS, COOLDOWN_HOURS, check_stops_only, is_moex_trading_day, enabled
+
+**Git:**
+- 14 коммитов за сессию
+- Все запушены в supercandles-data и finlab-dashboard
+
+### 📝 Текущее состояние
+
+- **Роботы:** оба active
+- **tf_fresh_state.json:** {"M10": true, "H1": true, "H4": true}
+- **Открытые позиции:** фьючерсный 30, парный 6
+- **Git status:** clean
+
+### 🎯 На следующий раз
+
+**Приоритет 1 — Проверка в понедельник 14.09:**
+- [ ] `is_moex_trading_day()` → `True`
+- [ ] M10 обновление после 10:00
+- [ ] `check_stops_only` реально проверяет стопы (M10 обновятся)
+- [ ] `is_in_cooldown` — не сработает (STOP > 4ч)
+- [ ] `is_pair_in_cooldown` — проверить
+
+**Приоритет 2 — Убыточные пары:**
+- [ ] LKOH-ROSN_H1 — стационарная (ADF=0.042), но Sharpe=-0.07, WR=36.4%
+- [ ] Наблюдать — если после 20 сделок WR < 40% → отключить
+
+**Приоритет 3 — Фьючерсный робот:**
+- [ ] Следить за PnL, Win Rate
+- [ ] Проверить, что `check_stops_only` реально закрывает по стопам
+- [ ] Оценить cooldown 4ч
+
+### ⚠️ Открытые вопросы
+
+1. **Стопы на бирже** — когда переходим? (TInvest/Alor API)
+2. **LKOH-ROSN_H1** — отключить или наблюдать?
+3. **`enabled`** — нужно ли в `futures_robot.py` для тикеров?
+4. **Crash loop 09.09** — закрыть вопрос или мониторить?
+
+### 🗓️ План на понедельник 14.09
+
+- [ ] Проверить работу роботов после открытия рынка
+- [ ] Убедиться, что `check_stops_only` проверяет свежие M10
+- [ ] Проверить `is_in_cooldown` / `is_pair_in_cooldown`
+- [ ] Мониторить LKOH-ROSN_H1
+
