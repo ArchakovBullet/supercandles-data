@@ -3,6 +3,10 @@
 import os
 import sys
 import json
+from dotenv import load_dotenv
+
+# Загружаем .env
+load_dotenv('/root/finlab/.env')
 from pathlib import Path
 from datetime import datetime
 import warnings
