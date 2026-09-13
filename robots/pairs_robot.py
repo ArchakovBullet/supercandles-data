@@ -150,6 +150,7 @@ def is_tf_fresh(tf):
     
     return fresh_count >= total_count / 2
 ENTRY_Z_DEFAULT = 3.0
+MAX_POSITIONS = 10  # Максимум одновременных открытых пар
 EXIT_Z_DEFAULT = 0.5
 
 # ========== БАЗА ДАННЫХ ==========
@@ -516,6 +517,12 @@ def check_signals_by_tf(pairs_config, tf):
             
             # Проверяем открытые позиции
             open_positions = get_open_positions()
+            
+            # Проверка лимита позиций (контроль риска)
+            if len(open_positions) >= MAX_POSITIONS:
+                print(f'  ⚠️ Лимит позиций ({MAX_POSITIONS}) — не открываем новые')
+                continue
+            
             has_position = any(p[1] == pair_name and p[3] == tf for p in open_positions)
             
             if not has_position:

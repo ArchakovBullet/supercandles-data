@@ -47,6 +47,9 @@ EXIT_SCORE = 40
 CRISIS_ENTRY_SCORE = 80
 CRISIS_EXIT_SCORE = 40
 
+# Максимум одновременных открытых позиций (контроль риска, принцип Саймонса)
+MAX_POSITIONS = 10
+
 # ========== ПРОВЕРКА СВЕЖЕСТИ ==========
 FRESHNESS_THRESHOLDS = {
     'M10': 2, 'H1': 4, 'H4': 25, 'D1': 25,
@@ -401,12 +404,18 @@ def main():
 
                 # Проверяем вход
                 if _is_trading_time:
+                    # Проверка лимита позиций (контроль риска)
+                    if len(open_positions) >= MAX_POSITIONS:
+                        continue  # лимит достигнут, не открываем
+                    
                     if decision == 'LONG' and score >= entry_threshold:
                         open_position(ticker, 'LONG', 1.0, score, entry_price, atr)
                         open_tickers.add(ticker)
+                        open_positions.append((None, ticker, 'LONG'))
                     elif decision == 'SHORT' and score >= entry_threshold:
                         open_position(ticker, 'SHORT', 1.0, score, entry_price, atr)
                         open_tickers.add(ticker)
+                        open_positions.append((None, ticker, 'SHORT'))
         
         except Exception as e:
             print(f"  ❌ {ticker}: {e}")
