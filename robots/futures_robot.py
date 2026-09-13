@@ -211,6 +211,56 @@ def close_position(position_id, ticker, direction, exit_score, exit_price, reaso
     print(f"✅ Закрыта позиция: {message}")
 
 # ========== ГЛАВНЫЙ ЦИКЛ ==========
+def check_stops_only():
+    """Быстрая проверка стопов по M10 (high/low) — каждые 10 минут."""
+    open_positions = get_open_positions()
+    if not open_positions:
+        return
+    
+    closed_count = 0
+    for pos in open_positions:
+        pos_id = pos[0]
+        ticker = pos[1]
+        direction = pos[2]
+        entry_price = pos[6] if len(pos) > 6 else 0
+        entry_atr = pos[7] if len(pos) > 7 else 0
+        
+        if not entry_atr or entry_atr <= 0:
+            continue
+        
+        # Загружаем M10
+        m10_file = DATA_ROOT / 'candles' / f'{ticker}_M10.parquet'
+        if not m10_file.exists():
+            continue
+        
+        try:
+            df = pd.read_parquet(m10_file)
+            if len(df) == 0:
+                continue
+            last = df.iloc[-1]
+            low = float(last['low']) if not isinstance(last['low'], bytes) else 0
+            high = float(last['high']) if not isinstance(last['high'], bytes) else 0
+            
+            # Стоп 2×ATR
+            if direction == 'LONG':
+                stop_price = entry_price - entry_atr * 2
+                if low <= stop_price:
+                    close_position(pos_id, ticker, direction, 0, stop_price, 'STOP')
+                    print(f'🛑 {ticker}: STOP по {stop_price:.2f} (low={low:.2f})')
+                    closed_count += 1
+            elif direction == 'SHORT':
+                stop_price = entry_price + entry_atr * 2
+                if high >= stop_price:
+                    close_position(pos_id, ticker, direction, 0, stop_price, 'STOP')
+                    print(f'🛑 {ticker}: STOP по {stop_price:.2f} (high={high:.2f})')
+                    closed_count += 1
+        except Exception as e:
+            print(f'  ❌ {ticker}: {e}')
+    
+    if closed_count:
+        print(f'  ✅ Закрыто по стопам: {closed_count}')
+
+
 def main():
     """Основная функция."""
     print("=" * 60)
@@ -427,5 +477,10 @@ if __name__ == '__main__':
     # Бесконечный цикл для systemd
     while True:
         main()
-        print('Ожидание 1 час...')
-        time.sleep(3600)  # Проверка каждый час
+        print('Ожидание 1 час (стопы проверяются каждые 10 мин)...')
+        
+        # Проверка стопов каждые 10 минут (6 раз по 600 сек = 1 час)
+        for i in range(6):
+            time.sleep(600)
+            check_stops_only()
+            print(f'  [{i+1}/6] Проверка стопов завершена')
