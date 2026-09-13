@@ -213,6 +213,10 @@ def close_position(position_id, ticker, direction, exit_score, exit_price, reaso
 # ========== ГЛАВНЫЙ ЦИКЛ ==========
 def check_stops_only():
     """Быстрая проверка стопов по M10 (high/low) — каждые 10 минут."""
+    # В неторговые дни M10 не обновляются — проверка бессмысленна
+    if not is_moex_trading_day():
+        return
+    
     open_positions = get_open_positions()
     if not open_positions:
         return
