@@ -406,7 +406,8 @@ def main():
                 if _is_trading_time:
                     # Проверка лимита позиций (контроль риска)
                     if len(open_positions) >= MAX_POSITIONS:
-                        continue  # лимит достигнут, не открываем
+                        print(f'  ⚠️ {ticker}: лимит позиций ({MAX_POSITIONS}) — не открываем')
+                        continue
                     
                     if decision == 'LONG' and score >= entry_threshold:
                         open_position(ticker, 'LONG', 1.0, score, entry_price, atr)
