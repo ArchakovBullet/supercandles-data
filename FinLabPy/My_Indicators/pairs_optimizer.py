@@ -403,6 +403,11 @@ def save_pair_config(config, file_path=None):
     # Обновить конфиг пары
     pair_name = config.get('pair_name', '')
     if pair_name:
+        # Сохранить enabled из старой конфигурации (если был)
+        old_pair = all_configs['pairs'].get(pair_name, {})
+        if 'enabled' in old_pair and 'enabled' not in config:
+            config['enabled'] = old_pair['enabled']
+        
         all_configs['pairs'][pair_name] = config
         all_configs['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
