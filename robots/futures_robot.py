@@ -50,6 +50,9 @@ CRISIS_EXIT_SCORE = 40
 # Максимум одновременных открытых позиций (контроль риска, принцип Саймонса)
 MAX_POSITIONS = 10
 
+# Cooldown после STOP по тикеру (часы) — защита от whipsaw
+COOLDOWN_HOURS = 4
+
 # ========== ПРОВЕРКА СВЕЖЕСТИ ==========
 FRESHNESS_THRESHOLDS = {
     'M10': 2, 'H1': 4, 'H4': 25, 'D1': 25,
@@ -265,6 +268,21 @@ def check_stops_only():
         print(f'  ✅ Закрыто по стопам: {closed_count}')
 
 
+def is_in_cooldown(ticker):
+    """Проверить, был ли STOP по тикеру за последние COOLDOWN_HOURS."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cutoff = (datetime.now() - timedelta(hours=COOLDOWN_HOURS)).strftime('%Y-%m-%d %H:%M:%S')
+    cursor.execute("""
+        SELECT COUNT(*) FROM futures_positions
+        WHERE ticker = ? AND status = 'CLOSED'
+        AND exit_reason = 'STOP' AND exit_time > ?
+    """, (ticker, cutoff))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count > 0
+
+
 def main():
     """Основная функция."""
     print("=" * 60)
@@ -461,6 +479,11 @@ def main():
                     # Проверка лимита позиций (контроль риска)
                     if len(open_positions) >= MAX_POSITIONS:
                         print(f'  ⚠️ {ticker}: лимит позиций ({MAX_POSITIONS}) — не открываем')
+                        continue
+                    
+                    # Проверка cooldown после STOP
+                    if is_in_cooldown(ticker):
+                        print(f'  ⏸️ {ticker}: cooldown после STOP ({COOLDOWN_HOURS}ч)')
                         continue
                     
                     if decision == 'LONG' and score >= entry_threshold:
