@@ -53,7 +53,8 @@
         "hedge_ratio": -32.8594
       },
       "total_rows": 2376,
-      "last_optimized": "2026-08-23 20:25:47"
+      "last_optimized": "2026-08-23 20:25:47",
+      "enabled": true
     },
     "WUSH-WU_M10": {
       "pair_name": "WUSH-WU_M10",
@@ -108,7 +109,8 @@
         "hedge_ratio": 136.5281
       },
       "total_rows": 2272,
-      "last_optimized": "2026-08-23 20:25:50"
+      "last_optimized": "2026-08-23 20:25:50",
+      "enabled": true
     },
     "GAZPF-GZ_M10": {
       "pair_name": "GAZPF-GZ_M10",
@@ -163,7 +165,8 @@
         "hedge_ratio": -28.1849
       },
       "total_rows": 2344,
-      "last_optimized": "2026-08-23 20:25:56"
+      "last_optimized": "2026-08-23 20:25:56",
+      "enabled": true
     },
     "SIBN-SO_M10": {
       "pair_name": "SIBN-SO_M10",
@@ -218,7 +221,8 @@
         "hedge_ratio": -29.5174
       },
       "total_rows": 1950,
-      "last_optimized": "2026-08-23 20:26:01"
+      "last_optimized": "2026-08-23 20:26:01",
+      "enabled": true
     },
     "SFIN-SH_M10": {
       "pair_name": "SFIN-SH_M10",
@@ -273,7 +277,8 @@
         "hedge_ratio": 44.1408
       },
       "total_rows": 2254,
-      "last_optimized": "2026-08-23 20:26:05"
+      "last_optimized": "2026-08-23 20:26:05",
+      "enabled": true
     },
     "PHOR-PH_M10": {
       "pair_name": "PHOR-PH_M10",
@@ -328,7 +333,8 @@
         "hedge_ratio": -26.1226
       },
       "total_rows": 2025,
-      "last_optimized": "2026-08-23 20:26:14"
+      "last_optimized": "2026-08-23 20:26:14",
+      "enabled": true
     },
     "POSI-PS_M10": {
       "pair_name": "POSI-PS_M10",
@@ -383,7 +389,8 @@
         "hedge_ratio": 34.2665
       },
       "total_rows": 2080,
-      "last_optimized": "2026-08-23 20:26:16"
+      "last_optimized": "2026-08-23 20:26:16",
+      "enabled": true
     },
     "SNGSP-SG_M10": {
       "pair_name": "SNGSP-SG_M10",
@@ -438,7 +445,8 @@
         "hedge_ratio": -51.8593
       },
       "total_rows": 2095,
-      "last_optimized": "2026-08-23 20:26:19"
+      "last_optimized": "2026-08-23 20:26:19",
+      "enabled": true
     },
     "BANE-BN_M10": {
       "pair_name": "BANE-BN_M10",
@@ -493,7 +501,8 @@
         "hedge_ratio": -22.034
       },
       "total_rows": 1236,
-      "last_optimized": "2026-08-23 20:26:23"
+      "last_optimized": "2026-08-23 20:26:23",
+      "enabled": true
     },
     "CHMF-CK_M10": {
       "pair_name": "CHMF-CK_M10",
@@ -548,7 +557,8 @@
         "hedge_ratio": -13.1972
       },
       "total_rows": 2169,
-      "last_optimized": "2026-08-23 20:26:28"
+      "last_optimized": "2026-08-23 20:26:28",
+      "enabled": true
     },
     "BELU-NB_M10": {
       "pair_name": "BELU-NB_M10",
@@ -603,7 +613,8 @@
         "hedge_ratio": -16.4095
       },
       "total_rows": 1694,
-      "last_optimized": "2026-08-23 20:26:36"
+      "last_optimized": "2026-08-23 20:26:36",
+      "enabled": true
     },
     "CNYRUBF-UM_M10": {
       "pair_name": "CNYRUBF-UM_M10",
@@ -658,7 +669,8 @@
         "hedge_ratio": 71.2923
       },
       "total_rows": 1995,
-      "last_optimized": "2026-08-23 20:26:40"
+      "last_optimized": "2026-08-23 20:26:40",
+      "enabled": true
     },
     "SVCB-SC_M10": {
       "pair_name": "SVCB-SC_M10",
@@ -713,7 +725,8 @@
         "hedge_ratio": -27.6685
       },
       "total_rows": 2246,
-      "last_optimized": "2026-08-23 20:26:50"
+      "last_optimized": "2026-08-23 20:26:50",
+      "enabled": true
     },
     "SFIN-SH_H1": {
       "pair_name": "SFIN-SH_H1",
@@ -768,7 +781,8 @@
         "hedge_ratio": 103.2023
       },
       "total_rows": 403,
-      "last_optimized": "2026-08-23 20:26:57"
+      "last_optimized": "2026-08-23 20:26:57",
+      "enabled": true
     },
     "SOFL-S0_H1": {
       "pair_name": "SOFL-S0_H1",
@@ -823,7 +837,8 @@
         "hedge_ratio": -21.7306
       },
       "total_rows": 379,
-      "last_optimized": "2026-08-23 20:27:02"
+      "last_optimized": "2026-08-23 20:27:02",
+      "enabled": true
     },
     "RASP-RA_H1": {
       "pair_name": "RASP-RA_H1",
@@ -878,7 +893,8 @@
         "hedge_ratio": -48.1251
       },
       "total_rows": 362,
-      "last_optimized": "2026-08-23 20:27:05"
+      "last_optimized": "2026-08-23 20:27:05",
+      "enabled": true
     },
     "LKOH-HYDR_M10": {
       "pair_name": "LKOH-HYDR_M10",
@@ -933,7 +949,8 @@
         "hedge_ratio": 6.9431
       },
       "total_rows": 40010,
-      "last_optimized": "2026-09-13 20:09:22"
+      "last_optimized": "2026-09-13 20:09:22",
+      "enabled": true
     },
     "LKOH-ROSN_M10": {
       "pair_name": "LKOH-ROSN_M10",
@@ -988,7 +1005,8 @@
         "hedge_ratio": -3.8804
       },
       "total_rows": 40120,
-      "last_optimized": "2026-09-13 20:09:58"
+      "last_optimized": "2026-09-13 20:09:58",
+      "enabled": true
     },
     "LKOH-TATN_M10": {
       "pair_name": "LKOH-TATN_M10",
@@ -1043,7 +1061,8 @@
         "hedge_ratio": -1.042
       },
       "total_rows": 39991,
-      "last_optimized": "2026-09-13 20:10:37"
+      "last_optimized": "2026-09-13 20:10:37",
+      "enabled": true
     },
     "ROSN-TATN_M10": {
       "pair_name": "ROSN-TATN_M10",
@@ -1098,7 +1117,8 @@
         "hedge_ratio": -0.6668
       },
       "total_rows": 39973,
-      "last_optimized": "2026-09-13 20:11:14"
+      "last_optimized": "2026-09-13 20:11:14",
+      "enabled": true
     },
     "LKOH-IRAO_M10": {
       "pair_name": "LKOH-IRAO_M10",
@@ -1153,7 +1173,8 @@
         "hedge_ratio": -0.7106
       },
       "total_rows": 40028,
-      "last_optimized": "2026-09-13 20:11:50"
+      "last_optimized": "2026-09-13 20:11:50",
+      "enabled": true
     },
     "HYDR-IRAO_M10": {
       "pair_name": "HYDR-IRAO_M10",
@@ -1208,7 +1229,8 @@
         "hedge_ratio": -36.1767
       },
       "total_rows": 39919,
-      "last_optimized": "2026-09-13 20:12:25"
+      "last_optimized": "2026-09-13 20:12:25",
+      "enabled": true
     },
     "LKOH-HYDR_H1": {
       "pair_name": "LKOH-HYDR_H1",
@@ -1263,7 +1285,8 @@
         "hedge_ratio": 8.8508
       },
       "total_rows": 7082,
-      "last_optimized": "2026-09-13 20:12:31"
+      "last_optimized": "2026-09-13 20:12:31",
+      "enabled": true
     },
     "LKOH-ROSN_H1": {
       "pair_name": "LKOH-ROSN_H1",
@@ -1318,7 +1341,8 @@
         "hedge_ratio": -1.8528
       },
       "total_rows": 7150,
-      "last_optimized": "2026-09-13 20:12:37"
+      "last_optimized": "2026-09-13 20:12:37",
+      "enabled": true
     },
     "LKOH-TATN_H1": {
       "pair_name": "LKOH-TATN_H1",
@@ -1373,7 +1397,8 @@
         "hedge_ratio": -1.0208
       },
       "total_rows": 7126,
-      "last_optimized": "2026-09-13 20:12:43"
+      "last_optimized": "2026-09-13 20:12:43",
+      "enabled": true
     },
     "ROSN-TATN_H1": {
       "pair_name": "ROSN-TATN_H1",
@@ -1428,7 +1453,8 @@
         "hedge_ratio": -0.5839
       },
       "total_rows": 7123,
-      "last_optimized": "2026-09-13 20:12:48"
+      "last_optimized": "2026-09-13 20:12:48",
+      "enabled": true
     },
     "LKOH-IRAO_H1": {
       "pair_name": "LKOH-IRAO_H1",
@@ -1483,7 +1509,8 @@
         "hedge_ratio": -0.8111
       },
       "total_rows": 7133,
-      "last_optimized": "2026-09-13 20:12:54"
+      "last_optimized": "2026-09-13 20:12:54",
+      "enabled": true
     },
     "HYDR-IRAO_H1": {
       "pair_name": "HYDR-IRAO_H1",
@@ -1538,7 +1565,8 @@
         "hedge_ratio": -14.2375
       },
       "total_rows": 7065,
-      "last_optimized": "2026-09-13 20:13:00"
+      "last_optimized": "2026-09-13 20:13:00",
+      "enabled": true
     },
     "LKOH-HYDR_H4": {
       "pair_name": "LKOH-HYDR_H4",
@@ -1593,7 +1621,8 @@
         "hedge_ratio": 3.9171
       },
       "total_rows": 1829,
-      "last_optimized": "2026-09-13 20:13:01"
+      "last_optimized": "2026-09-13 20:13:01",
+      "enabled": true
     },
     "LKOH-ROSN_H4": {
       "pair_name": "LKOH-ROSN_H4",
@@ -1648,7 +1677,8 @@
         "hedge_ratio": 3.8972
       },
       "total_rows": 1895,
-      "last_optimized": "2026-09-13 20:13:03"
+      "last_optimized": "2026-09-13 20:13:03",
+      "enabled": true
     },
     "LKOH-TATN_H4": {
       "pair_name": "LKOH-TATN_H4",
@@ -1703,7 +1733,8 @@
         "hedge_ratio": -1.0016
       },
       "total_rows": 1885,
-      "last_optimized": "2026-09-13 20:13:04"
+      "last_optimized": "2026-09-13 20:13:04",
+      "enabled": true
     },
     "ROSN-TATN_H4": {
       "pair_name": "ROSN-TATN_H4",
@@ -1758,7 +1789,8 @@
         "hedge_ratio": -1.726
       },
       "total_rows": 1883,
-      "last_optimized": "2026-09-13 20:13:06"
+      "last_optimized": "2026-09-13 20:13:06",
+      "enabled": true
     },
     "LKOH-IRAO_H4": {
       "pair_name": "LKOH-IRAO_H4",
@@ -1813,7 +1845,8 @@
         "hedge_ratio": 5.2919
       },
       "total_rows": 1890,
-      "last_optimized": "2026-09-13 20:13:08"
+      "last_optimized": "2026-09-13 20:13:08",
+      "enabled": true
     },
     "HYDR-IRAO_H4": {
       "pair_name": "HYDR-IRAO_H4",
@@ -1868,7 +1901,8 @@
         "hedge_ratio": 6.0983
       },
       "total_rows": 1825,
-      "last_optimized": "2026-09-13 20:13:09"
+      "last_optimized": "2026-09-13 20:13:09",
+      "enabled": true
     },
     "LKOH-HYDR_D1": {
       "pair_name": "LKOH-HYDR_D1",
@@ -1923,7 +1957,8 @@
         "hedge_ratio": 9.8312
       },
       "total_rows": 444,
-      "last_optimized": "2026-09-13 20:13:10"
+      "last_optimized": "2026-09-13 20:13:10",
+      "enabled": false
     },
     "LKOH-ROSN_D1": {
       "pair_name": "LKOH-ROSN_D1",
@@ -1978,7 +2013,8 @@
         "hedge_ratio": -2.3376
       },
       "total_rows": 444,
-      "last_optimized": "2026-09-13 20:13:10"
+      "last_optimized": "2026-09-13 20:13:10",
+      "enabled": false
     },
     "LKOH-TATN_D1": {
       "pair_name": "LKOH-TATN_D1",
@@ -2033,7 +2069,8 @@
         "hedge_ratio": -0.63
       },
       "total_rows": 442,
-      "last_optimized": "2026-09-13 20:13:11"
+      "last_optimized": "2026-09-13 20:13:11",
+      "enabled": false
     },
     "ROSN-TATN_D1": {
       "pair_name": "ROSN-TATN_D1",
@@ -2088,7 +2125,8 @@
         "hedge_ratio": -0.5273
       },
       "total_rows": 442,
-      "last_optimized": "2026-09-13 20:13:11"
+      "last_optimized": "2026-09-13 20:13:11",
+      "enabled": false
     },
     "LKOH-IRAO_D1": {
       "pair_name": "LKOH-IRAO_D1",
@@ -2143,7 +2181,8 @@
         "hedge_ratio": 0.2805
       },
       "total_rows": 442,
-      "last_optimized": "2026-09-13 20:13:12"
+      "last_optimized": "2026-09-13 20:13:12",
+      "enabled": true
     },
     "HYDR-IRAO_D1": {
       "pair_name": "HYDR-IRAO_D1",
@@ -2198,7 +2237,8 @@
         "hedge_ratio": -0.4796
       },
       "total_rows": 442,
-      "last_optimized": "2026-09-13 20:13:12"
+      "last_optimized": "2026-09-13 20:13:12",
+      "enabled": false
     },
     "LK-HY_M10": {
       "pair_name": "LK-HY_M10",
@@ -2214,7 +2254,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-RN_M10": {
       "pair_name": "LK-RN_M10",
@@ -2230,7 +2271,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-TN_M10": {
       "pair_name": "LK-TN_M10",
@@ -2246,7 +2288,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "RN-TN_M10": {
       "pair_name": "RN-TN_M10",
@@ -2262,7 +2305,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-IR_M10": {
       "pair_name": "LK-IR_M10",
@@ -2278,7 +2322,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "HY-IR_M10": {
       "pair_name": "HY-IR_M10",
@@ -2294,7 +2339,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-HY_H1": {
       "pair_name": "LK-HY_H1",
@@ -2310,7 +2356,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-RN_H1": {
       "pair_name": "LK-RN_H1",
@@ -2326,7 +2373,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-TN_H1": {
       "pair_name": "LK-TN_H1",
@@ -2342,7 +2390,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "RN-TN_H1": {
       "pair_name": "RN-TN_H1",
@@ -2358,7 +2407,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-IR_H1": {
       "pair_name": "LK-IR_H1",
@@ -2374,7 +2424,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "HY-IR_H1": {
       "pair_name": "HY-IR_H1",
@@ -2390,7 +2441,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-HY_H4": {
       "pair_name": "LK-HY_H4",
@@ -2406,7 +2458,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-RN_H4": {
       "pair_name": "LK-RN_H4",
@@ -2422,7 +2475,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-TN_H4": {
       "pair_name": "LK-TN_H4",
@@ -2438,7 +2492,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "RN-TN_H4": {
       "pair_name": "RN-TN_H4",
@@ -2454,7 +2509,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-IR_H4": {
       "pair_name": "LK-IR_H4",
@@ -2470,7 +2526,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "HY-IR_H4": {
       "pair_name": "HY-IR_H4",
@@ -2486,7 +2543,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-HY_D1": {
       "pair_name": "LK-HY_D1",
@@ -2502,7 +2560,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-RN_D1": {
       "pair_name": "LK-RN_D1",
@@ -2518,7 +2577,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-TN_D1": {
       "pair_name": "LK-TN_D1",
@@ -2534,7 +2594,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "RN-TN_D1": {
       "pair_name": "RN-TN_D1",
@@ -2550,7 +2611,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "LK-IR_D1": {
       "pair_name": "LK-IR_D1",
@@ -2566,7 +2628,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     },
     "HY-IR_D1": {
       "pair_name": "HY-IR_D1",
@@ -2582,7 +2645,8 @@
         "sharpe": 0,
         "max_drawdown": 0,
         "num_trades": 0
-      }
+      },
+      "enabled": true
     }
   },
   "last_updated": "2026-09-13 20:13:12"
