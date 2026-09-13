@@ -151,6 +151,7 @@ def is_tf_fresh(tf):
     return fresh_count >= total_count / 2
 ENTRY_Z_DEFAULT = 3.0
 MAX_POSITIONS = 10  # Максимум одновременных открытых пар
+COOLDOWN_HOURS = 4  # Cooldown после убытка по паре (часы)
 EXIT_Z_DEFAULT = 0.5
 
 # ========== БАЗА ДАННЫХ ==========
@@ -450,6 +451,21 @@ def main():
     
     print("✅ Робот остановлен")
 
+def is_pair_in_cooldown(pair_name):
+    """Проверить, был ли убыток по паре за последние COOLDOWN_HOURS."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cutoff = (datetime.now() - timedelta(hours=COOLDOWN_HOURS)).strftime('%Y-%m-%d %H:%M:%S')
+    cursor.execute("""
+        SELECT COUNT(*) FROM positions
+        WHERE pair_name = ? AND status = 'CLOSED'
+        AND pnl < 0 AND exit_time > ?
+    """, (pair_name, cutoff))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count > 0
+
+
 def check_signals_by_tf(pairs_config, tf):
     """Проверить сигналы по парам на конкретном ТФ"""
     print(f"\n📊 Проверка сигналов {tf}...")
@@ -521,6 +537,11 @@ def check_signals_by_tf(pairs_config, tf):
             # Проверка лимита позиций (контроль риска)
             if len(open_positions) >= MAX_POSITIONS:
                 print(f'  ⚠️ Лимит позиций ({MAX_POSITIONS}) — не открываем новые')
+                continue
+            
+            # Проверка cooldown после убытка по паре
+            if is_pair_in_cooldown(pair_name):
+                print(f'  ⏸️ {pair_name}: cooldown после убытка ({COOLDOWN_HOURS}ч)')
                 continue
             
             has_position = any(p[1] == pair_name and p[3] == tf for p in open_positions)
