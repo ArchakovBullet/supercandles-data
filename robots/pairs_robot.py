@@ -91,70 +91,125 @@ def is_moex_trading_day():
         return False
     return True
 
-def is_tf_fresh(tf):
-    """Проверить, что данные ТФ свежие (по дате последней свечи)"""
-    from datetime import datetime as _dt, timedelta as _td
+def _get_last_candle_dt(df):
+    """Универсально получить datetime последней свечи."""
+    if len(df) == 0:
+        return None
 
-    # В неторговые дни данные считаем свежими
+    # 1. begin (datetime)
+    if 'begin' in df.columns:
+        try:
+            return pd.to_datetime(df['begin'].iloc[-1])
+        except Exception:
+            pass
+
+    # 2. tradedate + block (SuperCandles H4)
+    if 'tradedate' in df.columns and 'block' in df.columns:
+        try:
+            last_date = str(df['tradedate'].iloc[-1])
+            last_block = str(df['block'].iloc[-1])
+            return pd.to_datetime(f'{last_date} {last_block}')
+        except Exception:
+            pass
+
+    # 3. tradedate + tradetime (FutOI)
+    if 'tradedate' in df.columns and 'tradetime' in df.columns:
+        try:
+            last_date = str(df['tradedate'].iloc[-1])
+            last_time = str(df['tradetime'].iloc[-1])
+            return pd.to_datetime(f'{last_date} {last_time}')
+        except Exception:
+            pass
+
+    # 4. tradedate (fallback)
+    if 'tradedate' in df.columns:
+        try:
+            return pd.to_datetime(df['tradedate'].iloc[-1])
+        except Exception:
+            pass
+
+    # 5. datetime
+    if 'datetime' in df.columns:
+        try:
+            return pd.to_datetime(df['datetime'].iloc[-1])
+        except Exception:
+            pass
+
+    return None
+
+
+def is_tf_fresh(tf):
+    """Проверить, что данные ТФ свежие (по дате последней свечи)."""
+    from datetime import datetime as _dt
+
     if not is_moex_trading_day():
         return True
 
     max_age_hours = FRESHNESS_THRESHOLDS.get(tf, 4)
-    
+
     try:
         with open(CONFIG_PATH, 'r') as f:
             pairs_config = json.load(f)
-    except:
+    except Exception as e:
+        print(f'  ⚠️ is_tf_fresh({tf}): ошибка чтения pairs_config: {e}')
         return False
-    
+
     fresh_count = 0
     total_count = 0
-    
-    # Порог: дата последней свечи не старше N часов от текущего времени
-    # Для M10: последняя свеча должна быть за последние 2 часа
     now = _dt.now()
-    
+
     for pair_name in pairs_config.get('pairs', {}):
         if not pair_name.endswith(f'_{tf}'):
             continue
         base_pair = pair_name.replace(f'_{tf}', '')
         if '-' not in base_pair:
             continue
-        
+
         ticker_a, ticker_b = base_pair.split('-')
         file_a = CANDLES_DIR / f'{ticker_a}_{tf}.parquet'
         file_b = CANDLES_DIR / f'{ticker_b}_{tf}.parquet'
-        
+
         if not file_a.exists() or not file_b.exists():
             continue
-        
-        total_count += 1
-        
-        try:
-            df = pd.read_parquet(file_a)
-            # Проверяем колонку с датой
-            date_col = 'begin' if 'begin' in df.columns else 'tradedate'
-            if date_col in df.columns and len(df) > 0:
-                last_candle = pd.to_datetime(df[date_col].iloc[-1])
-                # Если last_candle без timezone — добавляем
-                if last_candle.tzinfo is None:
-                    last_candle = last_candle.tz_localize(None)
-                age_hours = (now - last_candle.replace(tzinfo=None)).total_seconds() / 3600
-                if age_hours < max_age_hours:
-                    fresh_count += 1
-        except Exception as e:
-            pass
-    
-    if total_count == 0:
-        return False
-    
-    return fresh_count >= total_count / 2
-ENTRY_Z_DEFAULT = 3.0
-MAX_POSITIONS = 10  # Максимум одновременных открытых пар
-COOLDOWN_HOURS = 4  # Cooldown после убытка по паре (часы)
-EXIT_Z_DEFAULT = 0.5
 
-# ========== БАЗА ДАННЫХ ==========
+        total_count += 1
+
+        pair_fresh = True
+        for f in [file_a, file_b]:
+            try:
+                df = pd.read_parquet(f)
+                last_candle = _get_last_candle_dt(df)
+
+                if last_candle is None:
+                    print(f'  ⚠️ {f.name}: не найдена колонка с датой')
+                    pair_fresh = False
+                    break
+
+                if last_candle.tzinfo is not None:
+                    last_candle = last_candle.tz_localize(None)
+
+                age_hours = (now - last_candle).total_seconds() / 3600
+                if age_hours >= max_age_hours:
+                    print(f'  ⚠️ {f.name}: age={age_hours:.1f}ч >= {max_age_hours}ч')
+                    pair_fresh = False
+                    break
+
+            except Exception as e:
+                print(f'  ❌ {f.name}: {e}')
+                pair_fresh = False
+                break
+
+        if pair_fresh:
+            fresh_count += 1
+
+    if total_count == 0:
+        print(f'  ⚠️ is_tf_fresh({tf}): нет пар с _{tf}')
+        return False
+
+    result = fresh_count >= total_count / 2
+    print(f'  📊 is_tf_fresh({tf}): {fresh_count}/{total_count} свежих → {result}')
+    return result
+
 def init_db():
     """Создать таблицы в SQLite"""
     conn = sqlite3.connect(DB_PATH)

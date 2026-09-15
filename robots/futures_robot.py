@@ -80,21 +80,42 @@ def is_moex_trading_day():
 
 def is_futoi_fresh(ticker):
     """Проверить свежесть FutOI. Возвращает (fresh: bool, age_hours: float|None)."""
-    # В неторговые дни данные считаем свежими
     if not is_moex_trading_day():
         return True, 0.0
 
     futoi_file = DATA_ROOT / 'futoi' / f'{ticker}_futoi.parquet'
     if not futoi_file.exists():
         return False, None
+
     try:
-        df = pd.read_parquet(futoi_file, columns=['tradedate', 'tradetime'])
+        df = pd.read_parquet(futoi_file)
+        if len(df) == 0:
+            return False, None
+
         last_row = df.iloc[-1]
-        last_dt = pd.to_datetime(f"{last_row['tradedate']} {last_row['tradetime']}")
+
+        last_dt = None
+        if 'tradedate' in df.columns and 'tradetime' in df.columns:
+            last_dt = pd.to_datetime(f"{last_row['tradedate']} {last_row['tradetime']}")
+        elif 'tradedate' in df.columns and 'block' in df.columns:
+            last_dt = pd.to_datetime(f"{last_row['tradedate']} {last_row['block']}")
+        elif 'tradedate' in df.columns:
+            last_dt = pd.to_datetime(last_row['tradedate'])
+        elif 'begin' in df.columns:
+            last_dt = pd.to_datetime(last_row['begin'])
+
+        if last_dt is None:
+            print(f"  ⚠️ {ticker}: нет колонки с датой")
+            return False, None
+
+        if last_dt.tzinfo is not None:
+            last_dt = last_dt.tz_localize(None)
+
         age_hours = (pd.Timestamp.now() - last_dt).total_seconds() / 3600
         return age_hours <= FRESHNESS_THRESHOLDS['futoi'], age_hours
+
     except Exception as e:
-        print(f"  \u26a0\ufe0f {ticker}: \u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 FutOI: {e}")
+        print(f"  ⚠️ {ticker}: ошибка проверки FutOI: {e}")
         return False, None
 
 # VK
@@ -214,6 +235,46 @@ def close_position(position_id, ticker, direction, exit_score, exit_price, reaso
     print(f"✅ Закрыта позиция: {message}")
 
 # ========== ГЛАВНЫЙ ЦИКЛ ==========
+
+def check_expiry():
+    """Проверить приближающиеся экспирации. Закрывать за N дней."""
+    if not is_moex_trading_day():
+        return
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, ticker, direction, entry_price, volume, expiry_date
+        FROM futures_positions
+        WHERE status='OPEN' AND expiry_date IS NOT NULL
+    """)
+    positions = cursor.fetchall()
+    conn.close()
+
+    now = pd.Timestamp.now()
+
+    for pos in positions:
+        pid, ticker, direction, entry_price, volume, expiry_date = pos
+        try:
+            expiry = pd.to_datetime(expiry_date)
+            days_left = (expiry - now).days
+
+            # Закрываем за 2 дня до экспирации
+            if days_left <= 2:
+                # Получить текущую цену (M10 close)
+                try:
+                    df = pd.read_parquet(DATA_ROOT / 'candles' / f'{ticker}_M10.parquet')
+                    exit_price = float(df.iloc[-1]['close'])
+                except Exception:
+                    continue
+
+                print(f'  ⏰ {ticker}: экспирация через {days_left} дн. — ЗАКРЫВАЕМ')
+                close_position(pid, ticker, direction, 0, exit_price, 'EXPIRY')
+        except Exception as e:
+            print(f'  ⚠️ check_expiry({ticker}): {e}')
+
+
 def check_stops_only():
     """Быстрая проверка стопов по M10 (high/low) — каждые 10 минут."""
     # В неторговые дни M10 не обновляются — проверка бессмысленна
@@ -510,4 +571,5 @@ if __name__ == '__main__':
         for i in range(6):
             time.sleep(600)
             check_stops_only()
+            check_expiry()
             print(f'  [{i+1}/6] Проверка стопов завершена')

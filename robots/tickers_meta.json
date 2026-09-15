@@ -1,0 +1,89 @@
+{
+    "SN": {
+        "asset_class": "commodity",
+        "name": "Олово",
+        "expiry": "2026-09-17"
+    },
+    "NA": {
+        "asset_class": "commodity",
+        "name": "Никель",
+        "expiry": "2026-09-18"
+    },
+    "PT": {
+        "asset_class": "commodity",
+        "name": "Платина",
+        "expiry": "2026-09-18"
+    },
+    "CE": {
+        "asset_class": "commodity",
+        "name": "Медь"
+    },
+    "GD": {
+        "asset_class": "commodity",
+        "name": "Золото"
+    },
+    "GL": {
+        "asset_class": "commodity",
+        "name": "Золото (GL)"
+    },
+    "GLDRUBF": {
+        "asset_class": "commodity",
+        "name": "Золото (вечный)"
+    },
+    "SV": {
+        "asset_class": "commodity",
+        "name": "Серебро"
+    },
+    "GZ": {
+        "asset_class": "commodity",
+        "name": "Газ"
+    },
+    "RB": {
+        "asset_class": "commodity",
+        "name": "Бензин"
+    },
+    "SBERF": {
+        "asset_class": "stock",
+        "name": "Сбербанк (вечный)"
+    },
+    "GAZPF": {
+        "asset_class": "stock",
+        "name": "Газпром (вечный)"
+    },
+    "CNYRUBF": {
+        "asset_class": "currency",
+        "name": "Юань (вечный)"
+    },
+    "USDRUBF": {
+        "asset_class": "currency",
+        "name": "Доллар (вечный)"
+    },
+    "BM": {
+        "asset_class": "currency",
+        "name": "BM"
+    },
+    "RI": {
+        "asset_class": "index",
+        "name": "РТС"
+    },
+    "MC": {
+        "asset_class": "index",
+        "name": "Индекс МосБиржи"
+    },
+    "TN": {
+        "asset_class": "index",
+        "name": "TN"
+    },
+    "VB": {
+        "asset_class": "index",
+        "name": "VB"
+    },
+    "HS": {
+        "asset_class": "index",
+        "name": "HS"
+    },
+    "RL": {
+        "asset_class": "index",
+        "name": "RL"
+    }
+}

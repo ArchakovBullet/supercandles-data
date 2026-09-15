@@ -1622,7 +1622,7 @@
       },
       "total_rows": 1829,
       "last_optimized": "2026-09-13 20:13:01",
-      "enabled": true
+      "enabled": false
     },
     "LKOH-ROSN_H4": {
       "pair_name": "LKOH-ROSN_H4",
@@ -1678,7 +1678,7 @@
       },
       "total_rows": 1895,
       "last_optimized": "2026-09-13 20:13:03",
-      "enabled": true
+      "enabled": false
     },
     "LKOH-TATN_H4": {
       "pair_name": "LKOH-TATN_H4",
@@ -1734,7 +1734,7 @@
       },
       "total_rows": 1885,
       "last_optimized": "2026-09-13 20:13:04",
-      "enabled": true
+      "enabled": false
     },
     "ROSN-TATN_H4": {
       "pair_name": "ROSN-TATN_H4",
@@ -1790,7 +1790,7 @@
       },
       "total_rows": 1883,
       "last_optimized": "2026-09-13 20:13:06",
-      "enabled": true
+      "enabled": false
     },
     "LKOH-IRAO_H4": {
       "pair_name": "LKOH-IRAO_H4",
@@ -1846,7 +1846,7 @@
       },
       "total_rows": 1890,
       "last_optimized": "2026-09-13 20:13:08",
-      "enabled": true
+      "enabled": false
     },
     "HYDR-IRAO_H4": {
       "pair_name": "HYDR-IRAO_H4",
@@ -1902,7 +1902,7 @@
       },
       "total_rows": 1825,
       "last_optimized": "2026-09-13 20:13:09",
-      "enabled": true
+      "enabled": false
     },
     "LKOH-HYDR_D1": {
       "pair_name": "LKOH-HYDR_D1",
