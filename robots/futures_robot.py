@@ -50,6 +50,11 @@ CRISIS_EXIT_SCORE = 40
 # Максимум одновременных открытых позиций (контроль риска, принцип Саймонса)
 MAX_POSITIONS = 10
 
+# === СТОПЫ (15.09.2026) ===
+STOP_ATR_MULT = 3.2   # начальный стоп: 3.2×ATR
+BE_MOVE_ATR = 1.5     # при движении в плюс на 1.5×ATR — стоп в безубыток
+
+
 # Cooldown после STOP по тикеру (часы) — защита от whipsaw
 COOLDOWN_HOURS = 4
 
@@ -188,10 +193,17 @@ def open_position(ticker, direction, volume, score, price, atr):
     """Открыть позицию."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+
+    # Начальный стоп — 3.2×ATR
+    if direction == 'LONG':
+        stop_price = price - atr * STOP_ATR_MULT
+    else:
+        stop_price = price + atr * STOP_ATR_MULT
+
     cursor.execute('''
-        INSERT INTO futures_positions (ticker, direction, volume, entry_score, entry_time, entry_price, entry_atr)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (ticker, direction, volume, score, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), price, atr))
+        INSERT INTO futures_positions (ticker, direction, volume, entry_score, entry_time, entry_price, entry_atr, stop_price)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (ticker, direction, volume, score, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), price, atr, stop_price))
     conn.commit()
     conn.close()
 
@@ -218,14 +230,17 @@ def close_position(position_id, ticker, direction, exit_score, exit_price, reaso
     point_value = CONTRACT_POINTS.get(ticker, 1.0)
     if direction == 'LONG':
         pnl = (exit_price - entry_price) * point_value * volume
+        pnl_points = (exit_price - entry_price) * volume
     else:
         pnl = (entry_price - exit_price) * point_value * volume
+        pnl_points = (entry_price - exit_price) * volume
     
     cursor.execute('''
         UPDATE futures_positions SET 
-            status = "CLOSED", exit_time = ?, exit_score = ?, exit_price = ?, pnl = ?, exit_reason = ?
+            status = "CLOSED", exit_time = ?, exit_score = ?, exit_price = ?, pnl = ?, pnl_points = ?, point_value = ?, exit_reason = ?
         WHERE id = ?
-    ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), exit_score, exit_price, pnl, reason, position_id))
+    ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), exit_score, exit_price,
+          pnl, pnl_points, point_value, reason, position_id))
     conn.commit()
     conn.close()
 
@@ -285,6 +300,9 @@ def check_stops_only():
     if not open_positions:
         return
     
+    conn = sqlite3.connect(DB_PATH)  # для обновления stop_price
+    cursor = conn.cursor()
+
     closed_count = 0
     for pos in open_positions:
         pos_id = pos[0]
@@ -309,22 +327,60 @@ def check_stops_only():
             low = float(last['low']) if not isinstance(last['low'], bytes) else 0
             high = float(last['high']) if not isinstance(last['high'], bytes) else 0
             
-            # Стоп 2×ATR
+            # === Стоп 3.2×ATR + безубыток (15.09.2026) ===
+            # Загружаем текущий stop_price из БД
+            cursor.execute('SELECT stop_price FROM futures_positions WHERE id = ?', (pos_id,))
+            sp_row = cursor.fetchone()
+            current_stop = sp_row[0] if sp_row and sp_row[0] is not None else None
+
             if direction == 'LONG':
-                stop_price = entry_price - entry_atr * 2
+                # Начальный стоп — 3.2×ATR
+                if current_stop is None:
+                    stop_price = entry_price - entry_atr * STOP_ATR_MULT
+                else:
+                    stop_price = current_stop
+
+                # Проверяем, не пора ли в безубыток
+                if high >= entry_price + entry_atr * BE_MOVE_ATR:
+                    if stop_price < entry_price:
+                        stop_price = entry_price
+                        cursor.execute('UPDATE futures_positions SET stop_price = ? WHERE id = ?', (stop_price, pos_id))
+                        conn.commit()
+                        print(f'🔒 {ticker}: стоп в безубыток ({stop_price:.2f})')
+
+                # Проверяем стоп
                 if low <= stop_price:
-                    close_position(pos_id, ticker, direction, 0, stop_price, 'STOP')
-                    print(f'🛑 {ticker}: STOP по {stop_price:.2f} (low={low:.2f})')
+                    reason = 'BREAKEVEN' if stop_price == entry_price else 'STOP'
+                    close_position(pos_id, ticker, direction, 0, stop_price, reason)
+                    print(f'🛑 {ticker}: {reason} по {stop_price:.2f} (low={low:.2f})')
                     closed_count += 1
+
             elif direction == 'SHORT':
-                stop_price = entry_price + entry_atr * 2
+                # Начальный стоп — 3.2×ATR
+                if current_stop is None:
+                    stop_price = entry_price + entry_atr * STOP_ATR_MULT
+                else:
+                    stop_price = current_stop
+
+                # Проверяем, не пора ли в безубыток
+                if low <= entry_price - entry_atr * BE_MOVE_ATR:
+                    if stop_price > entry_price:
+                        stop_price = entry_price
+                        cursor.execute('UPDATE futures_positions SET stop_price = ? WHERE id = ?', (stop_price, pos_id))
+                        conn.commit()
+                        print(f'🔒 {ticker}: стоп в безубыток ({stop_price:.2f})')
+
+                # Проверяем стоп
                 if high >= stop_price:
-                    close_position(pos_id, ticker, direction, 0, stop_price, 'STOP')
-                    print(f'🛑 {ticker}: STOP по {stop_price:.2f} (high={high:.2f})')
+                    reason = 'BREAKEVEN' if stop_price == entry_price else 'STOP'
+                    close_position(pos_id, ticker, direction, 0, stop_price, reason)
+                    print(f'🛑 {ticker}: {reason} по {stop_price:.2f} (high={high:.2f})')
                     closed_count += 1
         except Exception as e:
             print(f'  ❌ {ticker}: {e}')
     
+    conn.close()
+
     if closed_count:
         print(f'  ✅ Закрыто по стопам: {closed_count}')
 
@@ -499,19 +555,8 @@ def main():
                         pos_entry_price = pos[6] if len(pos) > 6 else 0
                         pos_atr = pos[7] if len(pos) > 7 else 0
                         
-                        # Стоп-лосс
-                        if pos_direction == 'LONG' and pos_atr > 0:
-                            stop_price = pos_entry_price - pos_atr * 2
-                            if entry_price <= stop_price:
-                                close_position(pos_id, ticker, pos_direction, score, entry_price, 'STOP')
-                                open_tickers.discard(ticker)
-                                break
-                        elif pos_direction == 'SHORT' and pos_atr > 0:
-                            stop_price = pos_entry_price + pos_atr * 2
-                            if entry_price >= stop_price:
-                                close_position(pos_id, ticker, pos_direction, score, entry_price, 'STOP')
-                                open_tickers.discard(ticker)
-                                break
+                        # Стоп-лосс проверяется в check_stops_only() каждые 10 мин
+                        # Здесь — только обратный сигнал
                         
                         # Обратный сигнал
                         if pos_direction == 'LONG' and decision == 'SHORT':
