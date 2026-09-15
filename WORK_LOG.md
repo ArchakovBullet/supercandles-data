@@ -1470,3 +1470,48 @@ print(f'HI2 daily: {len(df)} строк, last={df[\"tradedate\"].max()}')
 - [ ] **TradeStats** — интеграция
 - [ ] **A/B тест**
 - [ ] **Бэктест стопов**
+
+## 15.09.2026 (вечерняя сессия 2 — HI2: 11 метрик)
+
+### ✅ Выполнено
+
+**📊 HI2 — ВСЕ 11 МЕТРИК (было 2):**
+- **Проблема:** `hi2_daily_aggregator.py` — **только 2 метрики** (`hhi_agressive`, `hhi_volume`)
+- **В сырых данных** (`data/hi2/*.parquet`) — **11 метрик**!
+- **Патч агрегатора:**
+  - Добавлена константа `METRICS` (11 метрик)
+  - `agg_exprs` через `list comprehension`
+  - `hi2_daily.parquet`: **14 колонок** (было 5)
+
+**📊 11 МЕТРИК HI2:**
+- `hhi_agressive`, `hhi_agressive_buy`, `hhi_agressive_sell`
+- `hhi_buy`, `hhi_sell`
+- `hhi_netflow_buy`, `hhi_netflow_sell`
+- `hhi_passive`, `hhi_passive_buy`, `hhi_passive_sell`
+- `hhi_volume`
+
+**📈 АНАЛИТИКА ЗА 14.09:**
+- **Топ-10 по `hhi_agressive`:** AN=8544, MG=4274, SQ=3652, KRKNP=3338, ELMT=3176, LD=2801, VB=2764, ME=2742, NM=2642, SC=2630
+- **Топ-5 агрессивных покупателей (ratio buy/sell):** GCHE=5.01, YAKG=4.83, RASP=2.61, SH=2.59, SELG=2.47
+- **Топ-5 агрессивных продавцов:** ZAYM=0.08, TGKA=0.14, MSNG=0.16, DOMRF=0.21, ABIO=0.22
+
+**Git:**
+- Коммит `1705092` — hi2_aggregator: все 11 метрик HI2
+- Коммит `144c184` — WORK_LOG: HI2 — 11 метрик в агрегате
+- Запушены в `origin/master`
+
+### 📝 Заметки
+- **11 метрик HI2** — богатство для анализа
+- **`hhi_agressive_buy/sell`** — направление агрессии
+- **`hhi_netflow_buy/sell`** — чистый поток
+- **`hhi_passive_buy/sell`** — пассивная ликвидность
+- **`hhi_volume`** — объём
+
+### 🎯 На следующий раз
+- [ ] **Интеграция 11 метрик** в `unified_scanner`
+- [ ] **Патч `close_position`** — `pnl_points` в коде
+- [ ] **VK-уведомления** — формат `+325K₽ (+1930 pts)`
+- [ ] **TradeStats** — интеграция
+- [ ] **A/B тест**
+- [ ] **Бэктест стопов**
+- [ ] **Проверить HI2 за 15.09** (после 19:00)
