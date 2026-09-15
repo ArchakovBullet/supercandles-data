@@ -1550,3 +1550,43 @@ print(f'HI2 daily: {len(df)} строк, last={df[\"tradedate\"].max()}')
 - [ ] TradeStats в `unified_scanner` (поле `disb`)
 - [ ] Патч `close_position` в парном роботе (`leg_a_pnl_points`, `leg_b_pnl_points`, `total_pnl_points`)
 - [ ] Наблюдать за стопами — снизился ли whipsaw
+
+## 15.09.2026 (ночная сессия — 4 задачи)
+
+### ✅ Выполнено
+
+**Задача 1: Стопы фьючерсного робота**
+- `STOP_ATR_MULT = 3.2` (3×ATR + 0.2×ATR буфер)
+- `BE_MOVE_ATR = 1.5` (стоп в безубыток при движении в плюс на 1.5×ATR)
+- `exit_reason = BREAKEVEN` при закрытии по безубытку
+- `open_position`: записывает `stop_price`
+- `close_position`: `pnl_points`, `point_value`
+- `check_stops_only`: `conn` + `cursor` для обновления `stop_price`
+- Убрано дублирование стопа из `main()`
+- Backfill `stop_price` для 4 открытых позиций (PD, PT, RI, SBERF) + NR
+- Коммиты: `2a21361`, `371a2af`
+
+**Задача 2: 11 метрик HI2 в unified_scanner**
+- Расширена сигнатура: `hi2_agressive_buy`, `hi2_agressive_sell`, `hi2_buy`, `hi2_sell`, `hi2_netflow_buy`, `hi2_netflow_sell`, `hi2_passive`, `hi2_passive_buy`, `hi2_passive_sell`, `hi2_volume`
+- Пересмотрены пороги под реальные данные (median=560): >4000, >2500, >1500
+- Модификаторы: перекос агрессивных ×2 (±3), netflow ×3 (±2), объём >1500 (-3)
+- `futures_robot`: `get_hi2_for_ticker()` + передача 11 метрик
+- Коммит: `dcfc228`
+
+**Задача 3: *_pnl_points в парном роботе**
+- `close_position`: `leg_a_pnl_points`, `leg_b_pnl_points`, `total_pnl_points`
+- Формула: `(price - entry) × volume` (без point_value)
+- Коммит: `e99baf4`
+
+**Задача 4: TradeStats disb**
+- `unified_scanner`: параметр `disb` + модификатор (Вариант C)
+- Пороги: >0.5 (+3), >0.2 (+1), <-0.5 (-3), <-0.2 (-1)
+- `futures_robot`: `get_disb_for_ticker()` + передача `disb`
+- Коммит: `6f6f0f5`
+
+### 🎯 На следующий раз
+- [ ] A/B тест: baseline / +TradeStats / +TradeStats+HI2
+- [ ] Бэктест стопов (`backtest_stop_levels.py`)
+- [ ] Индивидуальный ATR по тикерам (CE, RB, MG — волатильные)
+- [ ] Наблюдать за стопами — снизился ли whipsaw после 3.2×ATR + безубытка
+- [ ] Проверить, что HI2 и disb реально влияют на скор (в логах)
