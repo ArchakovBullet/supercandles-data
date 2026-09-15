@@ -64,3 +64,4 @@ backups/
 *.bak3_*
 *.bak4_*
 *.bak_before_*
+robots/tf_fresh_state.json
