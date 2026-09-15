@@ -160,6 +160,29 @@ def get_hi2_for_ticker(ticker):
         return None
 
 
+def get_disb_for_ticker(ticker):
+    """Получить значение disb (TradeStats) для тикера. Возвращает float или None."""
+    ts_file = DATA_ROOT / 'tradestats' / f'{ticker}_tradestats.parquet'
+    if not ts_file.exists():
+        return None
+    
+    try:
+        df = pd.read_parquet(ts_file)
+        if len(df) == 0:
+            return None
+        
+        # Берём последнюю строку
+        last = df.iloc[-1]
+        disb_val = last.get('disb')
+        if pd.isna(disb_val):
+            return None
+        return float(disb_val)
+    except Exception as e:
+        print(f"  ⚠️ {ticker}: ошибка чтения TradeStats: {e}")
+        return None
+
+
+
 # VK
 from dotenv import load_dotenv
 load_dotenv(ROOT / '.env')
@@ -550,6 +573,8 @@ def main():
             
             # Читаем HI2 для тикера (11 метрик)
             hi2_data = get_hi2_for_ticker(ticker)
+            # Читаем TradeStats disb
+            disb_val = get_disb_for_ticker(ticker)
             if hi2_data:
                 hi2_value = hi2_data.get('hhi_agressive')
             else:
@@ -570,6 +595,7 @@ def main():
                 hi2_passive_buy=hi2_data.get('hhi_passive_buy') if hi2_data else None,
                 hi2_passive_sell=hi2_data.get('hhi_passive_sell') if hi2_data else None,
                 hi2_volume=hi2_data.get('hhi_volume') if hi2_data else None,
+                disb=disb_val,
                 ofi=None, cum_delta=None,
                 is_distribution=False, is_accumulation=False,
                 hpi_signal=None, hpi_divergence=False,

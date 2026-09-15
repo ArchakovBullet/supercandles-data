@@ -52,6 +52,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
                                  hi2_netflow_buy=None, hi2_netflow_sell=None,
                                  hi2_passive=None, hi2_passive_buy=None, hi2_passive_sell=None,
                                  hi2_volume=None,
+                                 disb=None,
                                  ofi=None, cum_delta=None,
                                  is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None, volume_spike=False, rvi_val=None):
     """
@@ -165,6 +166,25 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
         hi2_penalty -= 3
         hi2_note += f" | 📊 Аномальный объём {hi2_volume:.0f} (-3)"
     
+    # === 2b. TradeStats disb — модификатор перекоса (Вариант C) ===
+    disb_mod = 0
+    disb_note = ""
+    if disb is not None:
+        if disb > 0.5:
+            disb_mod = +3
+            disb_note = f"📈 disb={disb:+.2f} (сильный перекос в покупки) +3"
+        elif disb > 0.2:
+            disb_mod = +1
+            disb_note = f"📈 disb={disb:+.2f} (умеренный перекос в покупки) +1"
+        elif disb < -0.5:
+            disb_mod = -3
+            disb_note = f"📉 disb={disb:+.2f} (сильный перекос в продажи) -3"
+        elif disb < -0.2:
+            disb_mod = -1
+            disb_note = f"📉 disb={disb:+.2f} (умеренный перекос в продажи) -1"
+        else:
+            disb_note = f"✅ disb={disb:+.2f} — нейтрально"
+
     # === 3. GARCH — штраф за волатильность (10%) ===
     garch_penalty = 0
     garch_note = ""
@@ -281,7 +301,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     # При GARCH>35% или Zweig BLOCKED — игнорируем zweig_mod
     if garch_vol > 35 or (zweig_signal is not None and zweig_signal == 'BLOCKED'):
         zweig_mod = -100  # Полная блокировка
-    total_mod = hi2_penalty + hi2_mod + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod
+    total_mod = hi2_penalty + hi2_mod + disb_mod + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod
     final_score = tf_score + total_mod
     if garch_vol > 35 or (zweig_signal is not None and zweig_signal == 'BLOCKED'):
         final_score = 0
@@ -347,6 +367,8 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             'hi2_note': hi2_note,
             'hi2_mod': hi2_mod,
             'hi2_mod_note': hi2_mod_note,
+            'disb_mod': disb_mod,
+            'disb_note': disb_note,
             'garch_penalty': garch_penalty,
             'garch_note': garch_note,
             'trend_mod': trend_mod,
