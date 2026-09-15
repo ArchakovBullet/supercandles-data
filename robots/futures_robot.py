@@ -123,6 +123,43 @@ def is_futoi_fresh(ticker):
         print(f"  ⚠️ {ticker}: ошибка проверки FutOI: {e}")
         return False, None
 
+def get_hi2_for_ticker(ticker):
+    """Получить 11 метрик HI2 для тикера. Возвращает dict или None."""
+    hi2_file = DATA_ROOT / 'hi2_daily.parquet'
+    if not hi2_file.exists():
+        return None
+    
+    try:
+        df = pd.read_parquet(hi2_file)
+        if len(df) == 0:
+            return None
+        
+        # Фильтруем по тикеру
+        df_t = df[df['ticker'] == ticker]
+        if len(df_t) == 0:
+            return None
+        
+        # Берём последнюю строку
+        last = df_t.iloc[-1]
+        
+        return {
+            'hhi_agressive': float(last.get('hhi_agressive', 0)) if pd.notna(last.get('hhi_agressive')) else None,
+            'hhi_agressive_buy': float(last.get('hhi_agressive_buy', 0)) if pd.notna(last.get('hhi_agressive_buy')) else None,
+            'hhi_agressive_sell': float(last.get('hhi_agressive_sell', 0)) if pd.notna(last.get('hhi_agressive_sell')) else None,
+            'hhi_buy': float(last.get('hhi_buy', 0)) if pd.notna(last.get('hhi_buy')) else None,
+            'hhi_sell': float(last.get('hhi_sell', 0)) if pd.notna(last.get('hhi_sell')) else None,
+            'hhi_netflow_buy': float(last.get('hhi_netflow_buy', 0)) if pd.notna(last.get('hhi_netflow_buy')) else None,
+            'hhi_netflow_sell': float(last.get('hhi_netflow_sell', 0)) if pd.notna(last.get('hhi_netflow_sell')) else None,
+            'hhi_passive': float(last.get('hhi_passive', 0)) if pd.notna(last.get('hhi_passive')) else None,
+            'hhi_passive_buy': float(last.get('hhi_passive_buy', 0)) if pd.notna(last.get('hhi_passive_buy')) else None,
+            'hhi_passive_sell': float(last.get('hhi_passive_sell', 0)) if pd.notna(last.get('hhi_passive_sell')) else None,
+            'hhi_volume': float(last.get('hhi_volume', 0)) if pd.notna(last.get('hhi_volume')) else None,
+        }
+    except Exception as e:
+        print(f"  ⚠️ {ticker}: ошибка чтения HI2: {e}")
+        return None
+
+
 # VK
 from dotenv import load_dotenv
 load_dotenv(ROOT / '.env')
@@ -511,11 +548,28 @@ def main():
                 elif last_price < sma20 * 0.98:
                     trend_down = True
             
+            # Читаем HI2 для тикера (11 метрик)
+            hi2_data = get_hi2_for_ticker(ticker)
+            if hi2_data:
+                hi2_value = hi2_data.get('hhi_agressive')
+            else:
+                hi2_value = None
+
             # Вердикт
             verdict = get_unified_scanner_verdict(
                 df_d1, df_4h, df_1h,
                 d1_trend_up=trend_up, d1_trend_down=trend_down,
-                hi2_value=None, garch_vol=0,
+                hi2_value=hi2_value, garch_vol=0,
+                hi2_agressive_buy=hi2_data.get('hhi_agressive_buy') if hi2_data else None,
+                hi2_agressive_sell=hi2_data.get('hhi_agressive_sell') if hi2_data else None,
+                hi2_buy=hi2_data.get('hhi_buy') if hi2_data else None,
+                hi2_sell=hi2_data.get('hhi_sell') if hi2_data else None,
+                hi2_netflow_buy=hi2_data.get('hhi_netflow_buy') if hi2_data else None,
+                hi2_netflow_sell=hi2_data.get('hhi_netflow_sell') if hi2_data else None,
+                hi2_passive=hi2_data.get('hhi_passive') if hi2_data else None,
+                hi2_passive_buy=hi2_data.get('hhi_passive_buy') if hi2_data else None,
+                hi2_passive_sell=hi2_data.get('hhi_passive_sell') if hi2_data else None,
+                hi2_volume=hi2_data.get('hhi_volume') if hi2_data else None,
                 ofi=None, cum_delta=None,
                 is_distribution=False, is_accumulation=False,
                 hpi_signal=None, hpi_divergence=False,

@@ -47,6 +47,11 @@ def get_tf_signal(df, tf_name):
 def get_unified_scanner_verdict(df_d1, df_4h, df_1h, 
                                  d1_trend_up=False, d1_trend_down=False,
                                  hi2_value=None, garch_vol=None,
+                                 hi2_agressive_buy=None, hi2_agressive_sell=None,
+                                 hi2_buy=None, hi2_sell=None,
+                                 hi2_netflow_buy=None, hi2_netflow_sell=None,
+                                 hi2_passive=None, hi2_passive_buy=None, hi2_passive_sell=None,
+                                 hi2_volume=None,
                                  ofi=None, cum_delta=None,
                                  is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None, volume_spike=False, rvi_val=None):
     """
@@ -113,21 +118,52 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
         tf_weighted = val_d1 * 0.50 + val_4h * 0.30 + val_1h * 0.20
     tf_score = 50 + abs(tf_weighted) * 50  # 0-100, используем абсолютное значение
     
-    # === 2. HI2 — штраф за концентрацию (15%) ===
+    # === 2. HI2 — штраф за концентрацию + модификаторы (15.09.2026) ===
+    # Пороги пересмотрены под реальные данные: median=560, mean=938, max=4487
     hi2_penalty = 0
     hi2_note = ""
+    hi2_mod = 0
+    hi2_mod_note = ""
+    
     if hi2_value is not None:
-        if hi2_value > 500:
+        if hi2_value > 4000:
             hi2_penalty = -15
             hi2_note = f"🔴 HI2={hi2_value:.0f} (экстремальная) — штраф {hi2_penalty}"
-        elif hi2_value > 150:
+        elif hi2_value > 2500:
             hi2_penalty = -10
             hi2_note = f"🟡 HI2={hi2_value:.0f} (очень высокая) — штраф {hi2_penalty}"
-        elif hi2_value > 70:
+        elif hi2_value > 1500:
             hi2_penalty = -5
             hi2_note = f"⚪ HI2={hi2_value:.0f} (высокая) — штраф {hi2_penalty}"
         else:
             hi2_note = f"✅ HI2={hi2_value:.0f} — норма"
+    
+    # --- Модификатор: перекос агрессивных покупок/продаж (×2) ---
+    if hi2_agressive_buy is not None and hi2_agressive_sell is not None:
+        if hi2_agressive_sell > 0:
+            ratio_agr = hi2_agressive_buy / hi2_agressive_sell
+            if ratio_agr > 2.0:
+                hi2_mod = +3
+                hi2_mod_note = f"📈 Перекос агрессивных покупок ×{ratio_agr:.1f} (+3)"
+            elif ratio_agr < 0.5:
+                hi2_mod = -3
+                hi2_mod_note = f"📉 Перекос агрессивных продаж ×{1/ratio_agr:.1f} (-3)"
+    
+    # --- Модификатор: нетфлоу покупок/продаж (×3) ---
+    if hi2_netflow_buy is not None and hi2_netflow_sell is not None:
+        if hi2_netflow_sell > 0:
+            ratio_nf = hi2_netflow_buy / hi2_netflow_sell
+            if ratio_nf > 3.0:
+                hi2_mod += 2
+                hi2_mod_note += f" | 📈 Netflow покупок ×{ratio_nf:.1f} (+2)"
+            elif ratio_nf < 0.33:
+                hi2_mod -= 2
+                hi2_mod_note += f" | 📉 Netflow продаж ×{1/ratio_nf:.1f} (-2)"
+    
+    # --- Штраф: аномальный объём ---
+    if hi2_volume is not None and hi2_volume > 1500:
+        hi2_penalty -= 3
+        hi2_note += f" | 📊 Аномальный объём {hi2_volume:.0f} (-3)"
     
     # === 3. GARCH — штраф за волатильность (10%) ===
     garch_penalty = 0
@@ -245,7 +281,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     # При GARCH>35% или Zweig BLOCKED — игнорируем zweig_mod
     if garch_vol > 35 or (zweig_signal is not None and zweig_signal == 'BLOCKED'):
         zweig_mod = -100  # Полная блокировка
-    total_mod = hi2_penalty + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod
+    total_mod = hi2_penalty + hi2_mod + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod
     final_score = tf_score + total_mod
     if garch_vol > 35 or (zweig_signal is not None and zweig_signal == 'BLOCKED'):
         final_score = 0
@@ -309,6 +345,8 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             'tf_weighted': round(tf_weighted, 2),
             'hi2_penalty': hi2_penalty,
             'hi2_note': hi2_note,
+            'hi2_mod': hi2_mod,
+            'hi2_mod_note': hi2_mod_note,
             'garch_penalty': garch_penalty,
             'garch_note': garch_note,
             'trend_mod': trend_mod,
