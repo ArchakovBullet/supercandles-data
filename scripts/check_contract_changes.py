@@ -12,6 +12,8 @@ sys.path.insert(0, '/root/finlab')
 import vk_api
 
 # ========== КОНФИГ ==========
+from dotenv import load_dotenv
+load_dotenv('/root/finlab/.env')
 TOKEN = os.getenv("VK_TOKEN", "")
 GROUP_ID = 238639379
 ADMIN_ID = 497763452
