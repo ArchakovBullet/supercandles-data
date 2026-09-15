@@ -21,6 +21,15 @@ logger = setup_logger('hi2_aggregator')
 DATA_DIR = project_root / 'data' / 'hi2'
 OUTPUT_FILE = project_root / 'data' / 'hi2_daily.parquet'
 
+# Все 11 метрик HI2
+METRICS = [
+    'hhi_agressive', 'hhi_agressive_buy', 'hhi_agressive_sell',
+    'hhi_buy', 'hhi_sell',
+    'hhi_netflow_buy', 'hhi_netflow_sell',
+    'hhi_passive', 'hhi_passive_buy', 'hhi_passive_sell',
+    'hhi_volume',
+]
+
 
 def aggregate_all():
     """Агрегировать все файлы HI2 в дневной отчёт."""
@@ -40,10 +49,12 @@ def aggregate_all():
             continue
         
         # Группируем по дате
-        daily = df.group_by(['ticker', 'engine', 'tradedate']).agg([
-            pl.col('value').filter(pl.col('metric') == 'hhi_agressive').last().alias('hhi_agressive'),
-            pl.col('value').filter(pl.col('metric') == 'hhi_volume').last().alias('hhi_volume'),
-        ])
+        # Все 11 метрик HI2
+        agg_exprs = [
+            pl.col('value').filter(pl.col('metric') == m).last().alias(m)
+            for m in METRICS
+        ]
+        daily = df.group_by(['ticker', 'engine', 'tradedate']).agg(agg_exprs)
         
         all_rows.append(daily)
         logger.info(f'  {ticker}: {len(daily)} дней')
