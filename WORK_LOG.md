@@ -1515,3 +1515,38 @@ print(f'HI2 daily: {len(df)} строк, last={df[\"tradedate\"].max()}')
 - [ ] **A/B тест**
 - [ ] **Бэктест стопов**
 - [ ] **Проверить HI2 за 15.09** (после 19:00)
+
+## 15.09.2026 (вечерняя сессия — стопы фьючерсного робота)
+
+### ✅ Выполнено
+
+**Проблема:** фьючерсный робот закрывал большинство сделок по STOP с минимальными убытками (whipsaw).
+
+**Причина:**
+- Стоп 2×ATR — слишком близко
+- Проверка каждые 10 минут по M10 (high/low) — малейший вылет закрывает позицию
+- Нет буфера
+- Нет безубытка
+
+**Решение:**
+- `STOP_ATR_MULT = 3.2` (3×ATR + 0.2×ATR буфер)
+- `BE_MOVE_ATR = 1.5` (при движении в плюс на 1.5×ATR — стоп в безубыток)
+- `exit_reason = BREAKEVEN` при закрытии по безубытку
+- Убрано дублирование стопа из `main()`
+
+**Патчи `futures_robot.py`:**
+- `open_position`: записывает `stop_price` (3.2×ATR)
+- `close_position`: `pnl_points` и `point_value` в расчёте и UPDATE
+- `check_stops_only`: `conn` + `cursor` для обновления `stop_price`
+- `check_stops_only`: 3.2×ATR + безубыток
+- `main`: убрано дублирование стопа
+
+**Git:**
+- Коммит `2a21361` — «Стопы: 3.2×ATR + безубыток + pnl_points + conn fix»
+- Запушен в `origin/master` и `finlab-dashboard/master`
+
+### 🎯 На следующий раз
+- [ ] 11 метрик HI2 в `unified_scanner`
+- [ ] TradeStats в `unified_scanner` (поле `disb`)
+- [ ] Патч `close_position` в парном роботе (`leg_a_pnl_points`, `leg_b_pnl_points`, `total_pnl_points`)
+- [ ] Наблюдать за стопами — снизился ли whipsaw
