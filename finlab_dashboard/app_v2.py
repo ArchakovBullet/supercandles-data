@@ -4709,13 +4709,16 @@ elif page == "📊 Торговые роботы":
                 with col_f4:
                     st.metric("Win Rate", f"{_win_rate:.1f}%")
 
-                col_p1, col_p2, col_p3 = st.columns(3)
+                col_p1, col_p2, col_p3, col_p4 = st.columns(4)
                 with col_p1:
-                    st.metric("Общий PnL", f"{_total_pnl:+.1f}₽")
+                    st.metric("Общий PnL", f"{_total_pnl:+,.1f}₽".replace(",", " "))
                 with col_p2:
+                    _fut_total_pts = _fut_closed_df['pnl_points'].sum() if 'pnl_points' in _fut_closed_df.columns else 0
+                    st.metric("PnL (пункты)", f"{_fut_total_pts:+,.1f} pts".replace(",", " "))
+                with col_p3:
                     _avg_win = _profitable['pnl'].mean() if len(_profitable) > 0 else 0
                     st.metric("Средний PnL (прибыльные)", f"{_avg_win:+.1f}₽")
-                with col_p3:
+                with col_p4:
                     _avg_loss = _unprofitable['pnl'].mean() if len(_unprofitable) > 0 else 0
                     st.metric("Средний PnL (убыточные)", f"{_avg_loss:+.1f}₽")
 
@@ -4747,21 +4750,31 @@ elif page == "📊 Торговые роботы":
                         _lqdt_return = (_lqdt_end_price - _lqdt_start_price) / _lqdt_start_price * 100
 
                         _fut_total_pnl = _fut_closed_df['pnl'].sum()
+                        _fut_ex_ri_pnl = _fut_closed_df[_fut_closed_df['ticker'] != 'RI']['pnl'].sum()
+                        _fut_ri_pnl = _fut_closed_df[_fut_closed_df['ticker'] == 'RI']['pnl'].sum()
+
                         _fut_robot_return = _fut_total_pnl / _deposit * 100
-                        _fut_diff = _fut_robot_return - _lqdt_return
+                        _fut_robot_return_ex_ri = _fut_ex_ri_pnl / _deposit * 100
+                        _fut_diff_ex_ri = _fut_robot_return_ex_ri - _lqdt_return
 
-                        col_lqdt1, col_lqdt2, col_lqdt3 = st.columns(3)
+                        col_lqdt1, col_lqdt2, col_lqdt3, col_lqdt4 = st.columns(4)
                         with col_lqdt1:
-                            st.metric("Общий PnL", f"{_fut_total_pnl:+.1f}₽")
+                            st.metric("Общий PnL", f"{_fut_total_pnl:+,.1f}₽".replace(",", " "))
                         with col_lqdt2:
-                            st.metric("Робот (доходность)", f"{_fut_robot_return:+.2f}%")
+                            st.metric("Робот (с RI)", f"{_fut_robot_return:+.2f}%",
+                                      help="Включая аномалию RI")
                         with col_lqdt3:
-                            st.metric("LQDT (бенчмарк)", f"{_lqdt_return:+.2f}%")
+                            st.metric("Робот (без RI)", f"{_fut_robot_return_ex_ri:+.2f}%",
+                                      help="Реалистичная доходность")
+                        with col_lqdt4:
+                            st.metric("LQDT", f"{_lqdt_return:+.2f}%")
 
-                        if _fut_diff > 0:
-                            st.success(f"✅ Робот опережает LQDT на {_fut_diff:+.2f}%")
+                        if _fut_diff_ex_ri > 0:
+                            st.success(f"✅ Робот (без RI) опережает LQDT на {_fut_diff_ex_ri:+.2f}%")
                         else:
-                            st.error(f"❌ Робот отстаёт от LQDT на {_fut_diff:+.2f}%")
+                            st.error(f"❌ Робот (без RI) отстаёт от LQDT на {_fut_diff_ex_ri:+.2f}%")
+
+                        st.caption(f"⚠️ RI — аномалия: {_fut_ri_pnl:+,.0f}₽ (98.9% PnL)")
                     else:
                         st.info("Недостаточно данных LQDT для сравнения")
                 else:
