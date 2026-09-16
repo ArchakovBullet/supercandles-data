@@ -1,0 +1,47 @@
+{
+  "RI": {
+    "dir": -1,
+    "median": 22.32,
+    "std": 5.52
+  },
+  "SBERF": {
+    "dir": -1,
+    "median": 32.23,
+    "std": 5.34
+  },
+  "GAZPF": {
+    "dir": -1,
+    "median": 9.56,
+    "std": 3.79
+  },
+  "GD": {
+    "dir": -1,
+    "median": 37.61,
+    "std": 3.57
+  },
+  "GZ": {
+    "dir": 1,
+    "median": 29.05,
+    "std": 2.6
+  },
+  "SN": {
+    "dir": 1,
+    "median": 1.17,
+    "std": 5.72
+  },
+  "CE": {
+    "dir": 1,
+    "median": 17.41,
+    "std": 7.87
+  },
+  "MG": {
+    "dir": 1,
+    "median": 39.75,
+    "std": 2.89
+  },
+  "default": {
+    "dir": 1,
+    "median": 33.4,
+    "std": 19.9
+  }
+}
