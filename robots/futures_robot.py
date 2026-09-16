@@ -280,12 +280,11 @@ def open_position(ticker, direction, volume, score, price, atr):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Начальный стоп — индивидуальный ×ATR
-    mult = get_stop_mult(ticker)
+    # Начальный стоп — 3.2×ATR
     if direction == 'LONG':
-        stop_price = price - atr * mult
+        stop_price = price - atr * STOP_ATR_MULT
     else:
-        stop_price = price + atr * mult
+        stop_price = price + atr * STOP_ATR_MULT
 
     cursor.execute('''
         INSERT INTO futures_positions (ticker, direction, volume, entry_score, entry_time, entry_price, entry_atr, stop_price)
@@ -421,9 +420,9 @@ def check_stops_only():
             current_stop = sp_row[0] if sp_row and sp_row[0] is not None else None
 
             if direction == 'LONG':
-                # Начальный стоп — индивидуальный ×ATR
+                # Начальный стоп — 3.2×ATR
                 if current_stop is None:
-                    stop_price = entry_price - entry_atr * get_stop_mult(ticker)
+                    stop_price = entry_price - entry_atr * STOP_ATR_MULT
                 else:
                     stop_price = current_stop
 
@@ -443,9 +442,9 @@ def check_stops_only():
                     closed_count += 1
 
             elif direction == 'SHORT':
-                # Начальный стоп — индивидуальный ×ATR
+                # Начальный стоп — 3.2×ATR
                 if current_stop is None:
-                    stop_price = entry_price + entry_atr * get_stop_mult(ticker)
+                    stop_price = entry_price + entry_atr * STOP_ATR_MULT
                 else:
                     stop_price = current_stop
 
@@ -556,19 +555,32 @@ def main():
                 df_futoi_4h = df_futoi_4h_all[df_futoi_4h_all['ticker'] == ticker].copy()
                 df_futoi_1h = df_futoi_1h_all[df_futoi_1h_all['ticker'] == ticker].copy()
 
-                # Merge со свечами 4H по 'hour'
-                df_4h['tradedate'] = pd.to_datetime(df_4h['tradedate'])
-                df_futoi_4h['hour'] = pd.to_datetime(df_futoi_4h['hour'])
-                df_4h = pd.merge(df_4h, df_futoi_4h[['hour', 'fiz_buy_ratio', 'fiz_ratio_delta']],
-                                 left_on='tradedate', right_on='hour', how='left')
+                # Merge со свечами 4H по 'block' (15.09.2026 fix)
+                # block в свечах = '11:00', в futoi = '2026-09-14 11:00:00'
+                # Собираем полный datetime: tradedate + block
+                df_4h['dt_full'] = pd.to_datetime(df_4h['tradedate'].astype(str) + ' ' + df_4h['block'].astype(str))
+                df_futoi_4h['dt_full'] = pd.to_datetime(df_futoi_4h['hour'])
+                
+                # Merge по ближайшему часу (asof)
+                df_4h = pd.merge_asof(
+                    df_4h.sort_values('dt_full'),
+                    df_futoi_4h[['dt_full', 'fiz_buy_ratio', 'fiz_ratio_delta', 'yur_buy_ratio']].sort_values('dt_full'),
+                    on='dt_full',
+                    direction='backward'
+                )
                 df_4h = df_4h.ffill()
                 df_4h['fiz_buy_ratio'] = df_4h['fiz_buy_ratio'].fillna(50)
 
-                # Merge со свечами 1H по 'hour'
-                df_1h['tradedate'] = pd.to_datetime(df_1h['begin'])
-                df_futoi_1h['hour'] = pd.to_datetime(df_futoi_1h['hour'])
-                df_1h = pd.merge(df_1h, df_futoi_1h[['hour', 'fiz_buy_ratio', 'fiz_ratio_delta']],
-                                 left_on='tradedate', right_on='hour', how='left')
+                # Merge со свечами 1H по 'hour' (15.09.2026 fix)
+                df_1h['dt_full'] = pd.to_datetime(df_1h['begin'])
+                df_futoi_1h['dt_full'] = pd.to_datetime(df_futoi_1h['hour'])
+                
+                df_1h = pd.merge_asof(
+                    df_1h.sort_values('dt_full'),
+                    df_futoi_1h[['dt_full', 'fiz_buy_ratio', 'fiz_ratio_delta', 'yur_buy_ratio']].sort_values('dt_full'),
+                    on='dt_full',
+                    direction='backward'
+                )
                 df_1h = df_1h.ffill()
                 df_1h['fiz_buy_ratio'] = df_1h['fiz_buy_ratio'].fillna(50)
 
