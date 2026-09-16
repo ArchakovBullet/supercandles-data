@@ -14,7 +14,7 @@ import sqlite3
 import time
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -47,6 +47,12 @@ DEPOSIT = 100_000  # Виртуальный капитал
 VOLUME_TYPE = 'contracts'  # contracts / contract_currency / deposit_percent
 VOLUME = 1.0  # 1 контракт/акция
 CHECK_INTERVALS = {'M10': 600, 'H1': 3600, 'H4': 14400}  # секунд
+# ========== ПАРАМЕТРЫ ТОРГОВЛИ ==========
+ENTRY_Z_DEFAULT = 3.0        # порог входа по Z-score (по умолчанию)
+EXIT_Z_DEFAULT = 0.5         # порог выхода по Z-score
+MAX_POSITIONS = 10           # максимум одновременных открытых пар
+COOLDOWN_HOURS = 4           # пауза после убытка по паре (часы)
+
 
 # Состояние свежести данных (сохраняется в файл, чтобы не спамить при перезапуске)
 TF_FRESH_STATE_FILE = ROOT / 'robots' / 'tf_fresh_state.json'
