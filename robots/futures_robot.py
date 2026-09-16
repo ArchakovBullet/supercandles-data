@@ -88,6 +88,12 @@ def is_futoi_fresh(ticker):
     if not is_moex_trading_day():
         return True, 0.0
 
+    # Вне торговых часов (до 10:00 или после 19:00 МСК) — не проверяем
+    from datetime import datetime as _dt
+    now_hour = _dt.now().hour
+    if now_hour < 10 or now_hour >= 19:
+        return True, 0.0
+
     futoi_file = DATA_ROOT / 'futoi' / f'{ticker}_futoi.parquet'
     if not futoi_file.exists():
         return False, None

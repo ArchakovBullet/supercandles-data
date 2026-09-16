@@ -9,13 +9,13 @@ from datetime import datetime
 # Добавляем путь для импорта
 sys.path.insert(0, '/root/finlab')
 
-import vk_api
+import requests
 
 # ========== КОНФИГ ==========
 from dotenv import load_dotenv
 load_dotenv('/root/finlab/.env')
 TOKEN = os.getenv("VK_TOKEN", "")
-GROUP_ID = 238639379
+GROUP_ID = int(os.getenv("VK_GROUP_ID", "497763452"))
 ADMIN_ID = 497763452
 
 CACHE_FILE = Path("/root/finlab/FinLabPy/DataCollectors/contract_cache.json")
@@ -62,31 +62,36 @@ def check_contract_changes():
         return "📋 Обновление контрактов:\n" + "\n".join(changes)
     return None
 
-def send_vk_message(vk, peer_id, message):
-    """Отправить сообщение в VK"""
+def send_vk_message(message):
+    """Отправить сообщение в VK через API (как в роботах)."""
     try:
-        vk.messages.send(
-            peer_id=peer_id,
-            message=message,
-            random_id=int(datetime.now().timestamp() * 1000)
+        response = requests.post(
+            'https://api.vk.com/method/messages.send',
+            params={
+                'access_token': TOKEN,
+                'peer_id': GROUP_ID,
+                'message': message,
+                'random_id': int(datetime.now().timestamp() * 1000),
+                'v': '5.131'
+            }
         )
+        result = response.json()
+        if 'error' in result:
+            print(f"❌ VK API error: {result['error']}")
+            return False
         return True
     except Exception as e:
         print(f"❌ Ошибка отправки: {e}")
         return False
 
 if __name__ == '__main__':
-    # Инициализация VK
-    vk_session = vk_api.VkApi(token=TOKEN)
-    vk = vk_session.get_api()
-    
     # Проверить изменения
     message = check_contract_changes()
-    
+
     if message:
         print(message)
-        # Отправить админу
-        if send_vk_message(vk, ADMIN_ID, message):
+        # Отправить в VK
+        if send_vk_message(message):
             print("✅ Уведомление отправлено в VK")
     else:
         print("✅ Изменений контрактов не обнаружено")

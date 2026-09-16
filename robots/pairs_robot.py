@@ -145,6 +145,11 @@ def is_tf_fresh(tf):
     if not is_moex_trading_day():
         return True
 
+    # Вне торговых часов (до 10:00 или после 19:00 МСК) — не проверяем
+    now_hour = _dt.now().hour
+    if now_hour < 10 or now_hour >= 19:
+        return True
+
     max_age_hours = FRESHNESS_THRESHOLDS.get(tf, 4)
 
     try:

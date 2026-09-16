@@ -71,7 +71,7 @@ def get_full_code(short_code):
         'SA': 'SUGR', 'Su': 'SUGAR', 'CC': 'COCOA', 'KC': 'COFFEE', '92': 'AI92',
         '95': 'AI95', 'DL': 'DTL', 'Eu': 'Eu', 'ER': 'EURM', 'UM': 'USDM',
         'TY': 'TRY', 'HK': 'HKD', 'AE': 'AED', 'I2': 'INR', 'KZ': 'KZT',
-        'AR': 'AMD', 'BY': 'BYN', 'AU': 'AUDU', 'GU': 'GBPU', 'CA': 'UCAD',
+        'AR': 'AMD', 'BY': 'BYN', 'GU': 'GBPU', 'CA': 'UCAD',
         'CF': 'UCHF', 'JP': 'UJPY', 'TR': 'UTRY', 'UC': 'UCNY', 'UT': 'UKZT',
         'IN': 'UINR', 'EC': 'ECAD', 'EG': 'EGBP', 'EJ': 'EJPY',
         'RR': 'RUON', 'MF': '1MFR',
