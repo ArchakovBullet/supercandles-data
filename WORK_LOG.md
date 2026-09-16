@@ -1,74 +1,22 @@
+### На завтра (02.08)
+- [ ] Исправить кнопку "Добавить" — обновлять tickers_config.json
+- [ ] Настроить VK-токены для уведомлений
+- [ ] Проверить автообновление ED, SA, GN, FF
+- [ ] Проверить Super Candles H4
 
-# === ВСТАВИТЬ В КОНЕЦ ФАЙЛА (после последней записи) ===
+### Срочно (02.08)
+- [ ] Кнопка "Добавить" всё ещё редактирует hi2_collector.py напрямую — нужно убрать
+- [ ] Кнопка должна обновлять ТОЛЬКО tickers_config.json
+- [ ] После добавления RUAL проверено: свечи есть, HI2 нет (соберётся cron)
 
-# (см. раздел 3 — текст для вставки)
+## 03.08: План на день
 
-# ============================================================
-# ШАГ 3: ЗАКОММИТИТЬ И ЗАПУШИТЬ
-# ============================================================
+### Задачи
+- [ ] Исправить кнопку "Добавить" — обновлять tickers_config.json
+- [ ] Настроить VK-токены для уведомлений
+- [ ] Проверить автообновление ED, SA, GN, FF
+- [ ] Проверить Super Candles H4
 
-# 4. Добавить изменённые файлы
-cd /root/finlab && git add \
-    FinLabPy/DataCollectors/hi2_collector.py \
-    FinLabPy/MOEXPy/MOEXPy/MOEXPy.py \
-    FinLabPy/My_Indicators/pairs_config.json \
-    robots/futures_robot.py \
-    robots/pairs_robot.py \
-    robots/tickers_meta.json \
-    robots/contract_points.json \
-    scripts/build_contract_points.py \
-    FinLabPy/DataCollectors/check_data_freshness.py
-
-# 5. WORK_LOG (в .gitignore — нужен -f)
-cd /root/finlab && git add -f WORK_LOG.md
-
-# 6. Данные HI2 (если нужно — parquet файлы)
-cd /root/finlab && git add data/hi2_daily.parquet 2>/dev/null
-cd /root/finlab && git add data/hi2/*.parquet 2>/dev/null
-
-# 7. Коммит
-cd /root/finlab && git commit -m "HI2: восстановлен сбор через новые эндпоинты (/eq/hi2/, /fo/hi2/)
-
-- Патч hi2_collector.py: правильная загрузка MOEX_TOKEN из .env
-- Исправлен keyring (дубликат token0)
-- Данные HI2 собраны до 14.09.2026 (5415 строк)
-- Патч futures_robot.py: добавлен check_expiry (закрытие за 2 дня до экспирации)
-- Патч futures_robot.py: добавлены stop_price и expiry_date в БД
-- Патч is_tf_fresh/is_futoi_fresh: универсальный поиск колонки с датой
-- Отключены LKOH-пары H4 (6 штук) — данные устарели
-- Закрыто 9 позиций по EXPIRY (+330 838.59₽)
-- Обновлён contracts_points.json (SN, NA, PT)
-
-🤖 Generated with Claude"
-
-# 8. Пуш в origin (supercandles-data)
-cd /root/finlab && git push origin master
-
-# 9. Пуш в finlab-dashboard (дневник + дашборд)
-cd /root/finlab && git push finlab-dashboard master 2>/dev/null || echo "finlab-dashboard remote не настроен или уже синхронизирован"
-
-# ============================================================
-# ШАГ 4: ФИНАЛЬНАЯ ПРОВЕРКА
-# ============================================================
-
-# 10. Проверить статус
-cd /root/finlab && git status
-
-# 11. Последние коммиты
-cd /root/finlab && git log --oneline -5
-
-# 12. Статус роботов
-systemctl is-active finlab-robot.service finlab-futures-robot.service
-
-# 13. Статус данных
-/root/finlab/venv/bin/python /root/finlab/FinLabPy/DataCollectors/check_data_freshness.py
-
-# 14. Финальный статус HI2
-/root/finlab/venv/bin/python -c "
-import pandas as pd
-df = pd.read_parquet('/root/finlab/data/hi2_daily.parquet')
-print(f'HI2 daily: {len(df)} строк, last={df[\"tradedate\"].max()}')
-"
 ### На завтра (02.08)
 - [ ] Исправить кнопку "Добавить" — обновлять tickers_config.json
 - [ ] Настроить VK-токены для уведомлений
