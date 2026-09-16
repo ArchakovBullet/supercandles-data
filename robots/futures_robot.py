@@ -51,8 +51,28 @@ CRISIS_EXIT_SCORE = 40
 MAX_POSITIONS = 10
 
 # === СТОПЫ (15.09.2026) ===
-STOP_ATR_MULT = 3.2   # начальный стоп: 3.2×ATR
+STOP_ATR_MULT = 3.2   # начальный стоп: 3.2×ATR (default)
 BE_MOVE_ATR = 1.5     # при движении в плюс на 1.5×ATR — стоп в безубыток
+
+# Индивидуальные множители ATR по тикерам
+def load_stop_config():
+    cfg_file = ROOT / 'robots' / 'stop_config.json'
+    if not cfg_file.exists():
+        return {}
+    try:
+        import json
+        with open(cfg_file) as f:
+            cfg = json.load(f)
+        return cfg.get('individual', {})
+    except Exception as e:
+        print(f"⚠️ Ошибка чтения stop_config.json: {e}")
+        return {}
+
+STOP_ATR_INDIVIDUAL = load_stop_config()
+
+def get_stop_mult(ticker):
+    """Получить множитель ATR для тикера."""
+    return STOP_ATR_INDIVIDUAL.get(ticker, STOP_ATR_MULT)
 
 
 # Cooldown после STOP по тикеру (часы) — защита от whipsaw
@@ -260,11 +280,12 @@ def open_position(ticker, direction, volume, score, price, atr):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Начальный стоп — 3.2×ATR
+    # Начальный стоп — индивидуальный ×ATR
+    mult = get_stop_mult(ticker)
     if direction == 'LONG':
-        stop_price = price - atr * STOP_ATR_MULT
+        stop_price = price - atr * mult
     else:
-        stop_price = price + atr * STOP_ATR_MULT
+        stop_price = price + atr * mult
 
     cursor.execute('''
         INSERT INTO futures_positions (ticker, direction, volume, entry_score, entry_time, entry_price, entry_atr, stop_price)
@@ -400,9 +421,9 @@ def check_stops_only():
             current_stop = sp_row[0] if sp_row and sp_row[0] is not None else None
 
             if direction == 'LONG':
-                # Начальный стоп — 3.2×ATR
+                # Начальный стоп — индивидуальный ×ATR
                 if current_stop is None:
-                    stop_price = entry_price - entry_atr * STOP_ATR_MULT
+                    stop_price = entry_price - entry_atr * get_stop_mult(ticker)
                 else:
                     stop_price = current_stop
 
@@ -422,9 +443,9 @@ def check_stops_only():
                     closed_count += 1
 
             elif direction == 'SHORT':
-                # Начальный стоп — 3.2×ATR
+                # Начальный стоп — индивидуальный ×ATR
                 if current_stop is None:
-                    stop_price = entry_price + entry_atr * STOP_ATR_MULT
+                    stop_price = entry_price + entry_atr * get_stop_mult(ticker)
                 else:
                     stop_price = current_stop
 
