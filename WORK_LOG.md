@@ -1831,3 +1831,52 @@ curl -s "https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/mast
 **Правило «пушить WORK_LOG сразу»** — см. выше в дневнике.
 **Проверять дубликаты перед коммитом** — см. выше в дневнике.
 **Использовать ?t=<timestamp> при чтении** — чтобы избежать кэша.
+
+## 16.09.2026 (вечерняя сессия — починка парного робота)
+
+### ✅ Выполнено
+
+**🔴 Баг #1: `NameError: ENTRY_Z_DEFAULT` в pairs_robot.py**
+- Обнаружено: 4909 ошибок в `robot.log` (все пары на M10, H1, H4)
+- Причина: при патче cooldown (13.09) или time filter (16.09 11:07) случайно удалены 3 константы: `ENTRY_Z_DEFAULT`, `EXIT_Z_DEFAULT`, `MAX_POSITIONS`
+- Также отсутствовала `COOLDOWN_HOURS` (использовалась в `is_pair_in_cooldown`, но не определена)
+- Исправлено: вставлены 4 константы после `CHECK_INTERVALS` (строки 51-54):
+  - `ENTRY_Z_DEFAULT = 3.0`
+  - `EXIT_Z_DEFAULT = 0.5`
+  - `MAX_POSITIONS = 10`
+  - `COOLDOWN_HOURS = 4`
+
+**🔴 Баг #2: `NameError: timedelta` в pairs_robot.py**
+- Обнаружено после фикса бага #1: все пары падали с `name 'timedelta' is not defined`
+- Причина: `from datetime import datetime` — БЕЗ `timedelta`, а `timedelta` используется в `is_pair_in_cooldown` (строка 545)
+- Исправлено: `from datetime import datetime, timedelta` (строка 17)
+
+**✅ Подтверждено (проверено в futures_robot.py и unified_scanner.py):**
+- Стопы 3.2×ATR + безубыток (`STOP_ATR_MULT=3.2`, `BE_MOVE_ATR=1.5`)
+- Cooldown 4ч (`COOLDOWN_HOURS=4`, `is_in_cooldown`)
+- HI2 — передаётся (11 метрик)
+- TradeStats `disb` — работает (`unified_scanner.py` строки 169-186)
+- `backtest_stop_levels.py` + `backtest_individual_atr.py` — есть (16.09 11:29)
+
+**✅ Ручное закрытие 4 старых позиций парного робота (Entry=2.0, открыты 11.09):**
+| id | pair | entry_z | PnL |
+|----|------|---------|-----|
+| 48 | SNGSP-SG_M10 | -2.02 | +586.63₽ |
+| 49 | SVCB-SC_M10 | 1.64 | -24.76₽ |
+| 50 | LKOH-HYDR_M10 | -2.08 | +79.01₽ |
+| 52 | SOFL-S0_H1 | 1.80 | -5.44₽ |
+| **Итого** | | | **+635.44₽** |
+
+**Осталось 2 открытых:** 46 (GAZPF-GZ_M10, 3.22), 55 (WUSH-WU_M10, -2.28)
+
+### 📝 Заметки
+- `pairs_robot.py` использует `exit_z` (НЕ `exit_reason` — это в `futures_positions`)
+- `robot.log` — не в journalctl, а в файле `/root/finlab/robots/robot.log`
+- Время 22:40 МСК — вне торгового окна (7:00-18:00), робот не открывает новые
+
+### 🎯 На следующий раз
+- [ ] Подключить `yur_buy_ratio` в `unified_scanner` (есть `signal_direction.json` — 8 тикеров)
+- [ ] `MAX_POSITIONS` — поднять до 15?
+- [ ] A/B тест: baseline / +TradeStats / +TradeStats+HI2
+- [ ] Запустить `backtest_stop_levels.py` — результаты
+- [ ] Проверить, что робот открывает новые позиции в торговое окно (17.09)
