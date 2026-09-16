@@ -1,6 +1,6 @@
 # FinLabPy — Паспорт для AI-ассистента
 
-**Актуально на:** 12.09.2026
+**Актуально на:** 16.09.2026
 
 ---
 
@@ -171,12 +171,15 @@ python3 -c "from pathlib import Path; [print(f) for f in Path('/root/finlab').rg
 - Systemd: finlab-futures-robot.service
 - БД: robots/futures_robot.db (таблица futures_positions)
 - Логика: unified_scanner (1D + 4H + 1H, веса 50/30/20)
+- Сигналы: `yur_buy_ratio` (16.09.2026) + HI2 (11 метрик) + TradeStats `disb`
 - Вход: score ≥ 60 (или 80 в кризис)
-- Выход: обратный сигнал / score < 40 / стоп 2×ATR
+- Стоп: **3.2×ATR + безубыток** (15.09.2026), проверка каждые 10 мин по M10
+- Безубыток: при движении в плюс на 1.5×ATR → стоп в entry_price
+- Выход: обратный сигнал / score < 40 / стоп / безубыток
 - Свежесть: FutOI = 24ч
 - Фильтры: время (10:00–18:00 МСК), FutOI, готовые агрегаты
-- PnL: (exit − entry) × point_value × volume
-- Проверка: каждый час (systemd, не cron)
+- PnL: (exit − entry) × point_value × volume + `pnl_points`
+- Проверка: каждый час (systemd, не cron) + стопы каждые 10 мин
 
 ---
 
@@ -198,7 +201,33 @@ python3 -c "from pathlib import Path; [print(f) for f in Path('/root/finlab').rg
 ### FutOI
 - Сырые данные: data/futoi/{ticker}_futoi.parquet
 - Готовые агрегаты: data/futoi_4h/futoi_4h.parquet, data/futoi_1h/futoi_1h.parquet
-- Колонки: ticker, block/hour, fiz_buy_ratio, fiz_ratio_delta
+- Колонки: ticker, block/hour, fiz_buy_ratio, fiz_ratio_delta, yur_buy_ratio
+
+### Сигналы (16.09.2026)
+
+**`yur_buy_ratio` (юрлица) — рабочий сигнал:**
+- D1: корреляция 0.27–0.51 (RI, SBERF, GZ, MG, SN, CE)
+- H4: корреляция 0.30–0.51 (GD, SBERF, GZ, SN, CE)
+- H1: слабее
+
+**`fiz_buy_ratio` (физлица) — НЕ работает:**
+- Корреляция ~0
+- Использовать как контр-индикатор (10%)
+
+**Конфиги:**
+- `robots/signal_direction.json` — `dir`, `median`, `std` для 8 тикеров
+- `robots/yur_stats.json` — статистика по 63 тикерам
+
+**Стратегии:**
+- **C+D** (основная): группы + динамические пороги
+- **E** (тест): мультифакторная (yur_buy 30%, HI2 20%, disb 20%, GARCH 10%, тренд 10%, объём 10%)
+- **A/B** (отложено): индивидуальные / единый
+
+**Группы для C:**
+- Индексы (RI, MX, ...)
+- Акции (SBERF, GAZPF, LK, ...)
+- Товары (SN, MG, GD, ...)
+- Валюты (CNYRUBF, USDRUBF, ...)
 
 ---
 
