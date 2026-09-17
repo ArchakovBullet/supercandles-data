@@ -1880,3 +1880,54 @@ curl -s "https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/mast
 - [ ] A/B тест: baseline / +TradeStats / +TradeStats+HI2
 - [ ] Запустить `backtest_stop_levels.py` — результаты
 - [ ] Проверить, что робот открывает новые позиции в торговое окно (17.09)
+
+## 17.09.2026 (вечерняя сессия — rollover, RI, фильтр корреляции)
+
+### ✅ Выполнено
+
+**🔴 RI — реальный убыток −341 644.84₽ (STOP)**
+- id 18 (RIU6, EXPIRY): +325 594.09₽ (закрыт 15.09 04:09)
+- id 52 (RIZ6, STOP): −341 644.84₽ (открыт 15.09 10:59, закрыт 17.09 07:03)
+- **Причина:** робот переоткрыл RI уже в новом контракте RIZ6 после rollover (ATR вырос с 337 до 633)
+- **PnL корректен** (point_value=168.7016, volume=1.0)
+
+**✅ Миграция `contract_code`**
+- `ALTER TABLE futures_positions ADD COLUMN contract_code TEXT`
+- Заполнено для 9 открытых позиций: NRU6, PTU6, PDU6, SVU6
+- Вечные фьючерсы (USDRUBF, CNYRUBF, SBERF, GAZPF, GLDRUBF) → `?`
+- **Зачем:** различать контракты при rollover, корректный бэктест
+
+**✅ Патч `pairs_config.json` — entry_z**
+- SOFL-S0_H1: entry_z 1.5 → **2.5**, exit_z 0.0 → **0.5**, window 20 → **40**
+- SVCB-SC_M10: entry_z 1.5 → **2.5**
+- Бэкап: `pairs_config.json.bak_entryz_20260917_201659`
+
+**✅ Фильтр корреляции в `pairs_robot.py`**
+- Функция `calculate_correlation(df_a, df_b, window=20)` — Pearson (строка 274)
+- В `check_signals_by_tf`: если corr < 0.7 → не входить (строки 679-685)
+- **Зачем:** защита от нестабильных пар
+
+**✅ VK API — разобран `error_code: 40`**
+- Ручной запуск работает (`{'response': 978}`)
+- Cron падает **редко** (1 раз при rollover ~100 контрактов) — **rate limit** VK
+- **Не критично** — уведомления от роботов работают
+
+**📊 PnL по роботам (за всё время)**
+- Фьючерсный: 48 сделок, **+329 202₽** (RI — 98.9% — аномалия)
+- Парный: 23 сделки, **+787.57₽** (WR 56.5%)
+- **Лидеры фьючерс:** RN (+2563₽), TT (+2128₽), SP (+485₽)
+- **Убыточные:** RI (−16050₽), CE (−597₽), SN (−245₽)
+
+### 📝 Заметки
+- RI rollover: RIU6 → RIZ6 (декабрьский)
+- Вечные фьючерсы: SECID = тикер (нет U6/Z6)
+- `contract_cache.json`: 169 контрактов
+- VK `error_code: 40` — rate limit, не баг
+
+### 🎯 На следующий раз
+- [ ] Подключить `yur_buy_ratio` в `unified_scanner`
+- [ ] `MAX_POSITIONS` — 10 → 15?
+- [ ] A/B тест: baseline / +TradeStats / +TradeStats+HI2
+- [ ] Запустить `backtest_stop_levels.py`
+- [ ] Walk-forward оптимизация для `pairs_optimizer.py`
+- [ ] Минимум 20 сделок для оптимизации пар
