@@ -271,6 +271,27 @@ def init_db():
     print("✅ БД инициализирована")
 
 # ========== РАСЧЁТ СИГНАЛОВ ==========
+def calculate_correlation(df_a, df_b, window=20):
+    """Рассчитать корреляцию Пирсона между close_a и close_b (последние window свечей)."""
+    try:
+        import numpy as np
+        _time_col_a = 'begin' if 'begin' in df_a.columns else 'tradedate'
+        _time_col_b = 'begin' if 'begin' in df_b.columns else 'tradedate'
+        df_a_r = df_a[[_time_col_a, 'close']].rename(columns={_time_col_a: 'begin'})
+        df_b_r = df_b[[_time_col_b, 'close']].rename(columns={_time_col_b: 'begin'})
+        merged = pd.merge(df_a_r, df_b_r, on='begin', suffixes=('_a', '_b'))
+        if len(merged) < window:
+            return None
+        # Конвертируем в float
+        ca = merged['close_a'].apply(lambda x: float(x) if not isinstance(x, bytes) else 0.0)
+        cb = merged['close_b'].apply(lambda x: float(x) if not isinstance(x, bytes) else 0.0)
+        corr = ca.tail(window).corr(cb.tail(window))
+        return float(corr) if not pd.isna(corr) else None
+    except Exception as e:
+        print(f"❌ Correlation error: {e}")
+        return None
+
+
 def calculate_zscore(df_a, df_b, window=20):
     """Рассчитать Z-score спреда (с выравниванием по времени)"""
     try:
@@ -654,8 +675,14 @@ def check_signals_by_tf(pairs_config, tf):
                     if _vol_ratio > 0.02:  # Волатильность > 2% от среднего — аномально
                         _vol_ok = False
                 
+                # Фильтр корреляции: corr < 0.7 → не входить
+                _corr_ok = True
+                _corr = calculate_correlation(df_a, df_b, window=20)
+                if _corr is not None and _corr < 0.7:
+                    _corr_ok = False
+
                 # Проверяем вход (с фильтрами)
-                if _is_trading_time and _vol_ok:
+                if _is_trading_time and _vol_ok and _corr_ok:
                     if current_z >= entry_z and spread_trend > 0:
                         open_position(pair_name, base_pair, tf, 'SHORT_SPREAD', VOLUME, current_z, price_a, price_b)
                     elif current_z <= -entry_z and spread_trend < 0:
