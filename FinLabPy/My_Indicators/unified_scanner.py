@@ -53,6 +53,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
                                  hi2_passive=None, hi2_passive_buy=None, hi2_passive_sell=None,
                                  hi2_volume=None,
                                  disb=None,
+                                 yur_buy_ratio=None, yur_dir=None, yur_median=None, yur_std=None,
                                  ofi=None, cum_delta=None,
                                  is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None, volume_spike=False, rvi_val=None):
     """
@@ -92,7 +93,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             'weighted_val': 0,
             'trend': '—',
             'signals': {'1D': {'signal': '—', 'score': 0, 'details': {}}, '4H': {'signal': '—', 'score': 0, 'details': {}}, '1H': {'signal': '—', 'score': 0, 'details': {}}},
-            'factors': {'tf_score': 0, 'tf_weighted': 0, 'hi2_penalty': 0, 'hi2_note': 'Нет данных', 'garch_penalty': 0, 'garch_note': 'Нет данных', 'trend_mod': 0, 'trend_note': '—', 'distr_mod': 0, 'distr_note': '—', 'hpi_mod': 0, 'hpi_note': '—', 'zweig_mod': 0, 'zweig_note': '—', 'volume_mod': 0, 'volume_note': '—', 'crisis_mode': False, 'rvi_val': None, 'total_mod': 0},
+            'factors': {'tf_score': 0, 'tf_weighted': 0, 'hi2_penalty': 0, 'hi2_note': 'Нет данных', 'garch_penalty': 0, 'garch_note': 'Нет данных', 'trend_mod': 0, 'trend_note': '—', 'distr_mod': 0, 'distr_note': '—', 'hpi_mod': 0, 'hpi_note': '—', 'zweig_mod': 0, 'zweig_note': '—', 'volume_mod': 0, 'volume_note': '—', 'yur_mod': 0, 'yur_note': '—', 'crisis_mode': False, 'rvi_val': None, 'total_mod': 0},
         }
 
     # === 1. Сигналы по ТФ (БАЗА — 60%) ===
@@ -184,6 +185,37 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             disb_note = f"📉 disb={disb:+.2f} (умеренный перекос в продажи) -1"
         else:
             disb_note = f"✅ disb={disb:+.2f} — нейтрально"
+
+    # === 2c. yur_buy_ratio — модификатор (16.09.2026) ===
+    # Логика: отклонение от median на >std в направлении dir → подтверждение
+    #         отклонение в обратную сторону → контр-сигнал
+    yur_mod = 0
+    yur_note = ""
+    if yur_buy_ratio is not None and yur_dir is not None and yur_median is not None and yur_std is not None:
+        deviation = yur_buy_ratio - yur_median
+        if yur_dir == 1:  # бычий сигнал
+            if deviation > yur_std:
+                yur_mod = +2
+                yur_note = f"📈 yur={yur_buy_ratio:.2f} (>{yur_median:.1f}+{yur_std:.1f}) — сильное подтверждение +2"
+            elif deviation > 0:
+                yur_mod = +1
+                yur_note = f"📈 yur={yur_buy_ratio:.2f} (>{yur_median:.1f}) — подтверждение +1"
+            elif deviation < -yur_std:
+                yur_mod = -2
+                yur_note = f"📉 yur={yur_buy_ratio:.2f} (<{yur_median:.1f}-{yur_std:.1f}) — контр-сигнал -2"
+        elif yur_dir == -1:  # медвежий сигнал
+            if deviation < -yur_std:
+                yur_mod = +2
+                yur_note = f"📉 yur={yur_buy_ratio:.2f} (<{yur_median:.1f}-{yur_std:.1f}) — сильное подтверждение +2"
+            elif deviation < 0:
+                yur_mod = +1
+                yur_note = f"📉 yur={yur_buy_ratio:.2f} (<{yur_median:.1f}) — подтверждение +1"
+            elif deviation > yur_std:
+                yur_mod = -2
+                yur_note = f"📈 yur={yur_buy_ratio:.2f} (>{yur_median:.1f}+{yur_std:.1f}) — контр-сигнал -2"
+        if yur_mod == 0:
+            yur_note = f"✅ yur={yur_buy_ratio:.2f} — нейтрально"
+
 
     # === 3. GARCH — штраф за волатильность (10%) ===
     garch_penalty = 0
@@ -301,7 +333,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     # При GARCH>35% или Zweig BLOCKED — игнорируем zweig_mod
     if garch_vol > 35 or (zweig_signal is not None and zweig_signal == 'BLOCKED'):
         zweig_mod = -100  # Полная блокировка
-    total_mod = hi2_penalty + hi2_mod + disb_mod + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod
+    total_mod = hi2_penalty + hi2_mod + disb_mod + yur_mod + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod
     final_score = tf_score + total_mod
     if garch_vol > 35 or (zweig_signal is not None and zweig_signal == 'BLOCKED'):
         final_score = 0
@@ -369,6 +401,8 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             'hi2_mod_note': hi2_mod_note,
             'disb_mod': disb_mod,
             'disb_note': disb_note,
+            'yur_mod': yur_mod,
+            'yur_note': yur_note,
             'garch_penalty': garch_penalty,
             'garch_note': garch_note,
             'trend_mod': trend_mod,
