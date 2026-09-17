@@ -1931,3 +1931,47 @@ curl -s "https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/mast
 - [ ] Запустить `backtest_stop_levels.py`
 - [ ] Walk-forward оптимизация для `pairs_optimizer.py`
 - [ ] Минимум 20 сделок для оптимизации пар
+
+### 🔧 Дополнение 17.09 (продолжение вечерней сессии)
+
+**✅ Подключён `yur_buy_ratio` в `unified_scanner.py`**
+- Аргументы: `yur_buy_ratio`, `yur_dir`, `yur_median`, `yur_std` (строка 56)
+- Логика `yur_mod` (строки 189-215): dir=1 → +2/+1/−2, dir=−1 → +2/+1/−2
+- `total_mod` обновлён (с `yur_mod`)
+- `factors` (основной return, строка 404): `yur_mod`, `yur_note`
+- `factors` (default return, строка 96): `yur_mod: 0`, `yur_note: '—'`
+- **Зачем:** использовать сигнал (README 16.09: корреляция D1 0.27–0.51)
+
+**✅ Подключён `yur_buy_ratio` в `futures_robot.py`**
+- Загрузка `signal_direction.json` (строка 44)
+- Функция `get_yur_params(ticker)` (строка 52)
+- Чтение `yur_buy_ratio` из `df_1h` (строки 637-643)
+- Передача в сканер (строка 662)
+
+**✅ `MAX_POSITIONS` — 10 → 15 (только фьючерсный)**
+- `futures_robot.py` строка 65
+
+**📊 Проверка сборщиков и агрегаторов (check_collectors.py, 17.09 20:35)**
+
+Сборщики (8):
+- ✅ futoi_collect (0.6ч), candles_collect (0.5ч), hi2_collect (2.6ч), supercandles_collect (0.6ч)
+- ✅ funding_collect (2.3ч), tradestats_collect (2.1ч), mega_alert (2.0ч), sector_indices (1.6ч)
+- **Все: 0 ошибок**
+
+Агрегаторы (6):
+- ✅ futoi_1h (0.5ч), futoi_4h (0.4ч), futoi_daily (3.6ч)
+- ✅ hi2_daily (2.5ч), supercandles_daily (3.5ч), supercandles_h4 (2.9ч)
+- **Все: 0 ошибок**
+
+**📝 Заметки**
+- `check_collector_logs.py`: ✅ Ошибок не обнаружено
+- `check_data_freshness.py`: ✅ Все данные актуальны
+- `pair_signals_cron.log`: 0 ERROR (задача в cron закомментирована) — **не баг**
+- `contract_check_cron.log`: 0 ERROR (старые 4 ERROR были VK rate limit)
+- Тест `yur_mod` на RI: `NO_DATA` (в df нет колонки `begin`/`tradedate`) — **не баг кода**, в проде колонка есть
+
+**🎯 Осталось**
+- [ ] Проверить `yur_mod` в проде (в торговое окно 18.09)
+- [ ] A/B тест: baseline / +TradeStats / +TradeStats+HI2 / +yur_buy_ratio
+- [ ] `backtest_stop_levels.py` — запустить
+- [ ] Walk-forward оптимизация
