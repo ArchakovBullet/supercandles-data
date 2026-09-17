@@ -676,7 +676,7 @@
       "pair_name": "SVCB-SC_M10",
       "best_params": {
         "window": 40,
-        "entry_z": 1.5,
+        "entry_z": 2.5,
         "exit_z": 0.0
       },
       "train_score": 2.853,
@@ -787,9 +787,9 @@
     "SOFL-S0_H1": {
       "pair_name": "SOFL-S0_H1",
       "best_params": {
-        "window": 20,
-        "entry_z": 1.5,
-        "exit_z": 0.0
+        "window": 40,
+        "entry_z": 2.5,
+        "exit_z": 0.5
       },
       "train_score": 1.59,
       "test_metrics": {
