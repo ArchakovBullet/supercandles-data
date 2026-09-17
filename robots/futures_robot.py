@@ -39,6 +39,20 @@ try:
 except Exception:
     CONTRACT_POINTS = {}
 STATE_FILE = ROOT / 'robots' / 'futures_robot_state.json'
+
+# Загружаем signal_direction.json (yur_buy_ratio: dir, median, std для тикеров)
+SIGNAL_DIRECTION_PATH = ROOT / 'robots' / 'signal_direction.json'
+try:
+    with open(SIGNAL_DIRECTION_PATH, 'r') as _f:
+        SIGNAL_DIRECTION = json.load(_f)
+except Exception as e:
+    print(f"⚠️ signal_direction.json не загружен: {e}")
+    SIGNAL_DIRECTION = {}
+
+def get_yur_params(ticker):
+    """Получить (dir, median, std) для тикера или default."""
+    sd = SIGNAL_DIRECTION.get(ticker, SIGNAL_DIRECTION.get('default', {}))
+    return sd.get('dir'), sd.get('median'), sd.get('std')
 COMMAND_FILE = ROOT / 'robots' / 'futures_robot_command.txt'
 
 # Пороги
@@ -48,7 +62,7 @@ CRISIS_ENTRY_SCORE = 80
 CRISIS_EXIT_SCORE = 40
 
 # Максимум одновременных открытых позиций (контроль риска, принцип Саймонса)
-MAX_POSITIONS = 10
+MAX_POSITIONS = 15  # поднято с 10 (17.09.2026)
 
 # === СТОПЫ (15.09.2026) ===
 STOP_ATR_MULT = 3.2   # начальный стоп: 3.2×ATR (default)
@@ -619,6 +633,16 @@ def main():
             else:
                 hi2_value = None
 
+            # Читаем yur_buy_ratio из df_1h (после merge FutOI)
+            yur_buy_ratio_val = None
+            if 'yur_buy_ratio' in df_1h.columns and len(df_1h) > 0:
+                try:
+                    _yv = df_1h['yur_buy_ratio'].iloc[-1]
+                    yur_buy_ratio_val = float(_yv) if pd.notna(_yv) else None
+                except Exception:
+                    yur_buy_ratio_val = None
+            yur_dir, yur_median, yur_std = get_yur_params(ticker)
+
             # Вердикт
             verdict = get_unified_scanner_verdict(
                 df_d1, df_4h, df_1h,
@@ -635,6 +659,7 @@ def main():
                 hi2_passive_sell=hi2_data.get('hhi_passive_sell') if hi2_data else None,
                 hi2_volume=hi2_data.get('hhi_volume') if hi2_data else None,
                 disb=disb_val,
+                yur_buy_ratio=yur_buy_ratio_val, yur_dir=yur_dir, yur_median=yur_median, yur_std=yur_std,
                 ofi=None, cum_delta=None,
                 is_distribution=False, is_accumulation=False,
                 hpi_signal=None, hpi_divergence=False,
