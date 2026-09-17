@@ -4417,7 +4417,7 @@ elif page == "📊 Торговые роботы":
         st.subheader("📈 Статистика сделок")
         if _db_path.exists():
             _conn = sqlite3.connect(_db_path)
-            _closed_df = pd.read_sql_query('SELECT * FROM positions WHERE status = "CLOSED"', _conn)
+            _closed_df = pd.read_sql_query('SELECT * FROM positions WHERE status = "CLOSED" AND (exit_price_a != 0 AND exit_price_b != 0)', _conn)
             _conn.close()
             
             if len(_closed_df) > 0:
@@ -4578,7 +4578,7 @@ elif page == "📊 Торговые роботы":
             if len(_trades_df) > 0:
                 # Используем positions для полной информации о PnL
                 _conn2 = sqlite3.connect(_db_path)
-                _pos_df = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED" ORDER BY id DESC LIMIT 20', _conn2)
+                _pos_df = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED" AND (exit_price_a != 0 AND exit_price_b != 0) ORDER BY id DESC LIMIT 20', _conn2)
                 _conn2.close()
                 
                 if len(_pos_df) > 0:
