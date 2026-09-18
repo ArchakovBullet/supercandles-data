@@ -2014,3 +2014,54 @@ curl -s "https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/mast
 **🎯 Осталось**
 - [ ] Перезапустить дашборд вручную
 - [ ] Проверить в браузере (Win Rate = 61.5%)
+
+## 18.09.2026 (вечерняя сессия — защита от экспирации)
+
+### ✅ Выполнено
+
+**🔴 Проблема: робот открывал позиции в контрактах без проверки экспирации**
+- Правило «закрывать за 2 дня» — было (`check_expiry`)
+- Правило «не открывать за 2 дня» — **отсутствовало**
+- `expiry_date` **не заполнялась** при `open_position`
+- `contract_code` **не заполнялся** для новых позиций (id 62-70)
+
+**✅ Добавлены функции в `futures_robot.py`:**
+- `get_last_tradedate(ticker)` — читает `contract_cache.json` + `contract_last_tradedate.json`, возвращает `date`
+- `is_expiring_soon(ticker, days=2)` — True, если экспирация ≤ N дней
+- Строки 67, 89
+
+**✅ Патч `open_position`:**
+- Заполняет `contract_code` (из `contract_cache.json`)
+- Заполняет `expiry_date` (из `get_last_tradedate`)
+- Строки 358-360
+
+**✅ Патч `main()`:**
+- Вызов `is_expiring_soon(ticker, days=2)` перед `open_position`
+- Если True → **не открываем**
+
+**✅ Создан кеш `contract_last_tradedate.json`:**
+- 164 контракта (MOEX ISS)
+- Обновление: cron `0 21 * * *`
+- Скрипт: `scripts/update_last_tradedate.py`
+
+**✅ Заполнены `contract_code` / `expiry_date` для открытых (id 42-70):**
+- SV → SVZ6 (18.12), GD → GDZ6 (18.12), ED → EDZ6 (17.12)
+- CR → CRZ6 (17.12), RB → RBZ6 (01.12), NG → NGU6 (28.09)
+- PT → PTZ6 (18.12), NR → NRU6 (28.09)
+- Вечные (CNYRUBF, SBERF, GAZPF, GLDRUBF) — без экспирации (норм)
+
+**✅ NG — НЕ истекает сегодня:**
+- MOEX ISS: NGU6 LASTTRADEDATE=2026-09-28
+- Позиция корректна, закрывать не нужно
+
+### 📝 Заметки
+- `contract_last_tradedate.json` — кеш MOEX ISS (обновлять раз в день)
+- `is_expiring_soon(ticker, days=2)` — защита от открытия
+- `check_expiry()` — закрывает открытые за 2 дня
+- Робот перезапущен (PID 3793032), без ошибок
+
+### 🎯 На следующий раз
+- [ ] Проверить работу `is_expiring_soon` в проде (19.09, торговое окно)
+- [ ] A/B тест: baseline / +TradeStats / +TradeStats+HI2 / +yur_buy_ratio
+- [ ] `backtest_stop_levels.py` — запустить
+- [ ] Walk-forward оптимизация
