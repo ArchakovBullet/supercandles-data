@@ -55,6 +55,47 @@ def get_yur_params(ticker):
     return sd.get('dir'), sd.get('median'), sd.get('std')
 COMMAND_FILE = ROOT / 'robots' / 'futures_robot_command.txt'
 
+# Кеш LASTTRADEDATE (обновляется скриптом / cron)
+LAST_TRADEDATE_CACHE_PATH = ROOT / 'robots' / 'contract_last_tradedate.json'
+try:
+    with open(LAST_TRADEDATE_CACHE_PATH, 'r') as _f:
+        LAST_TRADEDATE_CACHE = json.load(_f)
+except Exception:
+    LAST_TRADEDATE_CACHE = {}
+
+
+def get_last_tradedate(ticker):
+    """Получить LASTTRADEDATE для тикера (из кеша)."""
+    from datetime import datetime as _dt
+    # 1. Читаем contract_cache.json — короткий код → длинный код
+    try:
+        with open(ROOT / 'FinLabPy' / 'DataCollectors' / 'contract_cache.json') as _f:
+            cc = json.load(_f)
+        code = cc.get(ticker, {}).get('code')
+    except Exception:
+        code = None
+    if not code:
+        return None
+    # 2. Читаем кеш LASTTRADEDATE
+    last_str = LAST_TRADEDATE_CACHE.get(code)
+    if not last_str:
+        return None
+    try:
+        return _dt.strptime(last_str, '%Y-%m-%d').date()
+    except Exception:
+        return None
+
+
+def is_expiring_soon(ticker, days=2):
+    """Проверить, истекает ли контракт в ближайшие N дней."""
+    from datetime import datetime as _dt, date as _date
+    last = get_last_tradedate(ticker)
+    if last is None:
+        return False  # нет данных — не блокируем
+    today = _date.today()
+    days_left = (last - today).days
+    return days_left <= days
+
 # Пороги
 ENTRY_SCORE = 60
 EXIT_SCORE = 40
@@ -300,10 +341,23 @@ def open_position(ticker, direction, volume, score, price, atr):
     else:
         stop_price = price + atr * STOP_ATR_MULT
 
+    # Получаем contract_code и expiry_date
+    contract_code = None
+    expiry_date = None
+    try:
+        with open(ROOT / 'FinLabPy' / 'DataCollectors' / 'contract_cache.json') as _f:
+            cc = json.load(_f)
+        contract_code = cc.get(ticker, {}).get('code')
+    except Exception:
+        pass
+    last_td = get_last_tradedate(ticker)
+    if last_td:
+        expiry_date = last_td.strftime('%Y-%m-%d')
+
     cursor.execute('''
-        INSERT INTO futures_positions (ticker, direction, volume, entry_score, entry_time, entry_price, entry_atr, stop_price)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (ticker, direction, volume, score, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), price, atr, stop_price))
+        INSERT INTO futures_positions (ticker, direction, volume, entry_score, entry_time, entry_price, entry_atr, stop_price, contract_code, expiry_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (ticker, direction, volume, score, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), price, atr, stop_price, contract_code, expiry_date))
     conn.commit()
     conn.close()
 
