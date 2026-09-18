@@ -2065,3 +2065,53 @@ curl -s "https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/mast
 - [ ] A/B тест: baseline / +TradeStats / +TradeStats+HI2 / +yur_buy_ratio
 - [ ] `backtest_stop_levels.py` — запустить
 - [ ] Walk-forward оптимизация
+
+### 🔧 Дополнение 18.09 (парный робот — защита от экспирации)
+
+**🔴 Проблема: в парном роботе не было защиты от экспирации**
+- 20 фьючерсов в парах (LK, RN, TN, IR, GAZPF, GZ, WU, SO, PH, ...)
+- 4 из 7 открытых пар содержали фьючерс
+- Правило «не открывать за 2 дня» — отсутствовало
+- `expiry_date` не заполнялась
+
+**✅ Миграция БД `positions`:**
+- Добавлены: `contract_code_a`, `contract_code_b`, `expiry_date_a`, `expiry_date_b`
+
+**✅ Функции в `pairs_robot.py` (скопированы из futures_robot):**
+- `get_last_tradedate(ticker)` — из общего кеша `contract_last_tradedate.json`
+- `is_expiring_soon(ticker, days=2)` — True, если экспирация ≤ 2 дней
+- Строки 69, 89
+
+**✅ Патч `open_position`:**
+- Заполняет `contract_code_a/b`, `expiry_date_a/b` для обеих ног
+
+**✅ Патч `check_signals_by_tf`:**
+- Проверка `is_expiring_soon` для **обеих** ног перед открытием
+- `_expiry_ok = False` → не открываем
+
+**✅ Добавлена `check_expiry()`:**
+- Проверяет **обе** ноги открытых пар
+- Если **любая** истекает ≤ 2 дней → **закрывает пару**
+
+**✅ Вызов `check_expiry()` в `main()`.**
+
+**✅ Заполнены `contract_code_*` / `expiry_date_*` для открытых пар (7):**
+- GAZPF-GZ_M10: A=GAZPF(—) / B=GZ(GZZ6, 17.12)
+- WUSH-WU_M10: A=WUSH(—) / B=WU(WUZ6, 17.12)
+- LKOH-HYDR_M10: LKOH / HYDR — обе акции
+- LKOH-TATN_M10: LKOH / TATN — обе акции
+- LKOH-IRAO_M10: LKOH / IRAO — обе акции
+- SIBN-SO_M10: A=SIBN(—) / B=SO(SOZ6, 17.12)
+- PHOR-PH_M10: A=PHOR(—) / B=PH(PHZ6, 17.12)
+
+### 📝 Заметки
+- Кеш `contract_last_tradedate.json` — общий для обоих роботов
+- Вечные фьючерсы (CNYRUBF, GAZPF, GLDRUBF, SBERF, USDRUBF) — не в кеше, `expiry=None` (норм)
+- `is_expiring_soon` возвращает False, если нет данных → не блокирует
+- Робот перезапущен (PID 3794489), без ошибок
+
+### 🎯 На следующий раз
+- [ ] Проверить работу `is_expiring_soon`/`check_expiry` в проде (19.09, торговое окно)
+- [ ] A/B тест: baseline / +TradeStats / +TradeStats+HI2 / +yur_buy_ratio
+- [ ] `backtest_stop_levels.py` — запустить
+- [ ] Walk-forward оптимизация
