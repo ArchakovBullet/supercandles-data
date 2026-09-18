@@ -57,6 +57,46 @@ COOLDOWN_HOURS = 4           # пауза после убытка по паре 
 # Состояние свежести данных (сохраняется в файл, чтобы не спамить при перезапуске)
 TF_FRESH_STATE_FILE = ROOT / 'robots' / 'tf_fresh_state.json'
 
+# Кеш LASTTRADEDATE (общий с futures_robot)
+LAST_TRADEDATE_CACHE_PATH = ROOT / 'robots' / 'contract_last_tradedate.json'
+try:
+    with open(LAST_TRADEDATE_CACHE_PATH, 'r') as _f:
+        LAST_TRADEDATE_CACHE = json.load(_f)
+except Exception:
+    LAST_TRADEDATE_CACHE = {}
+
+
+def get_last_tradedate(ticker):
+    """Получить LASTTRADEDATE для тикера (из кеша)."""
+    from datetime import datetime as _dt
+    try:
+        with open(ROOT / 'FinLabPy' / 'DataCollectors' / 'contract_cache.json') as _f:
+            cc = json.load(_f)
+        code = cc.get(ticker, {}).get('code')
+    except Exception:
+        code = None
+    if not code:
+        return None
+    last_str = LAST_TRADEDATE_CACHE.get(code)
+    if not last_str:
+        return None
+    try:
+        return _dt.strptime(last_str, '%Y-%m-%d').date()
+    except Exception:
+        return None
+
+
+def is_expiring_soon(ticker, days=2):
+    """True, если контракт истекает в ближайшие N дней (только для фьючерсов)."""
+    from datetime import date as _date
+    last = get_last_tradedate(ticker)
+    if last is None:
+        return False  # не фьючерс или нет данных — не блокируем
+    today = _date.today()
+    days_left = (last - today).days
+    return days_left <= days
+
+
 def load_tf_fresh_state():
     """Загрузить состояние свежести из файла"""
     try:
@@ -384,19 +424,40 @@ def open_position(pair_name, base_pair, tf, direction, volume, zscore, price_a, 
         leg_b_dir = 'SELL'
     
     conn = sqlite3.connect(DB_PATH)
+    # Получаем contract_code и expiry_date для обеих ног
+    contract_code_a = None
+    contract_code_b = None
+    expiry_date_a = None
+    expiry_date_b = None
+    try:
+        with open(ROOT / 'FinLabPy' / 'DataCollectors' / 'contract_cache.json') as _f:
+            _cc = json.load(_f)
+        contract_code_a = _cc.get(ticker_a, {}).get('code')
+        contract_code_b = _cc.get(ticker_b, {}).get('code')
+    except Exception:
+        pass
+    _ltd_a = get_last_tradedate(ticker_a)
+    if _ltd_a:
+        expiry_date_a = _ltd_a.strftime('%Y-%m-%d')
+    _ltd_b = get_last_tradedate(ticker_b)
+    if _ltd_b:
+        expiry_date_b = _ltd_b.strftime('%Y-%m-%d')
+
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO positions (
             pair_name, base_pair, timeframe, direction, volume, 
             entry_z, entry_time, entry_price_a, entry_price_b,
-            leg_a_ticker, leg_a_direction, leg_b_ticker, leg_b_direction
+            leg_a_ticker, leg_a_direction, leg_b_ticker, leg_b_direction,
+            contract_code_a, contract_code_b, expiry_date_a, expiry_date_b
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         pair_name, base_pair, tf, direction, volume, 
         zscore, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 
         price_a, price_b,
-        ticker_a, leg_a_dir, ticker_b, leg_b_dir
+        ticker_a, leg_a_dir, ticker_b, leg_b_dir,
+        contract_code_a, contract_code_b, expiry_date_a, expiry_date_b
     ))
     conn.commit()
     conn.close()
@@ -506,6 +567,54 @@ def process_command():
     return None
 
 # ========== ОСНОВНОЙ ЦИКЛ ==========
+def check_expiry():
+    """Проверить приближающиеся экспирации. Закрывать пары за N дней."""
+    if not is_moex_trading_day():
+        return
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, pair_name, base_pair, timeframe, direction, entry_price_a, entry_price_b,
+               leg_a_ticker, leg_b_ticker, expiry_date_a, expiry_date_b
+        FROM positions
+        WHERE status='OPEN' AND (expiry_date_a IS NOT NULL OR expiry_date_b IS NOT NULL)
+    """)
+    positions = cursor.fetchall()
+    conn.close()
+
+    from datetime import datetime as _dt, date as _date
+    today = _date.today()
+
+    for pos in positions:
+        (pid, pair_name, base_pair, tf, direction, ea, eb,
+         ta, tb, exp_a, exp_b) = pos
+        try:
+            # Определяем ближайшую экспирацию
+            min_days = None
+            for exp in [exp_a, exp_b]:
+                if not exp:
+                    continue
+                exp_dt = _dt.strptime(exp, '%Y-%m-%d').date()
+                days_left = (exp_dt - today).days
+                if min_days is None or days_left < min_days:
+                    min_days = days_left
+
+            if min_days is not None and min_days <= 2:
+                # Получить текущие цены
+                _time_col_a = 'begin' if 'begin' in pd.read_parquet(CANDLES_DIR / f'{ta}_{tf}.parquet').columns else 'tradedate'
+                df_a = pd.read_parquet(CANDLES_DIR / f'{ta}_{tf}.parquet')
+                df_b = pd.read_parquet(CANDLES_DIR / f'{tb}_{tf}.parquet')
+                price_a = float(df_a['close'].iloc[-1]) if not isinstance(df_a['close'].iloc[-1], bytes) else 0.0
+                price_b = float(df_b['close'].iloc[-1]) if not isinstance(df_b['close'].iloc[-1], bytes) else 0.0
+
+                print(f'  ⏰ {pair_name}: экспирация через {min_days} дн. — ЗАКРЫВАЕМ')
+                close_position(pid, pair_name, base_pair, tf, 0, price_a, price_b)
+        except Exception as e:
+            print(f'  ⚠️ check_expiry({pair_name}): {e}')
+
+
 def main():
     print("=" * 60)
     print(f"🤖 РОБОТ ПАРНОЙ ТОРГОВЛИ | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -517,6 +626,9 @@ def main():
     
     # Инициализация БД
     init_db()
+
+    # Проверка экспираций
+    check_expiry()
     
     # Загружаем конфиг пар
     with open(CONFIG_PATH, 'r') as f:
@@ -681,12 +793,19 @@ def check_signals_by_tf(pairs_config, tf):
                 if _corr is not None and _corr < 0.7:
                     _corr_ok = False
 
+                # Проверка экспирации (не открывать за 2 дня)
+                _expiry_ok = True
+                if is_expiring_soon(ticker_a, days=2) or is_expiring_soon(ticker_b, days=2):
+                    _expiry_ok = False
+
                 # Проверяем вход (с фильтрами)
-                if _is_trading_time and _vol_ok and _corr_ok:
+                if _is_trading_time and _vol_ok and _corr_ok and _expiry_ok:
                     if current_z >= entry_z and spread_trend > 0:
                         open_position(pair_name, base_pair, tf, 'SHORT_SPREAD', VOLUME, current_z, price_a, price_b)
                     elif current_z <= -entry_z and spread_trend < 0:
                         open_position(pair_name, base_pair, tf, 'LONG_SPREAD', VOLUME, current_z, price_a, price_b)
+                elif not _expiry_ok:
+                    print(f'  ⏰ {pair_name}: экспирация ≤2 дн. — не открываем')
                 elif not _is_trading_time:
                     pass  # Пропускаем — не торгуем в конце сессии
                 elif not _vol_ok:
