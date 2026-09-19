@@ -42,7 +42,6 @@ finlab_dashboard/app_v2_backup.py
 finlab_dashboard/app_v2_backup_*
 
 # Work log
-WORK_LOG.md
 
 # Cache
 FinLabPy/DataCollectors/contract_cache.json
