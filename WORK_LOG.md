@@ -2158,3 +2158,54 @@ curl -s "https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/mast
 - [ ] `backtest_stop_levels.py` — запустить
 - [ ] Walk-forward оптимизация
 - [ ] Cooldown после прибыли — обсудить с командой
+
+### 🔧 Дополнение 19.09 (A/B тест + walk-forward)
+
+**✅ A/B тест unified_scanner (63 тикера)**
+- Создан `scripts/ab_test_scanner.py`
+- Результат: `yur_mod` меняет `score` от −2 до +2
+- **НО:** `decision` не меняется (`tf_weighted` маленький)
+- 6 тикеров дают не-WAIT: GL, MG, NR, SS (LONG), GZ, PT, VB (SHORT)
+
+**🔍 tf_weighted — почему маленький**
+- RI: `fiz_buy=62.3`, `fiz_delta=0` → NEUTRAL
+- MG: `fiz_buy=75.2`, `fiz_delta=+0.06` → LONG
+- GZ: `fiz_buy=81.4`, `fiz_delta=+0.88` → SHORT
+- **Проблема:** `fiz_delta` часто 0 (merge не работает)
+- **D1:** `fiz_buy=50` (merge не работает для D1)
+
+**✅ Walk-forward для пар (40 пар, с комиссиями)**
+- Создан `scripts/walk_forward_pairs.py`
+- Комиссия 0.05% + slippage 0.02%, фильтр корреляции > 0.7
+- In-sample 70% / out-sample 30%
+- **OK: 29, FAIL: 11**
+
+**FAIL-пары (out_pnl ≤ 0):**
+- CNYRUBF-UM_M10 (out_wr=0.0)
+- LKOH-ROSN_M10, LKOH-TATN_M10, ROSN-TATN_M10 (best_z=3.0)
+- LKOH-IRAO_H1 (out_wr=51.0)
+- LK-RN_M10 (out_wr=28.6)
+- HY-IR_M10 (out_wr=53.6)
+- LK-HY_H1 (out_wr=0.0)
+- LK-TN_H1 (out_wr=50.0)
+- RN-TN_H1 (out_wr=50.0)
+- LK-IR_H1 (out_wr=77.8)
+
+**Действие:** 11 FAIL-пар → `enabled: false`
+
+**📊 Распределение entry_z (оптимум):**
+- 1.5: 17 пар
+- 2.0: 11 пар
+- 2.5: 2 пары
+- 3.0: 10 пар
+
+**📝 Заметки**
+- `yur_mod` — подтверждающий фактор (±2)
+- `fiz_delta` — часто 0 (merge FutOI не работает)
+- D1 — `fiz_buy=50` (merge не работает)
+- Walk-forward — упрощён (без слияния спреда в 2 ноги)
+
+**🎯 Осталось**
+- [ ] Исправить A/B тест: D1 merge, fiz_delta
+- [ ] Проверить `yur_mod` в проде (20.09)
+- [ ] A/B: baseline / +TradeStats / +TradeStats+HI2 / +yur
