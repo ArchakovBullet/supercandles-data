@@ -670,13 +670,13 @@
       },
       "total_rows": 1995,
       "last_optimized": "2026-08-23 20:26:40",
-      "enabled": true
+      "enabled": false
     },
     "SVCB-SC_M10": {
       "pair_name": "SVCB-SC_M10",
       "best_params": {
         "window": 40,
-        "entry_z": 2.5,
+        "entry_z": 3.0,
         "exit_z": 0.0
       },
       "train_score": 2.853,
@@ -732,7 +732,7 @@
       "pair_name": "SFIN-SH_H1",
       "best_params": {
         "window": 40,
-        "entry_z": 1.5,
+        "entry_z": 3.0,
         "exit_z": 0.5
       },
       "train_score": 1.935,
@@ -788,7 +788,7 @@
       "pair_name": "SOFL-S0_H1",
       "best_params": {
         "window": 40,
-        "entry_z": 2.5,
+        "entry_z": 3.0,
         "exit_z": 0.5
       },
       "train_score": 1.59,
@@ -1006,7 +1006,7 @@
       },
       "total_rows": 40120,
       "last_optimized": "2026-09-13 20:09:58",
-      "enabled": true
+      "enabled": false
     },
     "LKOH-TATN_M10": {
       "pair_name": "LKOH-TATN_M10",
@@ -1062,7 +1062,7 @@
       },
       "total_rows": 39991,
       "last_optimized": "2026-09-13 20:10:37",
-      "enabled": true
+      "enabled": false
     },
     "ROSN-TATN_M10": {
       "pair_name": "ROSN-TATN_M10",
@@ -1118,7 +1118,7 @@
       },
       "total_rows": 39973,
       "last_optimized": "2026-09-13 20:11:14",
-      "enabled": true
+      "enabled": false
     },
     "LKOH-IRAO_M10": {
       "pair_name": "LKOH-IRAO_M10",
@@ -1510,7 +1510,7 @@
       },
       "total_rows": 7133,
       "last_optimized": "2026-09-13 20:12:54",
-      "enabled": true
+      "enabled": false
     },
     "HYDR-IRAO_H1": {
       "pair_name": "HYDR-IRAO_H1",
@@ -2272,7 +2272,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "LK-TN_M10": {
       "pair_name": "LK-TN_M10",
@@ -2340,7 +2340,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "LK-HY_H1": {
       "pair_name": "LK-HY_H1",
@@ -2357,7 +2357,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "LK-RN_H1": {
       "pair_name": "LK-RN_H1",
@@ -2391,7 +2391,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "RN-TN_H1": {
       "pair_name": "RN-TN_H1",
@@ -2408,7 +2408,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "LK-IR_H1": {
       "pair_name": "LK-IR_H1",
@@ -2425,7 +2425,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "HY-IR_H1": {
       "pair_name": "HY-IR_H1",
