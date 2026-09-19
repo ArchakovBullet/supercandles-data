@@ -1,24 +1,4 @@
-<!-- VERSION: 2026-09-19 21:02 MSK | COMMIT: HEAD -->
-**Проверять grep на дубликаты** перед коммитом
-<!-- VERSION: 2026-09-19 21:00 MSK | COMMIT: dd1368e -->
-### На завтра (02.08)
-- [ ] Исправить кнопку "Добавить" — обновлять tickers_config.json
-- [ ] Настроить VK-токены для уведомлений
-- [ ] Проверить автообновление ED, SA, GN, FF
-- [ ] Проверить Super Candles H4
-
-### Срочно (02.08)
-- [ ] Кнопка "Добавить" всё ещё редактирует hi2_collector.py напрямую — нужно убрать
-- [ ] Кнопка должна обновлять ТОЛЬКО tickers_config.json
-- [ ] После добавления RUAL проверено: свечи есть, HI2 нет (соберётся cron)
-
-## 03.08: План на день
-
-### Задачи
-- [ ] Исправить кнопку "Добавить" — обновлять tickers_config.json
-- [ ] Настроить VK-токены для уведомлений
-- [ ] Проверить автообновление ED, SA, GN, FF
-- [ ] Проверить Super Candles H4
+<!-- VERSION: 2026-09-19 21:03 MSK | COMMIT: HEAD -->
 
 ## 15.09.2026 (ночная сессия — большая)
 
@@ -776,49 +756,6 @@
 
 ---
 
-## ИНСТРУКЦИЯ ДЛЯ AI В ДРУГИХ ЧАТАХ
-
-### Проблема
-
-**Raw-файлы GitHub кэшируются до 5 минут.**
-**Если AI читает WORK_LOG сразу после пуша — он может получить старую версию.**
-
-### Решение
-
-**1. Использовать URL с ?t=<timestamp>:**
-https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/WORK_LOG.md?t=<timestamp>
-
-**2. Или — GitHub API (без кэша):**
-https://api.github.com/repos/ArchakovBullet/supercandles-data/contents/WORK_LOG.md?ref=master
-В ответе — content в base64. Нужно декодировать.
-
-**3. Проверить маркер версии:**
-<!-- VERSION: 2026-09-16 22:00 MSK | COMMIT: 33349ba -->
-**Если маркер отсутствует** — файл прочитан из кэша.
-
-### Проверка
-
-Через API (без кэша):
-curl -s "https://api.github.com/repos/ArchakovBullet/supercandles-data/contents/WORK_LOG.md?ref=master" | python3 -c "import sys, json, base64; data = json.load(sys.stdin); content = base64.b64decode(data['content']).decode('utf-8'); print(content[:200])"
-
-Через raw с timestamp:
-curl -s "https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/WORK_LOG.md?t=$(date +%s)" | head -5
-
-### Источники
-
-- README.md — паспорт проекта (редко меняется)
-  https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/README.md?t=<timestamp>
-
-- WORK_LOG.md — дневник (обновляется каждую сессию)
-  https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/WORK_LOG.md?t=<timestamp>
-
-### Важно
-
-**Правило «пушить WORK_LOG сразу»** — см. выше в дневнике.
-**Проверять дубликаты перед коммитом** — см. выше в дневнике.
-**Использовать ?t=<timestamp> при чтении** — чтобы избежать кэша.
-
-
 ## 16.09.2026 (вечерняя сессия — починка парного робота)
 
 ### ✅ Выполнено
@@ -1199,3 +1136,47 @@ curl -s "https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/mast
 - [ ] Исправить A/B тест: D1 merge, fiz_delta
 - [ ] Проверить `yur_mod` в проде (20.09)
 - [ ] A/B: baseline / +TradeStats / +TradeStats+HI2 / +yur
+
+---
+
+## ИНСТРУКЦИЯ ДЛЯ AI В ДРУГИХ ЧАТАХ
+
+### Проблема
+
+**Raw-файлы GitHub кэшируются до 5 минут.**
+**Если AI читает WORK_LOG сразу после пуша — он может получить старую версию.**
+
+### Решение
+
+**1. Использовать URL с ?t=<timestamp>:**
+https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/WORK_LOG.md?t=<timestamp>
+
+**2. Или — GitHub API (без кэша):**
+https://api.github.com/repos/ArchakovBullet/supercandles-data/contents/WORK_LOG.md?ref=master
+В ответе — content в base64. Нужно декодировать.
+
+**3. Проверить маркер версии:**
+<!-- VERSION: 2026-09-16 22:00 MSK | COMMIT: 33349ba -->
+**Если маркер отсутствует** — файл прочитан из кэша.
+
+### Проверка
+
+Через API (без кэша):
+curl -s "https://api.github.com/repos/ArchakovBullet/supercandles-data/contents/WORK_LOG.md?ref=master" | python3 -c "import sys, json, base64; data = json.load(sys.stdin); content = base64.b64decode(data['content']).decode('utf-8'); print(content[:200])"
+
+Через raw с timestamp:
+curl -s "https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/WORK_LOG.md?t=$(date +%s)" | head -5
+
+### Источники
+
+- README.md — паспорт проекта (редко меняется)
+  https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/README.md?t=<timestamp>
+
+- WORK_LOG.md — дневник (обновляется каждую сессию)
+  https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/WORK_LOG.md?t=<timestamp>
+
+### Важно
+
+**Правило «пушить WORK_LOG сразу»** — см. выше в дневнике.
+**Проверять дубликаты перед коммитом** — см. выше в дневнике.
+**Использовать ?t=<timestamp> при чтении** — чтобы избежать кэша.
