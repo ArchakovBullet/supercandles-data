@@ -86,7 +86,7 @@ def main():
 
     for _, row in df.iterrows():
         old_pnl = row['pnl'] or 0
-        pv = row['point_value'] or 1.0
+        pv = row['point_value'] if pd.notna(row['point_value']) else 1.0
         ticker = row['ticker']
 
         # 2.5x
