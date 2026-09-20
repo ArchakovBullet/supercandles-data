@@ -33,6 +33,34 @@ try:
 except:
     CONTRACT_POINTS = {}
 CONFIG_PATH = ROOT / 'FinLabPy' / 'My_Indicators' / 'pairs_config.json'
+
+# ========== Загрузка тикеров (акции / фьючерсы) ==========
+TICKERS_CONFIG_PATH = ROOT / 'FinLabPy' / 'DataCollectors' / 'tickers_config.json'
+STOCKS_SET = set()
+FUTURES_SET = set()
+
+def _load_tickers():
+    """Загрузить списки акций и фьючерсов."""
+    global STOCKS_SET, FUTURES_SET
+    try:
+        import json as _json
+        with open(TICKERS_CONFIG_PATH) as _f:
+            _cfg = _json.load(_f)
+        STOCKS_SET = set(_cfg.get('stocks', []))
+        FUTURES_SET = set(_cfg.get('futures', []))
+        print(f'✅ Загружено тикеров: акций={len(STOCKS_SET)}, фьючерсов={len(FUTURES_SET)}')
+    except Exception as _e:
+        print(f'⚠️ Ошибка загрузки tickers_config.json: {_e}')
+
+def is_stock(ticker):
+    """Проверить, что тикер — акция."""
+    return ticker in STOCKS_SET
+
+def is_futures(ticker):
+    """Проверить, что тикер — фьючерс."""
+    return ticker in FUTURES_SET
+
+_load_tickers()
 CANDLES_DIR = ROOT / 'data' / 'candles'
 DB_PATH = ROOT / 'robots' / 'pairs_robot.db'
 COMMAND_FILE = ROOT / 'robots' / 'robot_command.txt'
@@ -425,6 +453,13 @@ def open_position(pair_name, base_pair, tf, direction, volume, zscore, price_a, 
     else:  # LONG_SPREAD
         leg_a_dir = 'BUY'
         leg_b_dir = 'SELL'
+
+    # === ЗАЩИТА: запрет шорта по акциям (20.09.2026) ===
+    # Определяем, какая нога в шорте (SELL)
+    _short_ticker = ticker_a if leg_a_dir == 'SELL' else ticker_b
+    if is_stock(_short_ticker):
+        print(f'  ⏸️ {pair_name}: шорт по акции {_short_ticker} запрещён — пропуск')
+        return
     
     conn = sqlite3.connect(DB_PATH)
     # Получаем contract_code и expiry_date для обеих ног

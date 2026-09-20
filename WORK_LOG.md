@@ -1317,3 +1317,66 @@ get_be_move: RI=2.5, MG=2.0, GZ=2.0, MC=2.0, GLDRUBF=2.5, PD=2.5, CE=1.5, SN=1.5
 - [ ] Переделать backtest_stop_levels.py с реальными stop_price из БД
 - [ ] A/B тест сигналов (baseline / +TradeStats / +TradeStats+HI2 / +yur_buy_ratio)
 - [ ] Фикс fiz_delta (merge FutOI)
+
+## 20.09.2026 (ночная сессия 2 — запрет шорта по акциям)
+
+### 🔴 Проблема
+
+**Пары «акция-акция» и SHORT по акциям — убыточны/рискованны.**
+- Статистика: LONG_SPREAD по фьючерс-акция = +677₽ (13 сделок), SHORT_SPREAD = −89₽ (6 сделок, 0 wins).
+- Шорт по акциям требует брокера, комиссии выше, риск short squeeze.
+
+### 🎯 Решение (принято командой)
+
+1. **Акция-акция** — отключить все (24 пары).
+2. **Фьючерс-акция** — оставить, но **акция только LONG** (SHORT_SPREAD пропускать).
+3. **Фьючерс-фьючерс** — оставить всё (LONG/SHORT).
+
+### ✅ Фиксы
+
+**Патч A: is_stock + загрузка тикеров**
+- Строка 55: def is_stock(ticker)
+- Строка 59: def is_futures(ticker)
+- Строка 42: def _load_tickers()
+- Загружено: акций=138, фьючерсов=165.
+
+**Патч B v2: open_position — защита от шорта по акциям**
+- Строки 459-461: _short_ticker, is_stock, шорт по акции.
+- Логика:
+  - SHORT_SPREAD: leg_a=SELL → проверка ticker_a.
+  - LONG_SPREAD: leg_b=SELL → проверка ticker_b.
+- При шорте по акции → return.
+
+### 📊 Конфигурация пар (после правок)
+
+- Фьюч-фьюч: 26 (ON: 13)
+- Фьюч-сток: 14 (ON: 14)
+- **Сток-сток: 24 (ON: 0)** ← все отключены
+
+### 📊 Закрытые позиции (MANUAL_STOCK_FILTER)
+
+- id 59 (LKOH-HYDR_M10) — акция-акция
+- id 60 (LKOH-TATN_M10) — акция-акция
+- id 61 (LKOH-IRAO_M10) — акция-акция
+- id 68 (LKOH-HYDR_H1) — акция-акция
+- id 66 (PHOR-PH_M10) — SHORT по акции PHOR
+- id 69 (SIBN-SO_M10) — SHORT по акции SIBN
+- id 70 (SVCB-SC_M10) — SHORT по акции SVCB
+
+**Осталось открытых (3):**
+- id 46 (GAZPF-GZ_M10) — фьючерс-фьючерс
+- id 55 (WUSH-WU_M10) — акция LONG
+- id 67 (SNGSP-SG_M10) — акция LONG
+
+### 📝 Заметки
+- direction ног в БД: BUY/SELL (не LONG/SHORT).
+- Фильтр в open_position — двойная защита.
+- **В таблице positions НЕТ колонки exit_reason** — есть exit_z, exit_time.
+- При закрытии позиций — не использовать exit_reason.
+- SQLite datetime('now') — UTC (не МСК).
+
+### 🎯 На следующий раз
+- [ ] Проверить работу фильтра в проде (21.09)
+- [ ] Переделать backtest_stop_levels.py с реальными stop_price
+- [ ] A/B тест сигналов
+- [ ] Фикс fiz_delta
