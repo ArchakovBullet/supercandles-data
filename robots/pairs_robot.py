@@ -124,6 +124,9 @@ def is_moex_trading_day():
     """Проверить, что сегодня торговый день MOEX (упрощённо, 2026)."""
     from datetime import datetime as _dt
     now = _dt.now()
+    # Сб (5) и Вс (6) — неторговые
+    if now.weekday() >= 5:
+        return False
     no_trade_weekends = [
         (1,3),(1,4),(1,10),(1,11),(2,14),(2,15),(3,7),(3,8),
         (3,21),(3,22),(5,9),(5,10),(6,20),(6,21),(8,1),(8,2),
@@ -639,6 +642,12 @@ def main():
     
     while running:
         try:
+            # Неторговый день — новые позиции не открываем
+            if not is_moex_trading_day():
+                print('⏸️ Неторговый день — новые позиции не открываются')
+                time.sleep(3600)
+                continue
+
             # Проверяем команды
             cmd = process_command()
             if cmd == 'STOP':

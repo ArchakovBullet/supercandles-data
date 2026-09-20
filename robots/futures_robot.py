@@ -144,6 +144,9 @@ def is_moex_trading_day():
     """Проверить, что сегодня торговый день MOEX (упрощённо, 2026)."""
     from datetime import datetime as _dt
     now = _dt.now()
+    # Сб (5) и Вс (6) — неторговые
+    if now.weekday() >= 5:
+        return False
     no_trade_weekends = [
         (1,3),(1,4),(1,10),(1,11),(2,14),(2,15),(3,7),(3,8),
         (3,21),(3,22),(5,9),(5,10),(6,20),(6,21),(8,1),(8,2),
@@ -332,6 +335,9 @@ def get_open_positions():
 
 def open_position(ticker, direction, volume, score, price, atr):
     """Открыть позицию."""
+    if not is_moex_trading_day():
+        print(f'  ⏸️ {ticker}: неторговый день — позиция не открывается')
+        return
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -587,6 +593,12 @@ def main():
             ready_tickers.append(t)
 
     print(f'Проверяю {len(ready_tickers)} тикеров (из {len(futures_tickers)})...')
+
+    # Неторговый день — новые позиции не открываем
+    if not is_moex_trading_day():
+        print('⏸️ Неторговый день — новые позиции не открываются')
+        return
+
     for ticker in ready_tickers:
         print(f'  → {ticker}')
         try:
