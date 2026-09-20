@@ -113,21 +113,29 @@ BE_MOVE_ATR = 1.5     # при движении в плюс на 1.5×ATR — с
 def load_stop_config():
     cfg_file = ROOT / 'robots' / 'stop_config.json'
     if not cfg_file.exists():
-        return {}
+        return {}, {}, 1.5
     try:
         import json
         with open(cfg_file) as f:
             cfg = json.load(f)
-        return cfg.get('individual', {})
+        return (
+            cfg.get('individual', {}),
+            cfg.get('individual_be', {}),
+            cfg.get('BE_MOVE_ATR', 1.5),
+        )
     except Exception as e:
         print(f"⚠️ Ошибка чтения stop_config.json: {e}")
-        return {}
+        return {}, {}, 1.5
 
-STOP_ATR_INDIVIDUAL = load_stop_config()
+STOP_ATR_INDIVIDUAL, STOP_BE_INDIVIDUAL, STOP_BE_DEFAULT = load_stop_config()
 
 def get_stop_mult(ticker):
-    """Получить множитель ATR для тикера."""
+    """Получить множитель ATR для тикера (стоп)."""
     return STOP_ATR_INDIVIDUAL.get(ticker, STOP_ATR_MULT)
+
+def get_be_move(ticker):
+    """Получить множитель ATR для безубытка."""
+    return STOP_BE_INDIVIDUAL.get(ticker, STOP_BE_DEFAULT)
 
 
 # Cooldown после STOP по тикеру (часы) — защита от whipsaw
@@ -341,11 +349,12 @@ def open_position(ticker, direction, volume, score, price, atr):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Начальный стоп — 3.2×ATR
+    # Начальный стоп — индивидуальный ×ATR (default 3.2)
+    _stop_mult = get_stop_mult(ticker)
     if direction == 'LONG':
-        stop_price = price - atr * STOP_ATR_MULT
+        stop_price = price - atr * _stop_mult
     else:
-        stop_price = price + atr * STOP_ATR_MULT
+        stop_price = price + atr * _stop_mult
 
     # Получаем contract_code и expiry_date
     contract_code = None
@@ -493,20 +502,24 @@ def check_stops_only():
             sp_row = cursor.fetchone()
             current_stop = sp_row[0] if sp_row and sp_row[0] is not None else None
 
+            _stop_mult = get_stop_mult(ticker)
+            _be_move = get_be_move(ticker)
+
             if direction == 'LONG':
-                # Начальный стоп — 3.2×ATR
+                # Начальный стоп — индивидуальный ×ATR
                 if current_stop is None:
-                    stop_price = entry_price - entry_atr * STOP_ATR_MULT
+                    stop_price = entry_price - entry_atr * _stop_mult
                 else:
                     stop_price = current_stop
 
-                # Проверяем, не пора ли в безубыток
-                if high >= entry_price + entry_atr * BE_MOVE_ATR:
-                    if stop_price < entry_price:
-                        stop_price = entry_price
+                # Проверяем, не пора ли в безубыток (сдвиг на 2 комиссии = +0.1%)
+                _be_target = entry_price * 1.001
+                if high >= entry_price + entry_atr * _be_move:
+                    if stop_price < _be_target:
+                        stop_price = _be_target
                         cursor.execute('UPDATE futures_positions SET stop_price = ? WHERE id = ?', (stop_price, pos_id))
                         conn.commit()
-                        print(f'🔒 {ticker}: стоп в безубыток ({stop_price:.2f})')
+                        print(f'🔒 {ticker}: стоп в безубыток+комиссия ({stop_price:.2f})')
 
                 # Проверяем стоп
                 if low <= stop_price:
@@ -516,19 +529,20 @@ def check_stops_only():
                     closed_count += 1
 
             elif direction == 'SHORT':
-                # Начальный стоп — 3.2×ATR
+                # Начальный стоп — индивидуальный ×ATR
                 if current_stop is None:
-                    stop_price = entry_price + entry_atr * STOP_ATR_MULT
+                    stop_price = entry_price + entry_atr * _stop_mult
                 else:
                     stop_price = current_stop
 
-                # Проверяем, не пора ли в безубыток
-                if low <= entry_price - entry_atr * BE_MOVE_ATR:
-                    if stop_price > entry_price:
-                        stop_price = entry_price
+                # Проверяем, не пора ли в безубыток (сдвиг на 2 комиссии = −0.1%)
+                _be_target = entry_price * 0.999
+                if low <= entry_price - entry_atr * _be_move:
+                    if stop_price > _be_target:
+                        stop_price = _be_target
                         cursor.execute('UPDATE futures_positions SET stop_price = ? WHERE id = ?', (stop_price, pos_id))
                         conn.commit()
-                        print(f'🔒 {ticker}: стоп в безубыток ({stop_price:.2f})')
+                        print(f'🔒 {ticker}: стоп в безубыток+комиссия ({stop_price:.2f})')
 
                 # Проверяем стоп
                 if high >= stop_price:

@@ -1251,3 +1251,69 @@ is_moex_trading_day(): False
 - [ ] Отключить 6 H4-пар по акциям (нет данных)
 - [ ] A/B тест: baseline / +TradeStats / +TradeStats+HI2 / +yur_buy_ratio
 - [ ] fiz_delta merge FutOI — исправить
+
+## 20.09.2026 (ночная сессия — фикс индивидуальных стопов + безубыток с комиссией)
+
+### 🔴 Проблема
+
+**Индивидуальные стопы из stop_config.json НЕ РАБОТАЛИ.**
+- get_stop_mult(ticker) определена (строка 128), но НЕ ИСПОЛЬЗУЕТСЯ нигде.
+- open_position и check_stops_only использовали глобальный STOP_ATR_MULT = 3.2.
+- RI = 3.2×ATR (должен 2.5), MG = 3.2 (должен 2.5), GZ = 3.2 (должен 2.5).
+
+**BE_MOVE_ATR захардкожен (1.5) — не читается из конфига.**
+
+**Безубыток не покрывал комиссию.**
+- stop_price = entry_price → закрытие в 0 → комиссия 0.1% съедала депозит.
+
+### ✅ Фиксы
+
+**Патч A: load_stop_config() + get_be_move()**
+- Теперь возвращает (individual, individual_be, BE_MOVE_ATR).
+- get_stop_mult — строка 132, get_be_move — строка 136.
+
+**Патч B: open_position — get_stop_mult(ticker)**
+- Вместо глобального STOP_ATR_MULT. Строка 353.
+
+**Патч C1/C2: check_stops_only — LONG/SHORT**
+- get_stop_mult(ticker) + get_be_move(ticker). Строки 505-506.
+- Безубыток сдвинут на 2 комиссии:
+  - LONG: stop = entry × 1.001 (строка 516)
+  - SHORT: stop = entry × 0.999 (строка 539)
+
+**stop_config.json обновлён:**
+- individual: MG/MC/GZ/RI = 2.5
+- individual_be: GLDRUBF/PD/RI = 2.5, MG/GZ/MC = 2.0
+
+### 📊 Проверка (после патчей)
+
+get_stop_mult: RI=2.5, MG=2.5, GZ=2.5, MC=2.5, GLDRUBF=3.2, PD=3.2, CE=3.2, SN=3.2
+get_be_move: RI=2.5, MG=2.0, GZ=2.0, MC=2.0, GLDRUBF=2.5, PD=2.5, CE=1.5, SN=1.5
+Синтаксис OK. Робот перезапущен, логи чистые.
+
+### 📊 Бэктест стопов (49 сделок) — выводы
+
+- Старый PnL (2×ATR): −343 583₽ (в основном RI: −341 645₽)
+- Новый PnL (3.2×ATR + безубыток): −1 754₽
+- Без RI: старый −1 938₽, новый −1 754₽ (сокращение убытка на 184₽, но УБЫТОК СОХРАНЯЕТСЯ)
+
+**Провалы новой логики:**
+- id 48 (GLDRUBF): −1.04 → −153.80 (убыток вырос)
+- id 50 (PD): +22.98 → 0 (прибыль потеряна)
+
+### 🎯 Решения
+
+- ❌ Трейлинг-стоп — ОТМЕНЁН (не по Саймонсу)
+- ✅ Безубыток с комиссией — × 1.001 (LONG) / × 0.999 (SHORT)
+- ✅ Индивидуальный BE_MOVE_ATR для проблемных тикеров
+
+### 📝 Заметки
+- RIU6/SRU6 — MOEX ISS не отдаёт MINSTEP (вероятно, истекли)
+- Вечные фьючерсы (GAZPF, CNYRUBF, GLDRUBF) — MINSTEP известен
+- Используем процент (× 1.001) — универсально
+
+### 🎯 На следующий раз
+- [ ] Проверить работу индивидуальных стопов в проде (21.09)
+- [ ] Переделать backtest_stop_levels.py с реальными stop_price из БД
+- [ ] A/B тест сигналов (baseline / +TradeStats / +TradeStats+HI2 / +yur_buy_ratio)
+- [ ] Фикс fiz_delta (merge FutOI)
