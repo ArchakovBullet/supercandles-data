@@ -30,11 +30,18 @@ INDICES = {
     'IMOEX': 'IMOEX_D1.parquet',
     'RVI': 'RVI_D1.parquet',
     'RGBI': 'RGBI_D1.parquet',
-    'MOEXOG': 'MOEXOG_D1.parquet',
-    'MOEXFN': 'MOEXFN_D1.parquet',
-    'MOEXMM': 'MOEXMM_D1.parquet',
-    'MOEXEU': 'MOEXEU_D1.parquet',
-    'MOEXTL': 'MOEXTL_D1.parquet',
+    # Отраслевые (расширенный список — 11 индексов)
+    'MOEXOG': 'MOEXOG_D1.parquet',   # Нефть и газ
+    'MOEXFN': 'MOEXFN_D1.parquet',   # Финансы
+    'MOEXMM': 'MOEXMM_D1.parquet',   # Металлы и добыча
+    'MOEXEU': 'MOEXEU_D1.parquet',   # Электроэнергетика
+    'MOEXTL': 'MOEXTL_D1.parquet',   # Телеком
+    'MOEXCH': 'MOEXCH_D1.parquet',   # Химия
+    'MOEXCN': 'MOEXCN_D1.parquet',   # Потребительский
+    'MOEXIT': 'MOEXIT_D1.parquet',   # IT & TL
+    'MOEXRE': 'MOEXRE_D1.parquet',   # Недвижимость
+    'MOEXTN': 'MOEXTN_D1.parquet',   # Транспорт
+    'MOEXINN': 'MOEXINN_D1.parquet', # Инновации
 }
 
 def collect_index(ticker, filename):
