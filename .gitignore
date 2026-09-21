@@ -64,3 +64,6 @@ backups/
 *.bak4_*
 *.bak_before_*
 robots/tf_fresh_state.json
+
+# Робот акций: БД (локальная)
+robots/stocks_robot.db
