@@ -4594,7 +4594,115 @@ elif page == "📊 Торговые роботы":
                 st.info("Сделок пока нет")
 
     elif robot_tab == "📈 Робот акций":
-        st.info("🚧 В разработке")
+        st.subheader("📈 Робот акций")
+        st.info("Бумажный режим — виртуальные сделки без реального исполнения")
+
+        # Проверка статуса робота
+        import subprocess
+        import sqlite3
+        _stk_robot_running = False
+
+        _stk_result = subprocess.run(['systemctl', 'is-active', 'finlab-stocks-robot'], capture_output=True, text=True)
+        _stk_robot_running = _stk_result.stdout.strip() == 'active'
+
+        _stk_db_path = Path('/root/finlab/robots/stocks_robot.db')
+
+        _stk_open_count = 0
+        if _stk_db_path.exists():
+            try:
+                _conn_count = sqlite3.connect(_stk_db_path)
+                _cursor_count = _conn_count.cursor()
+                _cursor_count.execute('SELECT COUNT(*) FROM stock_positions WHERE status="OPEN"')
+                _stk_open_count = _cursor_count.fetchone()[0]
+                _conn_count.close()
+            except:
+                pass
+
+        if _stk_robot_running:
+            if _stk_open_count > 0:
+                st.success(f"🟢 Робот акций работает ({_stk_open_count} откр. позиций)")
+            else:
+                st.success("🟢 Робот акций работает")
+        else:
+            if _stk_open_count > 0:
+                st.warning(f"🟡 Робот на паузе ({_stk_open_count} откр. позиций)")
+            else:
+                st.error("🔴 Робот акций остановлен")
+
+        col_stk_start, col_stk_pause, col_stk_stop = st.columns(3)
+
+        with col_stk_start:
+            if _stk_robot_running:
+                st.button("▶️ Старт", type="primary", use_container_width=True, key="stk_start_running", disabled=True)
+            else:
+                if st.button("▶️ Старт", type="primary", use_container_width=True, key="stk_start_stopped"):
+                    subprocess.run(['systemctl', 'start', 'finlab-stocks-robot'], capture_output=True)
+                    st.rerun()
+
+        with col_stk_pause:
+            if _stk_robot_running:
+                if st.button("⏸️ Пауза", type="secondary", use_container_width=True, key="stk_pause_running"):
+                    subprocess.run(['systemctl', 'stop', 'finlab-stocks-robot'], capture_output=True)
+                    st.warning("Робот на паузе.")
+                    st.rerun()
+            else:
+                st.button("⏸️ Пауза", type="secondary", use_container_width=True, key="stk_pause_stopped", disabled=True)
+
+        with col_stk_stop:
+            if _stk_robot_running:
+                if st.button("🛑 Стоп", type="secondary", use_container_width=True, key="stk_stop_running"):
+                    if _stk_db_path.exists():
+                        _conn_stop = sqlite3.connect(_stk_db_path)
+                        _cursor_stop = _conn_stop.cursor()
+                        _cursor_stop.execute('UPDATE stock_positions SET status="CLOSED", exit_time=?, exit_reason="MANUAL_STOP" WHERE status="OPEN"', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),))
+                        _conn_stop.commit()
+                        _conn_stop.close()
+                    subprocess.run(['systemctl', 'stop', 'finlab-stocks-robot'], capture_output=True)
+                    st.error("Робот остановлен!")
+                    st.rerun()
+            else:
+                st.button("🛑 Стоп", type="secondary", use_container_width=True, key="stk_stop_stopped", disabled=True)
+
+        if _stk_db_path.exists():
+            _conn = sqlite3.connect(_stk_db_path)
+            _stk_open_df = pd.read_sql_query('SELECT * FROM stock_positions WHERE status="OPEN"', _conn)
+            _stk_closed_df = pd.read_sql_query('SELECT * FROM stock_positions WHERE status="CLOSED"', _conn)
+            _conn.close()
+
+            if len(_stk_open_df) > 0:
+                st.subheader("📊 Открытые позиции")
+                _stk_open_display = _stk_open_df[['ticker', 'direction', 'volume', 'entry_score', 'entry_price', 'stop_price', 'entry_time']].copy()
+                _stk_open_display.columns = ['Тикер', 'Направление', 'Объём', 'Скор', 'Цена входа', 'Стоп', 'Время входа']
+                _stk_open_display['Время входа'] = pd.to_datetime(_stk_open_display['Время входа'])
+                _stk_open_display['Время в позиции'] = (pd.Timestamp.now() - _stk_open_display['Время входа']).apply(lambda td: f'{td.days}д {td.seconds // 3600}ч')
+                _stk_open_display['Время входа'] = _stk_open_display['Время входа'].dt.strftime('%d.%m %H:%M')
+                st.dataframe(_stk_open_display, use_container_width=True, hide_index=True)
+
+            if len(_stk_closed_df) > 0:
+                st.subheader("📈 Статистика сделок")
+                _profitable = _stk_closed_df[_stk_closed_df['pnl'] > 0]
+                _unprofitable = _stk_closed_df[_stk_closed_df['pnl'] <= 0]
+                _total_pnl = _stk_closed_df['pnl'].sum()
+                _win_rate = len(_profitable) / len(_stk_closed_df) * 100 if len(_stk_closed_df) > 0 else 0
+
+                col_st1, col_st2, col_st3, col_st4 = st.columns(4)
+                with col_st1:
+                    st.metric("Всего сделок", len(_stk_closed_df))
+                with col_st2:
+                    st.metric("Win Rate", f"{_win_rate:.1f}%")
+                with col_st3:
+                    st.metric("Общий PnL", f"{_total_pnl:+.2f}₽")
+                with col_st4:
+                    st.metric("Прибыльных", f"{len(_profitable)}/{len(_unprofitable)}")
+
+                st.subheader("📋 Последние сделки")
+                _last_trades = _stk_closed_df.sort_values('exit_time', ascending=False).head(20)
+                _last_display = _last_trades[['ticker', 'entry_price', 'exit_price', 'pnl', 'exit_reason', 'exit_time']].copy()
+                _last_display.columns = ['Тикер', 'Вход', 'Выход', 'PnL', 'Причина', 'Время']
+                _last_display['PnL'] = _last_display['PnL'].apply(lambda x: f'{x:+.2f}₽')
+                st.dataframe(_last_display, use_container_width=True, hide_index=True)
+        else:
+            st.warning("БД робота акций не найдена")
 
     elif robot_tab == "📉 Робот фьючерсов":
         st.subheader("📉 Робот фьючерсов")
