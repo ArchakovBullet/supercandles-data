@@ -4164,6 +4164,22 @@ elif page == "📊 Торговые роботы":
                 'db': _fut_db
             }
 
+        # Робот акций
+        _stk_db = Path('/root/finlab/robots/stocks_robot.db')
+        if _stk_db.exists():
+            _conn = _sqlite3.connect(_stk_db)
+            _closed_stk = pd.read_sql_query('SELECT * FROM stock_positions WHERE status="CLOSED"', _conn)
+            _open_stk = pd.read_sql_query('SELECT * FROM stock_positions WHERE status="OPEN"', _conn)
+            _conn.close()
+            _stk_pnl = _closed_stk['pnl'].sum() if len(_closed_stk) > 0 else 0
+            _stk_wr = len(_closed_stk[_closed_stk['pnl'] > 0]) / len(_closed_stk) * 100 if len(_closed_stk) > 0 else 0
+            _robots_stats['📈 Робот акций'] = {
+                'open': len(_open_stk),
+                'pnl': _stk_pnl,
+                'wr': _stk_wr,
+                'db': _stk_db
+            }
+
         # Общая аналитика
         _total_pnl_all = sum(s['pnl'] for s in _robots_stats.values())
         _total_open = sum(s['open'] for s in _robots_stats.values())
@@ -4182,6 +4198,10 @@ elif page == "📊 Торговые роботы":
                 _conn = _sqlite3.connect(s['db'])
                 if 'pairs_robot' in str(s['db']):
                     _df = pd.read_sql_query('SELECT * FROM positions WHERE status="CLOSED" AND (exit_price_a != 0 AND exit_price_b != 0)', _conn)
+                    _all_trades += len(_df)
+                    _all_wins += len(_df[_df['pnl'] > 0])
+                elif 'stocks_robot' in str(s['db']):
+                    _df = pd.read_sql_query('SELECT * FROM stock_positions WHERE status="CLOSED"', _conn)
                     _all_trades += len(_df)
                     _all_wins += len(_df[_df['pnl'] > 0])
                 else:
@@ -4205,6 +4225,10 @@ elif page == "📊 Торговые роботы":
                     'SELECT * FROM positions WHERE status="CLOSED" AND (exit_price_a != 0 AND exit_price_b != 0)',
                     _conn
                 )
+                _df['exit_time'] = pd.to_datetime(_df['exit_time'])
+                _all_closed_dfs.append(_df[['exit_time', 'pnl']])
+            elif 'stocks_robot' in str(s['db']):
+                _df = pd.read_sql_query('SELECT * FROM stock_positions WHERE status="CLOSED"', _conn)
                 _df['exit_time'] = pd.to_datetime(_df['exit_time'])
                 _all_closed_dfs.append(_df[['exit_time', 'pnl']])
             else:
@@ -4829,6 +4853,42 @@ elif page == "📊 Торговые роботы":
                 with col_p4:
                     _avg_loss = _unprofitable['pnl'].mean() if len(_unprofitable) > 0 else 0
                     st.metric("Средний PnL (убыточные)", f"{_avg_loss:+.1f}₽")
+
+                # Сравнение с LQDT
+                st.markdown("---")
+                st.subheader("📊 Сравнение с LQDT (бенчмарк)")
+                st.caption("LQDT — фонд ликвидности MOEX (безрисковый ориентир).")
+                _lqdt_file = Path('/root/finlab/data/candles/LQDT_D1.parquet')
+                if _lqdt_file.exists():
+                    _lqdt_df = pd.read_parquet(_lqdt_file)
+                    _lqdt_df['begin'] = pd.to_datetime(_lqdt_df['begin'])
+                    _lqdt_df = _lqdt_df.sort_values('begin')
+
+                    # Период работы робота
+                    _fut_start = pd.to_datetime(_fut_closed_df['entry_time']).min() if len(_fut_closed_df) > 0 else None
+                    _fut_end = pd.to_datetime(_fut_closed_df['exit_time']).max() if len(_fut_closed_df) > 0 else None
+
+                    if _fut_start and _fut_end:
+                        _lqdt_period = _lqdt_df[(_lqdt_df['begin'] >= _fut_start) & (_lqdt_df['begin'] <= _fut_end)]
+                        if len(_lqdt_period) < 2:
+                            _lqdt_period = _lqdt_df[_lqdt_df['begin'] <= _fut_end].tail(2)
+
+                        if len(_lqdt_period) > 1:
+                            _lqdt_start_price = _lqdt_period['close'].iloc[0]
+                            _lqdt_end_price = _lqdt_period['close'].iloc[-1]
+                            _lqdt_return = (_lqdt_end_price - _lqdt_start_price) / _lqdt_start_price * 100
+
+                            _fut_return = _total_pnl / 100000 * 100  # депозит 100k
+                            _diff = _fut_return - _lqdt_return
+
+                            col_lq1, col_lq2, col_lq3 = st.columns(3)
+                            with col_lq1:
+                                st.metric("Робот фьючерсов", f"{_fut_return:+.2f}%")
+                            with col_lq2:
+                                st.metric("LQDT", f"{_lqdt_return:+.2f}%")
+                            with col_lq3:
+                                _emoji = "✅" if _diff > 0 else "❌"
+                                st.metric(f"{_emoji} Разница", f"{_diff:+.2f}%")
 
                 # Журнал
                 # Сравнение с LQDT
