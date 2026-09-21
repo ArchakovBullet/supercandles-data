@@ -2255,7 +2255,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "LK-RN_M10": {
       "pair_name": "LK-RN_M10",
@@ -2323,7 +2323,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "HY-IR_M10": {
       "pair_name": "HY-IR_M10",
@@ -2649,5 +2649,5 @@
       "enabled": false
     }
   },
-  "last_updated": "2026-09-20 20:53:22"
+  "last_updated": "2026-09-21 18:48:56"
 }

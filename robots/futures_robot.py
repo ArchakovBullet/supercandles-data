@@ -523,7 +523,10 @@ def check_stops_only():
 
                 # Проверяем стоп
                 if low <= stop_price:
-                    reason = 'BREAKEVEN' if stop_price == entry_price else 'STOP'
+                    # BREAKEVEN vs STOP (допуск 0.2%)
+                    _be_eps = entry_price * 0.002
+                    _is_breakeven = abs(stop_price - entry_price) < _be_eps
+                    reason = 'BREAKEVEN' if _is_breakeven else 'STOP'
                     close_position(pos_id, ticker, direction, 0, stop_price, reason)
                     print(f'🛑 {ticker}: {reason} по {stop_price:.2f} (low={low:.2f})')
                     closed_count += 1
@@ -546,7 +549,10 @@ def check_stops_only():
 
                 # Проверяем стоп
                 if high >= stop_price:
-                    reason = 'BREAKEVEN' if stop_price == entry_price else 'STOP'
+                    # BREAKEVEN vs STOP (допуск 0.2%)
+                    _be_eps = entry_price * 0.002
+                    _is_breakeven = abs(stop_price - entry_price) < _be_eps
+                    reason = 'BREAKEVEN' if _is_breakeven else 'STOP'
                     close_position(pos_id, ticker, direction, 0, stop_price, reason)
                     print(f'🛑 {ticker}: {reason} по {stop_price:.2f} (high={high:.2f})')
                     closed_count += 1

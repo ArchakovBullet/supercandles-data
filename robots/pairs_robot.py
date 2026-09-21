@@ -833,8 +833,8 @@ def check_signals_by_tf(pairs_config, tf):
                 
                 # Фильтр корреляции: corr < 0.7 → не входить
                 _corr_ok = True
-                _corr = calculate_correlation(df_a, df_b, window=20)
-                if _corr is not None and _corr < 0.7:
+                _corr = calculate_correlation(df_a, df_b, window=50)
+                if _corr is not None and abs(_corr) < 0.7:
                     _corr_ok = False
 
                 # Проверка экспирации (не открывать за 2 дня)
