@@ -67,3 +67,4 @@ robots/tf_fresh_state.json
 
 # Робот акций: БД (локальная)
 robots/stocks_robot.db
+robots/contract_last_tradedate.json
