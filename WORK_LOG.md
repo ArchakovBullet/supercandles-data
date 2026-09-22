@@ -1508,3 +1508,101 @@ get_be_move: RI=2.5, MG=2.0, GZ=2.0, MC=2.0, GLDRUBF=2.5, PD=2.5, CE=1.5, SN=1.5
 - [ ] Переделать backtest_stop_levels.py
 - [ ] A/B тест сигналов
 - [ ] Фикс fiz_delta
+
+## 22.09.2026 (сводка на начало дня)
+
+### АКТУАЛЬНОЕ СОСТОЯНИЕ ПРОЕКТА
+
+**Дата:** 22.09.2026.
+**Цель:** актуализация контекста для продолжения работы в другом чате.
+
+### РОБОТЫ (3 штуки) — ВСЕ РАБОТАЮТ
+
+| Робот | Файл | БД | Systemd | Uptime |
+|---|---|---|---|---|
+| Парный | pairs_robot.py | pairs_robot.db | finlab-robot.service | 1д 1ч |
+| Фьючерсный | futures_robot.py | futures_robot.db | finlab-futures-robot.service | 1д 1ч |
+| Акций (NEW) | stocks_robot.py | stocks_robot.db | finlab-stocks-robot.service | 23ч |
+
+### ПОЗИЦИИ И PnL
+
+| Робот | Открытых | Закрытых | PnL |
+|---|---|---|---|
+| Парный | 3 | 36 | +1 063.07 руб |
+| Фьючерсный | 15 | 82 | -12 830.53 руб |
+| Акций | 4 | 21 | -36.30 руб |
+
+Робот акций активно торгует: 4 открытых, 21 закрытая сделка.
+
+### РОБОТ АКЦИЙ (21.09.2026)
+
+- Файл: robots/stocks_robot.py (640 строк)
+- БД: robots/stocks_robot.db
+- Systemd: finlab-stocks-robot.service (автозапуск)
+- Логика: get_stock_scanner_verdict (D1+H1+M10)
+- Только LONG
+- Вход: score >= 60 (70 при CAUTION)
+- Стоп: 3.2xATR + безубыток x1.001
+- Тикеры: stocks[:50] (49 с данными)
+- MAX_POSITIONS: 10
+- Cooldown: 4ч
+- Проверка: раз в час (10:00-18:00 МСК)
+- Стопы: каждые 10 мин (M10)
+- Макро: TRIN (138), RVI, режим, сессия, Zweig
+
+### СЕКТОРА АКЦИЙ
+
+- Файл: robots/stock_to_sector.json
+- Источник: MOEX ISS
+- 10 отраслевых индексов
+- 104 тикера, stocks[:50] - 100%
+- Скрипт: scripts/build_stock_to_sector.py
+
+### ДАННЫЕ (22.09.2026)
+
+- Candles: 1055 parquet-файлов
+- HI2: 222 parquet-файла
+- Sector indices: 15 parquet-файлов
+
+### ПОСЛЕДНИЕ КОММИТЫ
+
+534f356 Дашборд: Робот акций в Обзоре + LQDT
+cb167ff gitignore: stocks_robot.db
+59cfbb6 Робот акций: stocks_robot.py + stock_to_sector.json
+594ff04 Робот акций: systemd + вкладка дашборда
+edc2822 Фикс exit_reason + abs(_corr) + window=50
+7367f2b Запрет шорта по акциям
+e36db4a pairs_config: last_updated
+fa03d9c Фикс индивидуальных стопов + безубыток
+735e92f Фикс is_moex_trading_day (сб/вс)
+c86b330 WORK_LOG: очистить от старых
+
+### ОТКРЫТЫЕ ЗАДАЧИ
+
+**Приоритет 1:**
+- [ ] Merge FutOI (fiz_delta=0, D1 fiz_buy=50)
+- [ ] A/B тест сигналов
+
+**Приоритет 2:**
+- [ ] Проверить робота акций в проде
+- [ ] Переделать backtest_stop_levels.py
+- [ ] Walk-forward оптимизация пар (>=20 сделок)
+
+**Приоритет 3:**
+- [ ] use_container_width -> width='stretch'
+- [ ] Проверить 14 FAIL-пар
+- [ ] Cron для build_stock_to_sector.py
+
+### ВАЖНО ДЛЯ AI
+
+1. T-Invest API - отложен. Сектора - MOEX ISS.
+2. pydantic - 2.12.5.
+3. stocks_robot.db - в .gitignore.
+4. stock_to_sector.json - обновляется скриптом.
+
+### ПЛАН НА 22.09.2026
+
+1. Проверить робота акций в проде (4 позиции).
+2. Диагностика merge FutOI.
+3. use_container_width -> width='stretch'.
+4. Переделать backtest_stop_levels.py.
