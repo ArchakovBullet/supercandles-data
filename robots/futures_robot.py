@@ -822,6 +822,27 @@ def main():
                         print(f'  ⏸️ {ticker}: cooldown после STOP ({COOLDOWN_HOURS}ч)')
                         continue
                     
+                    # ===== ВОЛАТИЛЬНОСТНЫЙ ФИЛЬТР (ATR% из D1) =====
+                    _atr_pct_d1 = 0
+                    if len(df_d1) >= 14 and entry_price > 0:
+                        _d1c = df_d1.copy()
+                        _d1c['high'] = _d1c['high'].apply(lambda x: float(x) if not isinstance(x, bytes) else 0)
+                        _d1c['low'] = _d1c['low'].apply(lambda x: float(x) if not isinstance(x, bytes) else 0)
+                        _d1c['close'] = _d1c['close'].apply(lambda x: float(x) if not isinstance(x, bytes) else 0)
+                        _d1c['tr'] = np.maximum(
+                            _d1c['high'] - _d1c['low'],
+                            np.maximum(abs(_d1c['high'] - _d1c['close'].shift(1)), abs(_d1c['low'] - _d1c['close'].shift(1)))
+                        )
+                        _atr_d1 = float(_d1c['tr'].rolling(14).mean().iloc[-1])
+                        _atr_pct_d1 = _atr_d1 / entry_price * 100
+
+                    if _atr_pct_d1 > 3.5:
+                        print(f'  ⏸️ {ticker}: ATR%(D1)={_atr_pct_d1:.2f} > 3.5% — слишком волатильно')
+                        continue
+                    if _atr_pct_d1 > 0 and _atr_pct_d1 < 0.15:
+                        print(f'  ⏸️ {ticker}: ATR%(D1)={_atr_pct_d1:.2f} < 0.15% — слишком спокойно')
+                        continue
+
                     if decision == 'LONG' and score >= entry_threshold:
                         open_position(ticker, 'LONG', 1.0, score, entry_price, atr)
                         open_tickers.add(ticker)

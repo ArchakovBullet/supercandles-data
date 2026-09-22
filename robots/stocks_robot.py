@@ -606,6 +606,17 @@ def main():
             decision = verdict.get('decision', 'WAIT')
             score = verdict.get('score', 0)
 
+            # ===== ВОЛАТИЛЬНОСТНЫЙ ФИЛЬТР =====
+            if atr_pct > 3.0:
+                print(f'  ⏸️ {ticker}: ATR%={atr_pct:.2f} > 3.0% — слишком волатильно')
+                continue
+            if atr_pct < 0.5:
+                print(f'  ⏸️ {ticker}: ATR%={atr_pct:.2f} < 0.5% — слишком спокойно')
+                continue
+            if garch_vol > 25.0:
+                print(f'  ⏸️ {ticker}: GARCH={garch_vol:.2f} > 25.0 — аномальная волатильность')
+                continue
+
             if decision == 'LONG' and score >= entry_threshold:
                 price = float(df_m10['close'].iloc[-1]) if not isinstance(df_m10['close'].iloc[-1], bytes) else 0
                 atr = calc_atr(df_d1)

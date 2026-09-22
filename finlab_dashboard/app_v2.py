@@ -1118,7 +1118,7 @@ with st.sidebar.expander("ℹ️ Как это работает?"):
 
 st.sidebar.markdown("---")
 
-page = st.sidebar.radio("📌 Навигация", ["📊 Сводка", "📋 Статус сборщиков", "📊 Торговые роботы", "📊 Скринер акций", "🔧 Техинфо"], index=0)
+page = st.sidebar.radio("📌 Навигация", ["📊 Сводка", "📋 Статус сборщиков", "📊 Торговые роботы", "🔧 Техинфо"], index=0)
 st.sidebar.markdown("---")
 st.sidebar.info("**FinLabPy v0.2.0**\n\nКурс: FutOI + HI2 + ML\n\nСервер: `lvkseaqdin`\nДанные: Parquet")
 # ========== РОУТИНГ СТРАНИЦ ==========
@@ -1942,7 +1942,7 @@ elif page == "FutOI":
 - **Единство** — обе группы покупают или продают. Тренд поддерживается всеми.
 ### HI2 (концентрация)
 - Показывает, насколько позиции сконцентрированы у крупных игроков.
-- \> 70 — высокая, \> 150 — очень высокая, \> 500 — экстремальная.
+-  > 70 — высокая,  > 150 — очень высокая,  > 500 — экстремальная.
                 """)
             # === ЛЕВАЯ И ПРАВАЯ КОЛОНКИ ===
             col_left, col_right = st.columns([3, 2])
@@ -4517,10 +4517,9 @@ elif page == "📊 Торговые роботы":
 
                     _lqdt_period = _lqdt_df[(_lqdt_df['begin'] >= _robot_start) & (_lqdt_df['begin'] <= _robot_end)]
 
-                    # Если данных мало, берём ближайшие доступные записи
+                    # Fallback: если за период < 2 точек, берём последние 2 доступные
                     if len(_lqdt_period) < 2:
-                        _lqdt_before = _lqdt_df[_lqdt_df['begin'] <= _fut_end].tail(2)
-                        _lqdt_period = _lqdt_before
+                        _lqdt_period = _lqdt_df[_lqdt_df['begin'] <= _robot_end].tail(2)
 
                     if len(_lqdt_period) > 1:
                         _lqdt_start_price = _lqdt_period['close'].iloc[0]
@@ -4704,10 +4703,15 @@ elif page == "📊 Торговые роботы":
 
             if len(_stk_closed_df) > 0:
                 st.subheader("📈 Статистика сделок")
-                _profitable = _stk_closed_df[_stk_closed_df['pnl'] > 0]
-                _unprofitable = _stk_closed_df[_stk_closed_df['pnl'] <= 0]
+                # Порог: PnL < 0.1% от entry — не победа (BREAKEVEN)
+                _eps_rel = 0.001
+                _stk_closed_df = _stk_closed_df.copy()
+                _stk_closed_df['pnl_pct'] = _stk_closed_df['pnl'] / (_stk_closed_df['entry_price'] * _stk_closed_df['volume'].clip(lower=0.0001))
+                _profitable = _stk_closed_df[_stk_closed_df['pnl_pct'] > _eps_rel]
+                _unprofitable = _stk_closed_df[_stk_closed_df['pnl_pct'] < -_eps_rel]
+                _breakeven_df = _stk_closed_df[abs(_stk_closed_df['pnl_pct']) <= _eps_rel]
                 _total_pnl = _stk_closed_df['pnl'].sum()
-                _win_rate = len(_profitable) / len(_stk_closed_df) * 100 if len(_stk_closed_df) > 0 else 0
+                _win_rate = len(_profitable) / (len(_profitable) + len(_unprofitable)) * 100 if (len(_profitable) + len(_unprofitable)) > 0 else 0
 
                 col_st1, col_st2, col_st3, col_st4 = st.columns(4)
                 with col_st1:
@@ -4717,7 +4721,7 @@ elif page == "📊 Торговые роботы":
                 with col_st3:
                     st.metric("Общий PnL", f"{_total_pnl:+.2f}₽")
                 with col_st4:
-                    st.metric("Прибыльных", f"{len(_profitable)}/{len(_unprofitable)}")
+                    st.metric("Приб / Убыт / Б/у", f"{len(_profitable)} / {len(_unprofitable)} / {len(_breakeven_df)}")
 
                 st.subheader("📋 Последние сделки")
                 _last_trades = _stk_closed_df.sort_values('exit_time', ascending=False).head(20)
@@ -4725,6 +4729,51 @@ elif page == "📊 Торговые роботы":
                 _last_display.columns = ['Тикер', 'Вход', 'Выход', 'PnL', 'Причина', 'Время']
                 _last_display['PnL'] = _last_display['PnL'].apply(lambda x: f'{x:+.2f}₽')
                 st.dataframe(_last_display, use_container_width=True, hide_index=True)
+
+                # ===== СРАВНЕНИЕ С LQDT (бенчмарк) =====
+                st.markdown("---")
+                st.subheader("📊 Сравнение с LQDT (бенчмарк)")
+                st.caption("LQDT — фонд ликвидности MOEX (безрисковый ориентир). Сравниваем доходность за одинаковые периоды.")
+
+                _lqdt_file = Path('/root/finlab/data/candles/LQDT_D1.parquet')
+                if _lqdt_file.exists():
+                    _lqdt_df = pd.read_parquet(_lqdt_file)
+                    _lqdt_df['begin'] = pd.to_datetime(_lqdt_df['begin'])
+                    _lqdt_df = _lqdt_df.sort_values('begin')
+
+                    _stk_start = pd.to_datetime(_stk_closed_df['entry_time'].min())
+                    _stk_end = pd.to_datetime(_stk_closed_df['exit_time'].max())
+
+                    _lqdt_period = _lqdt_df[(_lqdt_df['begin'] >= _stk_start) & (_lqdt_df['begin'] <= _stk_end)]
+
+                    # Fallback: если за период < 2 точек, берём последние 2 доступные
+                    if len(_lqdt_period) < 2:
+                        _lqdt_period = _lqdt_df[_lqdt_df['begin'] <= _stk_end].tail(2)
+
+                    if len(_lqdt_period) > 1:
+                        _lqdt_start_price = _lqdt_period['close'].iloc[0]
+                        _lqdt_end_price = _lqdt_period['close'].iloc[-1]
+                        _lqdt_return = (_lqdt_end_price - _lqdt_start_price) / _lqdt_start_price * 100
+
+                        _stk_return = _total_pnl / 100000 * 100
+                        _diff = _stk_return - _lqdt_return
+
+                        col_lqdt1, col_lqdt2, col_lqdt3 = st.columns(3)
+                        with col_lqdt1:
+                            st.metric("📈 Общий PnL", f"{_total_pnl:+.1f}₽")
+                        with col_lqdt2:
+                            st.metric("🤖 Робот (доходность)", f"{_stk_return:+.2f}%")
+                        with col_lqdt3:
+                            st.metric("📊 LQDT (бенчмарк)", f"{_lqdt_return:+.2f}%")
+
+                        if _diff > 0:
+                            st.success(f"✅ Робот опережает LQDT на {_diff:+.2f}%")
+                        else:
+                            st.error(f"❌ Робот отстаёт от LQDT на {_diff:+.2f}%")
+                    else:
+                        st.info("Недостаточно данных LQDT для сравнения")
+                else:
+                    st.info("LQDT данные не найдены")
         else:
             st.warning("БД робота акций не найдена")
 
@@ -4826,18 +4875,21 @@ elif page == "📊 Торговые роботы":
             # Статистика
             if len(_fut_closed_df) > 0:
                 st.subheader("📈 Статистика сделок")
-                _profitable = _fut_closed_df[_fut_closed_df['pnl'] > 0]
-                _unprofitable = _fut_closed_df[_fut_closed_df['pnl'] <= 0]
+                # Порог: PnL < 0.1% от entry — не победа (BREAKEVEN)
+                _eps_rel = 0.001
+                _fut_closed_df = _fut_closed_df.copy()
+                _fut_closed_df['pnl_pct'] = _fut_closed_df['pnl'] / (_fut_closed_df['entry_price'] * _fut_closed_df['volume'].clip(lower=0.0001))
+                _profitable = _fut_closed_df[_fut_closed_df['pnl_pct'] > _eps_rel]
+                _unprofitable = _fut_closed_df[_fut_closed_df['pnl_pct'] < -_eps_rel]
+                _breakeven_df = _fut_closed_df[abs(_fut_closed_df['pnl_pct']) <= _eps_rel]
                 _total_pnl = _fut_closed_df['pnl'].sum()
-                _win_rate = len(_profitable) / len(_fut_closed_df) * 100 if len(_fut_closed_df) > 0 else 0
+                _win_rate = len(_profitable) / (len(_profitable) + len(_unprofitable)) * 100 if (len(_profitable) + len(_unprofitable)) > 0 else 0
 
                 col_f1, col_f2, col_f3, col_f4 = st.columns(4)
                 with col_f1:
                     st.metric("Всего сделок", len(_fut_closed_df))
                 with col_f2:
-                    st.metric("Прибыльных", len(_profitable))
-                with col_f3:
-                    st.metric("Убыточных", len(_unprofitable))
+                    st.metric("Приб / Убыт / Б/у", f"{len(_profitable)} / {len(_unprofitable)} / {len(_breakeven_df)}")
                 with col_f4:
                     st.metric("Win Rate", f"{_win_rate:.1f}%")
 
@@ -4958,641 +5010,9 @@ elif page == "📊 Торговые роботы":
         else:
             st.info("БД робота фьючерсов не найдена")
 
-elif page == "📊 Скринер акций":
-    st.title("📊 Скринер акций")
-    st.caption("Комбинированный сигнал (HI2 + ADX + тренд)")
-    
-    # === ТЕМПЕРАТУРА РЫНКА АКЦИЙ ===
-    with st.expander("🌡️ Температура рынка (акции)", expanded=True):
-        st.caption("На основе средних ADX, Choppiness, RVI по акциям")
-        
-        _stock_adx = []
-        _stock_chop = []
-        _stock_garch = []
-        
-        try:
-            from My_Indicators.stock_screener import calculate_adx, calculate_choppiness
-            for _t in ['SBER', 'GAZP', 'GMKN', 'LKOH', 'HYDR', 'IRAO', 'PLZL', 'ROSN', 'TATN', 'VTBR']:
-                _d1f = DATA_ROOT / "candles" / f"{_t}_D1.parquet"
-                if _d1f.exists():
-                    _df = pd.read_parquet(_d1f)
-                    if len(_df) >= 30:
-                        _stock_adx.append(calculate_adx(_df).iloc[-1])
-                        _stock_chop.append(calculate_choppiness(_df).iloc[-1])
-                        try:
-                            _gr = calculate_garch_for_ticker(_df, _t)
-                            _stock_garch.append(_gr.get('garch_vol', 0))
-                        except:
-                            pass
-        except:
-            pass
-        
-        _avg_adx_s = sum(_stock_adx) / len(_stock_adx) if _stock_adx else 0
-        _avg_chop_s = sum(_stock_chop) / len(_stock_chop) if _stock_chop else 50
-        _rvi_f = DATA_ROOT / 'sector_indices' / 'RVI_D1.parquet'
-        if _rvi_f.exists():
-            _rvi_df_s = pd.read_parquet(_rvi_f)
-            _avg_garch_s = _rvi_df_s['close'].iloc[-1] if len(_rvi_df_s) > 0 else 0
-        else:
-            _avg_garch_s = 0
-        
-        _df_idx_s = pd.DataFrame({'adx': [_avg_adx_s], 'choppiness': [_avg_chop_s]})
-        _regime_s = get_market_regime(df_indices=_df_idx_s, garch_vol=_avg_garch_s)
-        
-        _emoji_s = "🚀" if _regime_s['regime'] == 'TREND' else "🔄" if _regime_s['regime'] == 'FLAT' else "🌪️" if _regime_s['regime'] == 'CRISIS' else "⚠️"
-        
-        col_s1, col_s2, col_s3 = st.columns(3)
-        with col_s1:
-            st.metric("Режим", f"{_emoji_s} {_regime_s['regime']}", delta=f"Скор: {_regime_s['score']}/100")
-        with col_s2:
-            st.metric("Уровень риска", f"{_regime_s['risk_level']}/100")
-        with col_s3:
-            st.metric("RVI (индекс волатильности, пункты)", f"{_avg_garch_s:.1f} п.")
-        
-        _session_s = get_session_status()
-        st.caption(f"📊 Сессия: {_session_s['label']} | Ликвидность: {_session_s['liquidity']:.0%}")
-        if _session_s['warning']:
-            st.warning(f"⚠️ {_session_s['warning']}")
-        
-        with st.expander("ℹ️ О торговых сессиях"):
-            st.markdown("""
-**Время торгов на MOEX (МСК):**
-| Период | Время | Ликвидность | Особенности |
-|--------|-------|:---:|-----------|
-| Основная сессия | 10:00–18:45 | 🟢 Высокая | Лучшее время для входа |
-| Открытие | 10:00–10:30 | 🟡 Средняя | Высокая волатильность |
-| Обед | 12:00–13:00 | 🔴 Низкая | Мало объёмов |
-| Закрытие | 18:30–18:45 | 🟡 Средняя | Закрытие позиций |
-| Вечерняя сессия | 19:00–23:50 | 🔴 Низкая | Широкие спреды |
 
-**Рекомендации:**
-- 🟢 Активная сессия — лучшее время для входа
-- 🔴 Низкая ликвидность — воздержаться или уменьшить позицию
-            """)
-        
-        st.caption(_regime_s['recommendation'])
-        if _regime_s['reasons']:
-            for _r in _regime_s['reasons']:
-                st.caption(f"• {_r}")
-        
-        # === ИНДЕКС АРМСА (TRIN) ===
-        # Собираем все тикеры для TRIN (стандартные + кастомные)
-        _all_tickers = load_stock_tickers()
-        _custom_f = DATA_ROOT / "custom_stocks.txt"
-        if _custom_f.exists():
-            with open(_custom_f) as f:
-                for _line in f:
-                    _t = _line.strip()
-                    if _t and _t not in _all_tickers:
-                        _all_tickers.append(_t)
-        _trin = calculate_trin(tickers=_all_tickers)
-        st.markdown("---")
-        st.subheader("📊 Индекс Армса (TRIN)")
-        col_t1, col_t2, col_t3 = st.columns(3)
-        with col_t1:
-            st.metric("TRIN", f"{_trin['trin']:.2f}")
-        with col_t2:
-            _trin_emoji = "🟢" if _trin['signal'] == 'BULLISH' else "🔴" if _trin['signal'] == 'BEARISH' else "⚪"
-            st.metric("Сигнал", f"{_trin_emoji} {_trin['signal']}")
-        with col_t3:
-            st.metric("Уровень", _trin['level'])
-        st.caption(f"📝 {_trin['note']}")
-        st.caption(f"Выросло: {_trin['advancing']} | Упало: {_trin['declining']} | Объём ▲: {_trin['adv_volume']:,} | Объём ▼: {_trin['dec_volume']:,}".replace(",", " "))
-        
-        # === ZWEIG MASTER FILTER ===
-        _zweig = get_zweig_signal(_regime_s, _trin['trin'] if _trin else None, _session_s, _avg_garch_s)
-        st.markdown("---")
-        st.subheader(f"{_zweig['emoji']} {_zweig['label']}")
-        for _r in _zweig['reasons']:
-            st.caption(f"• {_r}")
-        
-        with st.expander("ℹ️ Что такое Zweig Filter?"):
-            st.markdown("""
-**Zweig Master Filter** — главный разрешающий сигнал. Объединяет все рыночные фильтры в одно решение.
-
-**Учитывает:**
-- 🌡️ Режим рынка (TREND/FLAT/CRISIS)
-- 📊 TRIN (ширина рынка)
-- 🕐 Торговую сессию (ликвидность)
-- 📈 GARCH (волатильность)
-
-**Сигналы:**
-- ✅ **РАЗРЕШЕНО** — все фильтры чисты, можно торговать
-- ⚠️ **ОСТОРОЖНО** — есть предупреждающие факторы
-- ⛔ **ЗАПРЕЩЕНО** — рынок закрыт или кризис
-
-**Основан на философии Мартина Цвейга:** "Не борись с рынком. Если фильтры против тебя — не входи."
-            """)
-        
-        with st.expander("ℹ️ Как работает TRIN?"):
-            st.markdown("""
-**Индекс Армса (TRIN)** измеряет ширину рынка — соотношение растущих и падающих акций к их объёмам.
-
-**Формула:** `TRIN = (Выросшие / Упавшие) / (Объём выросших / Объём упавших)`
-
-**Расчёт:** на основе 12 акций из скринера (SBER, GAZP, GMKN, LKOH, HYDR, IRAO, PLZL, ROSN, TATN, VTBR, AFKS, T)
-
-**Значения:**
-| TRIN | Сигнал | Что значит |
-|------|--------|-----------|
-| < 0.5 | 🔴 Экстремальная перекупленность | Рынок перегрет, возможна коррекция |
-| 0.5-0.8 | 🟢 Перекупленность | Объём в растущих — бычий сигнал |
-| 0.8-1.0 | 🟢 Умеренно бычий | Покупатели контролируют |
-| 1.0-1.2 | 🟡 Умеренно медвежий | Продавцы начинают давить |
-| 1.2-1.5 | 🟠 Медвежий | Объём в падающих |
-| > 1.5 | 🔴 Экстремальная перепроданность | Паника, возможен отскок |
-
-**Важно:** TRIN — это **противоположный** индикатор. Экстремальные значения часто предшествуют развороту.
-            """)
-        
-        with st.expander("🌪️ Что такое КРИЗИС-РЕЖИМ?"):
-            st.markdown("""
-**КРИЗИС-РЕЖИМ** — особый режим торговли, когда рынок находится в состоянии экстремальной волатильности.
-
-**Триггеры включения:**
-- **RVI > 40%** — волатильность акции/рынка превысила критический порог
-- **TRIN < 0.5 или > 1.5** (только для акций) — экстремальная перекупленность/перепроданность рынка
-- **RVI > 70** (только для фьючерсов) — индекс волатильности выше критического уровня
-
-**Что меняется в кризис-режиме:**
-| Параметр | Обычный режим | Кризис-режим |
-|----------|--------------|-------------|
-| Веса ТФ | D1:50%, 4H:30%, 1H:20% | D1:20%, 4H:50%, 1H:30% |
-| Порог входа | 60 (LONG) / 40 (SHORT) | 80 |
-| Позиция | 100% стандартной | 25% |
-| Стоп | 1× ATR | 2× ATR |
-| Тейк | стандартный | 1.5× ATR |
-
-**Логика:**
-В кризис приоритет отдаётся краткосрочным сигналам (4H, 1H), а не дневным. Дневные сигналы в кризис часто запаздывают.
-
-**Запреты:**
-- HI2 > 500 — концентрация позиций слишком высока
-- Дивергенция HPI — капитал уходит против сигнала
-- Низкий объём — недостаточно ликвидности для безопасного входа
-
-**Важно:** В кризис-режиме лучше сохранить капитал, чем пытаться заработать. Саймонс говорил: "Когда рынок сходит с ума — не торгуй."
-            """)
-
-        with st.expander("ℹ️ Что это значит?"):
-            st.markdown("""
-**Температура рынка акций** — на основе 10 ликвидных акций MOEX.
-
-**Режимы:**
-- 🚀 **TREND** — рынок движется, сигналы надёжны
-- 🔄 **FLAT** — боковик, не входить
-- 🌪️ **CRISIS** — экстремальная волатильность, запрет входа
-            """)
-    st.caption("💡 Режим: тип рынка (ADX=сила тренда, Chop=трендовость). Цвета: 🟢 благоприятно, 🟡/🟠 умеренно, 🔴 неблагоприятно, ⚪ нейтрально.")
-    
-    with st.expander("ℹ️ Как анализировать скринер?"):
-        st.markdown("""
-**🎯 На что смотреть в первую очередь:**
-1. **Режим** — можно ли вообще входить?
-   - 🚀 Тренд (ADX>25, Chop<38) → рынок движется, сигналы надёжны
-   - ⚠️ Переходный → неопределённость, сигналы могут быть ложными
-   - 🔄 Флэт (ADX<20, Chop>62) → рынок в боковике, не входить
-2. **Комбинированный сигнал** — направление: LONG (покупка) или SHORT (продажа)
-3. **HI2** — концентрация позиций:
-   - Высокая/Экстремальная (>150) → крупные игроки активны, движение может быть сильным
-   - Низкая/Средняя (<150) → позиции распылены, движение может быть вялым
-
-**📊 Как интерпретировать:**
-- **🚀 Тренд + Сигнал SHORT + HI2 высокий** → надёжный сигнал на продажу
-- **🚀 Тренд + Сигнал LONG + HI2 высокий** → надёжный сигнал на покупку
-- **⚠️ Переходный** → ждать, когда рынок определится
-- **🔄 Флэт** → не торговать, ждать пробоя
-
-**⚡ Примеры:**
-- VTBR: 🚀 Тренд (ADX 73, Chop 17) — сильный тренд, Сигнал SHORT надёжен
-- SBER: ⚠️ Переходный (ADX 7, Chop 41) — тренда нет, сигнал SHORT ненадёжен
-- ROSN: 🚀 Тренд (ADX 34, Chop 20) + HI2 низкий (58) — тренд есть, но позиции распылены
-
-**🔍 Детали индикаторов:**
-- **ADX** — сила тренда. >25 = сильный, 20-25 = средний, <20 = слабый
-- **Choppiness** — трендовость. <38 = тренд, 38-62 = переход, >62 = флэт
-- **ATR%** — волатильность. <1% = низкая, 1-2.5% = средняя, >2.5% = высокая
-- **HI2** — концентрация. <70 = низкая, 70-150 = средняя, 150-500 = высокая, >500 = экстремальная
-
-**🎯 Скор надёжности (Score 0-100):**
-Рассчитывается на основе четырёх факторов:
-| Фактор | Вес | Условие для максимума |
-|--------|-----|----------------------|
-| Режим | 35% | 🚀 Тренд = 35, ⚠️ Переход = 15, 🔄 Флэт = 0 |
-| ADX | 25% | >40 = 25, >25 = 20, >20 = 10, <20 = 0 |
-| HI2 | 25% | Экстр. (>500) = 25, Высокая = 20, Средняя = 10, Низкая = 5 |
-| Комбинированный сигнал | 15% | Есть сигнал = 15, нет = 0 |
-
-**Уровни сигнала:**
-- 🔥 95-100 — идеальный: все факторы на максимуме, лучший момент для входа
-- ✅ 80-94 — сильный: большинство факторов подтверждают, можно входить
-- 👀 60-79 — умеренный: есть слабые места, входить с осторожностью
-- ⏳ 40-59 — слабый: много противоречий, лучше ждать
-- ❌ 0-39 — не входить: сигнал ненадёжен
-        """)
-    
-    # Стандартный список + пользовательские тикеры
-    _default_stocks = load_stock_tickers()
-    
-    # Загружаем пользовательские тикеры из файла
-    _custom_file = DATA_ROOT / "custom_stocks.txt"
-    _custom_stocks = []
-    if _custom_file.exists():
-        with open(_custom_file) as f:
-            _custom_stocks = [line.strip() for line in f if line.strip()]
-    
-    STOCK_TICKERS = _default_stocks + _custom_stocks
-    
-    # === ДОБАВЛЕНИЕ / УДАЛЕНИЕ ТИКЕРОВ ===
-    col_add, col_del = st.columns([3, 2])
-    
-    with col_add:
-        _new_ticker = st.text_input("Добавить тикер", placeholder="Например: NVTK", key="new_ticker").upper()
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            if st.button("📊 Добавить в скринер", key="add_screener"):
-                if _new_ticker and _new_ticker not in _default_stocks:
-                    # Собираем D1-свечи
-                    try:
-                        import requests
-                        from datetime import datetime, timedelta
-                        url = f"https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/{_new_ticker}/candles.json"
-                        resp = requests.get(url, params={
-                            'from': (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d'),
-                            'till': datetime.now().strftime('%Y-%m-%d'),
-                            'interval': 24
-                        })
-                        if resp.status_code == 200 and 'candles' in resp.json():
-                            data = resp.json()['candles']
-                            if data['data']:
-                                df_new = pd.DataFrame(data['data'], columns=data['columns'])
-                                f = DATA_ROOT / "candles" / f"{_new_ticker}_D1.parquet"
-                                df_new.to_parquet(f, index=False)
-                                
-                                # Добавляем в tickers_config.json
-                                _cfg_path = Path('/root/finlab/FinLabPy/DataCollectors/tickers_config.json')
-                                if _cfg_path.exists():
-                                    with open(_cfg_path) as cf:
-                                        _cfg = json.load(cf)
-                                    if _new_ticker not in _cfg.get('stocks', []):
-                                        _cfg['stocks'].append(_new_ticker)
-                                        with open(_cfg_path, 'w') as cf:
-                                            json.dump(_cfg, cf, indent=2, ensure_ascii=False)
-
-                                # Добавляем в custom_stocks
-                                _custom_stocks.append(_new_ticker)
-                                with open(_custom_file, 'w') as f_out:
-                                    f_out.write("\n".join(_custom_stocks))
-
-                                # Добавляем в candles_collector
-                                from pathlib import Path
-                                _cc = Path('/root/finlab/FinLabPy/DataCollectors/candles_collector.py')
-                                if _cc.exists():
-                                    with open(_cc) as cf:
-                                        _ct = cf.read()
-                                    if _new_ticker not in _ct:
-                                        _ct = _ct.replace("STOCKS = {", f"STOCKS = {{\n    '{_new_ticker}': 'TQBR',")
-                                        with open(_cc, 'w') as cf:
-                                            cf.write(_ct)
-
-                                st.success(f"✅ {_new_ticker} добавлен! ({len(df_new)} свечей)")
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {_new_ticker}: нет данных")
-                        else:
-                            st.error(f"❌ {_new_ticker}: не найден на MOEX")
-                    except Exception as e:
-                        st.error(f"❌ Ошибка: {e}")
-                elif _new_ticker in _default_stocks:
-                    st.warning(f"⚠️ {_new_ticker} уже в скринере")
-    
-    with col_del:
-        if _custom_stocks:
-            _del_ticker = st.selectbox("Удалить тикер", [""] + _custom_stocks, key="del_ticker")
-            if _del_ticker and st.button("🗑️ Удалить из скринера", key="del_btn"):
-                _custom_stocks.remove(_del_ticker)
-                with open(_custom_file, 'w') as f:
-                    f.write("\n".join(_custom_stocks))
-                st.success(f"🗑️ {_del_ticker} удалён из скринера")
-                st.rerun()
-        else:
-            st.caption("Нет пользовательских тикеров")
-    
-    st.markdown("---")
-    
-    rows = []
-    for ticker in STOCK_TICKERS:
-        try:
-            d1_file = DATA_ROOT / "candles" / f"{ticker}_D1.parquet"
-            if not d1_file.exists():
-                continue
-            
-            df_d1 = pd.read_parquet(d1_file)
-            
-            # HI2 для акции
-            df_hi2 = None
-            hi2_file = DATA_ROOT / "hi2" / f"{ticker}_hi2.parquet"
-            if hi2_file.exists():
-                df_hi2 = pd.read_parquet(hi2_file)
-            
-            # Трёхтаймфреймовый анализ
-            _df_4h = None
-            _df_1h = None
-            _h4_file = DATA_ROOT / "candles" / f"{ticker}_H1.parquet"  # Агрегируем из H1
-            _h1_file = DATA_ROOT / "candles" / f"{ticker}_H1.parquet"
-            
-            if _h1_file.exists():
-                _h1_df = pd.read_parquet(_h1_file)
-                if len(_h1_df) > 30:
-                    _h1_df['begin'] = pd.to_datetime(_h1_df['begin'])
-                    _h1_df = _h1_df.sort_values('begin')
-                    _df_1h = _h1_df
-                    
-                    # Агрегируем в 4H
-                    _h1_df['h4_block'] = _h1_df['begin'].dt.floor('4h')
-                    _df_4h = _h1_df.groupby('h4_block').agg(
-                        open=('open', 'first'),
-                        high=('high', 'max'),
-                        low=('low', 'min'),
-                        close=('close', 'last'),
-                        volume=('volume', 'sum')
-                    ).reset_index().rename(columns={'h4_block': 'begin'})
-            
-            # Объединённый вердикт
-            _garch_vol = 0
-            try:
-                from My_Indicators.garch_indicator import calculate_garch_for_ticker
-                _gr = calculate_garch_for_ticker(df_d1, ticker)
-                _garch_vol = _gr.get('garch_vol', 0)
-            except:
-                pass
-            
-            _hi2_val = None
-            if df_hi2 is not None:
-                _hi2_agr = df_hi2[df_hi2['metric'] == 'hhi_agressive']
-                if len(_hi2_agr) > 0:
-                    _hi2_val = _hi2_agr.sort_values('tradedate').iloc[-1]['value']
-            
-            # Секторальный анализ
-            _sector_trend = None
-            _sector_signal = '—'
-            _sector_file = None
-            _stock_to_sector = {'GMKN': 'MOEXMM', 'PLZL': 'MOEXMM', 'SBER': 'MOEXFN', 'VTBR': 'MOEXFN', 'T': 'MOEXFN',
-                              'GAZP': 'MOEXOG', 'LKOH': 'MOEXOG', 'ROSN': 'MOEXOG', 'TATN': 'MOEXOG',
-                              'HYDR': 'MOEXEU', 'IRAO': 'MOEXEU', 'AFKS': 'MOEXTL', 'AFLT': 'MOEXTL', 'YDEX': 'MOEXTL', 'RUAL': 'MOEXMM'}
-            if ticker in _stock_to_sector:
-                _sector_file = DATA_ROOT / "sector_indices" / f"{_stock_to_sector[ticker]}_D1.parquet"
-                if _sector_file.exists():
-                    _df_sector = pd.read_parquet(_sector_file)
-                    _sector_result = analyze_vs_sector(df_d1, _df_sector)
-                    if _sector_result:
-                        _sector_trend = _sector_result['sector_trend']
-                        _sector_signal = _sector_result['signal']
-            
-            # Доп. параметры для вердикта
-            _chop_val = None; _adx_val = None; _atr_pct = 1.0; _rel_str = 1.0
-            try:
-                from My_Indicators.stock_screener import calculate_adx, calculate_choppiness
-                _adx_series = calculate_adx(df_d1)
-                _chop_series = calculate_choppiness(df_d1)
-                _adx_val = _adx_series.iloc[-1] if len(_adx_series) > 0 else None
-                _chop_val = _chop_series.iloc[-1] if len(_chop_series) > 0 else None
-                _tr = pd.DataFrame({'h_l': df_d1['high'] - df_d1['low'], 'h_c': abs(df_d1['high'] - df_d1['close'].shift()), 'l_c': abs(df_d1['low'] - df_d1['close'].shift())}).max(axis=1)
-                _atr_pct = (_tr.rolling(14).mean().iloc[-1] / df_d1['close'].iloc[-1] * 100) if df_d1['close'].iloc[-1] > 0 else 1.0
-            except:
-                pass
-            if _sector_result:
-                _rel_str = _sector_result.get('relative_strength', 1.0)
-            
-            # Volume spike
-            _vol_sp2 = False
-            try:
-                from My_Indicators.volume_analyzer import VolumeAnomalyDetector
-                _vd_s2 = VolumeAnomalyDetector()
-                if 'volume' in df_d1.columns and len(df_d1) > 25:
-                    _sp2 = _vd_s2.detect_spikes(df_d1['volume'])
-                    _vol_sp2 = bool(_sp2['spikes'].iloc[-1])
-            except:
-                pass
-            _sec_trend = _sector_result.get('sector_trend') if _sector_result else None
-            _rel_str = _sector_result.get('relative_strength', 1.0) if _sector_result else 1.0
-            _trin_val = _trin['trin'] if _trin and _trin['trin'] > 0 else None
-
-            # Проверка: если HI2 нет → вердикт не выносим
-            if _hi2_val is None:
-                _stock_verdict = {
-                    'decision': 'WAIT',
-                    'crisis_mode': False,
-                    'combo_signal': '⏳',
-                    'score': 0,
-                    'confidence': 'нет данных HI2',
-                    'signals': {'1D': {'signal': '—', 'score': 0}, '4H': {'signal': '—', 'score': 0}, '1H': {'signal': '—', 'score': 0}},
-                }
-            else:
-                _stock_verdict = get_stock_scanner_verdict(
-                df_d1.copy(), _df_4h.copy() if _df_4h is not None else None, _df_1h.copy() if _df_1h is not None else None,
-                _hi2_val, _garch_vol, sector_trend=_sector_trend,
-                chop_val=_chop_val, adx_val=_adx_val, atr_pct=_atr_pct, relative_strength=_rel_str,
-                volume_spike=_vol_sp2, trin_value=_trin_val
-            )
-            
-            _rel_str = _sector_result.get('relative_strength', 1.0) if _sector_result else 1.0
-            result = screen_stocks(ticker, df_d1, df_hi2, sector_trend=_sec_trend, relative_strength=_rel_str, trin_value=_trin_val)
-            if result:
-                # Новый порядок: важные колонки слева
-                _row = {
-                    'Тикер': ticker,
-                    'Цена': result['close'],
-                    'Вердикт': '',  # Заполним ниже
-                    'Сигнал': _stock_verdict.get('combo_signal', '—'),
-                    '1D': _stock_verdict['signals']['1D']['signal'],
-                    '4H': _stock_verdict['signals']['4H']['signal'],
-                    '1H': _stock_verdict['signals']['1H']['signal'],
-                    'Режим': result['regime'],
-                    'vs Сектор': _sector_signal,
-                    'HI2': result.get('hi2') or '—',
-                    'ATR': result['atr'],
-                }
-                
-                # Старый скор (проверенный) + новый вердикт (информативно)
-                _old_score = result['score']  # Старый скор с прогресс-баром
-                _decision = _stock_verdict["decision"]
-                if _stock_verdict.get("confidence") == "нет данных":
-                    _dec_emoji = "⚠️"
-                    _decision = "ВЕРДИКТ НЕ АКТУАЛЕН"
-                else:
-                    _dec_emoji = "🟢" if _decision == "LONG" else "🔴" if _decision == "SHORT" else "⚪"
-                    if _stock_verdict.get("crisis_mode"):
-                        _dec_emoji = "🌪️"
-                        _decision += " КРИЗИС"
-                _row["Вердикт"] = f"{_old_score} {_dec_emoji} {_decision}"
-                _row['Вердикт'] = f"{_old_score} {_dec_emoji} {_decision}"
-                
-                rows.append(_row)
-                # Сохраняем вердикт для блока входа/выхода
-                if '_verdicts' not in st.session_state:
-                    st.session_state['_verdicts'] = {}
-                st.session_state['_verdicts'][ticker] = _stock_verdict
-        except Exception as e:
-            rows.append({"Тикер": ticker, "supertrend": "❌", "regime": str(e)[:50], "score": "—"})
-    
-
-    if rows:
-        df_scr = pd.DataFrame(rows)
-        
-        def color_supertrend(val):
-            if 'LONG' in str(val): return 'background-color: rgba(0,255,0,0.2); color: #00ff00; font-weight: bold'
-            elif 'SHORT' in str(val): return 'background-color: rgba(255,0,0,0.2); color: #ff4444; font-weight: bold'
-            return ''
-        
-        styled = df_scr.style
-        st.dataframe(styled, use_container_width=True, hide_index=True)
-        
-        with st.expander("🔍 Как формируется вердикт и скор?"):
-            st.markdown("""
-**Факторы (0-100):**
-| Фактор | Вес | Описание |
-|--------|-----|----------|
-| FutOI | 40% | Главный фильтр: позиции физиков/юриков |
-| TradeStats | 30% | Шорт-скор: сила сигнала |
-| Order Flow | 20% | OFI + Cumulative Delta |
-| Тренд | 10% | Контекст рынка (SMA20) |
-| HI2 | штраф до -15 | Концентрация позиций |
-
-**Блокировка:** BLOCKED -> WAIT. Перекупленность/перепроданность ослабляют сигнал.
-
-**Уровни:** 🔥95+ | ✅80+ | 👀60+ | ⏳40+ | ❌<40
-            """)
-        
-        st.markdown("---")
-        st.caption("💡 Цвета: 🟢 = благоприятно, 🟡/🟠 = умеренно, 🔴 = неблагоприятно, ⚪ = нейтрально")
-        
-        # График с уровнями для выбранного тикера
-        with st.expander("📈 График D1 с уровнями", expanded=False):
-            _sel_ticker = st.selectbox("Выберите тикер для графика", [r.get('ticker', r.get('Тикер', '')) for r in rows] if rows else [], key="stock_graph")
-            if _sel_ticker:
-                _cf = DATA_ROOT / "candles" / f"{_sel_ticker}_D1.parquet"
-                if _cf.exists():
-                    _df_g = pd.read_parquet(_cf)
-                    if len(_df_g) > 0:
-                        _df_g['begin'] = pd.to_datetime(_df_g['begin'])
-                        _fig_g = go.Figure()
-                        _fig_g.add_trace(go.Candlestick(
-                            x=_df_g['begin'], open=_df_g['open'],
-                            high=_df_g['high'], low=_df_g['low'],
-                            close=_df_g['close'], name='D1'
-                        ))
-                        # Простые уровни: max/min за 20 дней
-                        _h20 = _df_g['high'].tail(20).max()
-                        _l20 = _df_g['low'].tail(20).min()
-                        # POC из Volume Profile
-                        _df_g['typical_price'] = (_df_g['high'] + _df_g['low'] + _df_g['close']) / 3
-                        _vp = _df_g.groupby(_df_g['typical_price'].round(1))['volume'].sum().reset_index()
-                        _vp = _vp.sort_values('volume', ascending=False)
-                        _poc = _vp.iloc[0]['typical_price'] if len(_vp) > 0 else None
-                        _fig_g.add_hline(y=_h20, line_dash="dash", line_color="red", annotation_text=f"Сопр: {_h20:.2f}")
-                        _fig_g.add_hline(y=_l20, line_dash="dash", line_color="green", annotation_text=f"Подд: {_l20:.2f}")
-                        if _poc:
-                            _fig_g.add_hline(y=_poc, line_dash="dot", line_color="white", annotation_text=f"POC: {_poc:.2f}")
-                        _fig_g.update_layout(height=400, template='plotly_dark', title=f'{_sel_ticker} D1')
-                        st.plotly_chart(_fig_g, use_container_width=True)
-                        
-                        with st.expander("🔔 MegaAlerts", expanded=False):
-                            _alerts = get_mega_alerts(_sel_ticker, market='eq', days=2)
-                            if _alerts:
-                                for _a in _alerts:
-                                    _sev = "🔴" if _a["severity"] == "high" else "🟡"
-                                    st.caption(f"{_a["time"]} | {_a["type"]}")
-                            else:
-                                st.caption("Нет алертов")
-                        
-                        # === УРОВНИ ВХОДА/ВЫХОДА + КАЛЬКУЛЯТОР ===
-                        _sco = st.session_state.get('_verdicts', {}).get(_sel_ticker)
-                        if _sco and _sco['decision'] != 'WAIT':
-                            st.markdown("---")
-                            st.subheader("📐 Уровни входа/выхода")
-                            
-                            _atr_val2 = _df_g['high'].iloc[-1] - _df_g['low'].iloc[-1] if len(_df_g) > 0 else 1
-                            _h20_2 = _df_g['high'].tail(20).max()
-                            _l20_2 = _df_g['low'].tail(20).min()
-                            _close2 = _df_g['close'].iloc[-1]
-                            
-                            if _sco['decision'] == 'LONG':
-                                _entry2 = _l20_2
-                                _stop2 = _entry2 - _atr_val2 * 1.5
-                                _target2 = _h20_2
-                            else:
-                                _entry2 = _h20_2
-                                _stop2 = _entry2 + _atr_val2 * 1.5
-                                _target2 = _l20_2
-                            
-                            col_e2, col_s2, col_t2 = st.columns(3)
-                            with col_e2: st.metric("Вход", f"{_entry2:.2f}")
-                            with col_s2: st.metric("Стоп-лосс", f"{_stop2:.2f}", delta=f"{abs(_entry2 - _stop2):.2f}")
-                            with col_t2:
-                                _pot2 = abs(_target2 - _entry2) / _entry2 * 100 if _entry2 > 0 else 0
-                                st.metric("Цель", f"{_target2:.2f}", delta=f"+{_pot2:.1f}%" if _pot2 > 0 else None)
-                            
-                            _risk_rub2 = _deposit * _risk_pct / 100
-                            _lot2 = 10  # Для акций лот = 10
-                            _risk_per_lot2 = abs(_entry2 - _stop2) * _lot2
-                            if _risk_per_lot2 > 0:
-                                _pos2 = int(_risk_rub2 / _risk_per_lot2)
-                                if _pos2 > 0:
-                                    st.success(f"💰 Позиция: **{_pos2}** лотов (риск {_risk_rub2:,.0f} ₽ = {_risk_pct}% от {_deposit:,.0f} ₽)".replace(",", " "))
-    else:
-        st.error("Нет данных для скрининга")
-
-elif page == "🔧 Техинфо":
-    st.title("🔧 Техническая информация")
-    st.caption("Детальные данные и инструменты")
-    
-    tab1, tab2, tab3 = st.tabs(["🕯️ Super Candles", "💰 Funding", "🕯️ Super Candles H4"])
-    
-    with tab1:
-            st.title("🕯️ Super Candles (D1)")
-            all_data, tickers = load_supercandles_data()
-            if all_data is None:
-                st.error("Данные Super Candles не найдены")
-            else:
-                selected_ticker = st.selectbox("Выберите тикер", tickers)
-                df_ticker = all_data[all_data["secid"] == selected_ticker].copy()
-                df_ticker["datetime"] = pd.to_datetime(df_ticker["tradedate"].astype(str) + " " + df_ticker["tradetime"].astype(str))
-                st.subheader(f"Super Candles — {selected_ticker}")
-                fig = go.Figure()
-                fig.add_trace(go.Candlestick(x=df_ticker["datetime"], open=df_ticker["pr_open"], high=df_ticker["pr_high"], low=df_ticker["pr_low"], close=df_ticker["pr_close"], name="Цена"))
-                fig.update_layout(title=f"Super Candles ({selected_ticker})", xaxis_title="Дата", yaxis_title="Цена", hovermode="x unified", height=600, template="plotly_dark")
-                st.plotly_chart(fig, use_container_width=True)
-                with st.expander("📋 Последние записи (15)", expanded=False):
-                    st.subheader("Последние записи")
-                st.dataframe(df_ticker.tail(10), use_container_width=True, hide_index=True)
-
-    with tab2:
-            st.title("💰 Ставки фандинга")
-            funding_path = DATA_ROOT / "funding" / "funding.parquet"
-            if funding_path.exists():
-                df = pd.read_parquet(funding_path)
-                last_date = df['date'].max()
-                df_latest = df[df['date'] == last_date].copy()
-                st.success(f"Ставки фандинга на {last_date}")
-                st.caption(f"Всего записей в базе: {len(df)}")
-                st.dataframe(df_latest[['ticker', 'swaprate', 'last_price']], use_container_width=True, hide_index=True)
-            else:
-                st.error(f"Файл {funding_path} не найден")
-
-    with tab3:
-        st.title("🕯️ Super Candles H4")
-        h4_path = DATA_ROOT / "supercandles_h4"
-        if h4_path.exists():
-            files = list(h4_path.glob("*.parquet"))
-            if files:
-                st.success(f"Найдено {len(files)} файлов H4")
-                files.sort()
-                sample_file = files[-1]
-                df = pd.read_parquet(sample_file)
-                st.subheader(f"Файл: {sample_file.name}")
-                st.dataframe(df.tail(10), use_container_width=True)
-            else:
-                st.warning("Файлы H4 не найдены")
-        else:
-            st.error(f"Папка {h4_path} не существует")
+# ============================================================
+# Скринер акций — вырезан 22.09.2026
+# Причина: логика сканера уже в "Робот акций", дублирование
+# Код сохранён: app_v2_screener.py.bak
+# ============================================================
