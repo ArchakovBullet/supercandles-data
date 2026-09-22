@@ -2459,7 +2459,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "LK-RN_H4": {
       "pair_name": "LK-RN_H4",
@@ -2476,7 +2476,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "LK-TN_H4": {
       "pair_name": "LK-TN_H4",
@@ -2493,7 +2493,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "RN-TN_H4": {
       "pair_name": "RN-TN_H4",
@@ -2510,7 +2510,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "LK-IR_H4": {
       "pair_name": "LK-IR_H4",
@@ -2527,7 +2527,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "HY-IR_H4": {
       "pair_name": "HY-IR_H4",
@@ -2544,7 +2544,7 @@
         "max_drawdown": 0,
         "num_trades": 0
       },
-      "enabled": true
+      "enabled": false
     },
     "LK-HY_D1": {
       "pair_name": "LK-HY_D1",

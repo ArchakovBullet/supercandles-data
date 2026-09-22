@@ -67,7 +67,7 @@ except Exception as _e:
 MAX_POSITIONS = 10
 STOP_ATR_MULT = 3.2
 BE_MOVE_ATR = 1.5
-BE_TARGET_MULT = 1.001
+BE_TARGET_MULT = 1.002
 BE_EPS = 0.002
 COOLDOWN_HOURS = 4
 DEPOSIT = 100000
@@ -608,7 +608,7 @@ def main():
 
             if decision == 'LONG' and score >= entry_threshold:
                 price = float(df_m10['close'].iloc[-1]) if not isinstance(df_m10['close'].iloc[-1], bytes) else 0
-                atr = calc_atr(df_m10)
+                atr = calc_atr(df_d1)
                 if price > 0 and atr > 0:
                     open_position(ticker, score, price, atr)
                     open_tickers.add(ticker)

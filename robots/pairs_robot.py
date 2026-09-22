@@ -66,6 +66,9 @@ DB_PATH = ROOT / 'robots' / 'pairs_robot.db'
 COMMAND_FILE = ROOT / 'robots' / 'robot_command.txt'
 STATE_FILE = ROOT / 'robots' / 'robot_state.json'
 
+# ========== TIME_EXIT ==========
+MAX_HOLD_HOURS = 120   # Максимальное время удержания пары (5 дней)
+
 # VK
 VK_TOKEN = os.getenv('VK_TOKEN', '')
 VK_GROUP_ID = os.getenv('VK_GROUP_ID', '497763452')
@@ -653,6 +656,34 @@ def check_expiry():
             print(f'  ⚠️ check_expiry({pair_name}): {e}')
 
 
+def check_time_exits():
+    """Закрыть пары, висящие дольше MAX_HOLD_HOURS (TIME_EXIT)."""
+    if not is_moex_trading_day():
+        return
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cutoff = (datetime.now() - timedelta(hours=MAX_HOLD_HOURS)).strftime('%Y-%m-%d %H:%M:%S')
+    cursor.execute("""
+        SELECT id, pair_name, base_pair, timeframe, leg_a_ticker, leg_b_ticker
+        FROM positions
+        WHERE status='OPEN' AND entry_time < ?
+    """, (cutoff,))
+    stale = cursor.fetchall()
+    conn.close()
+
+    for pid, pair_name, base_pair, tf, ta, tb in stale:
+        try:
+            df_a = pd.read_parquet(CANDLES_DIR / f'{ta}_{tf}.parquet')
+            df_b = pd.read_parquet(CANDLES_DIR / f'{tb}_{tf}.parquet')
+            price_a = float(df_a['close'].iloc[-1]) if not isinstance(df_a['close'].iloc[-1], bytes) else 0.0
+            price_b = float(df_b['close'].iloc[-1]) if not isinstance(df_b['close'].iloc[-1], bytes) else 0.0
+            print(f'  ⏰ {pair_name}: держится > {MAX_HOLD_HOURS}ч — TIME_EXIT')
+            close_position(pid, pair_name, base_pair, tf, 0, price_a, price_b)
+        except Exception as e:
+            print(f'  ⚠️ check_time_exits({pair_name}): {e}')
+
+
 def main():
     print("=" * 60)
     print(f"🤖 РОБОТ ПАРНОЙ ТОРГОВЛИ | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -667,6 +698,9 @@ def main():
 
     # Проверка экспираций
     check_expiry()
+
+    # Проверка TIME_EXIT
+    check_time_exits()
     
     # Загружаем конфиг пар
     with open(CONFIG_PATH, 'r') as f:
