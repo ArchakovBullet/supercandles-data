@@ -25,6 +25,7 @@ sys.path.insert(0, '/root/finlab/FinLabPy')
 from My_Indicators.unified_scanner import get_unified_scanner_verdict
 from My_Indicators.volume_analyzer import VolumeAnomalyDetector
 from My_Indicators.herrick_payoff_index import calculate_hpi
+from My_Indicators.garch_indicator import calculate_garch_for_ticker
 
 # ========== КОНФИГ ==========
 ROOT = Path('/root/finlab')
@@ -729,11 +730,18 @@ def main():
                     yur_buy_ratio_val = None
             yur_dir, yur_median, yur_std = get_yur_params(ticker)
 
+            # GARCH (волатильность)
+            try:
+                _garch = calculate_garch_for_ticker(df_d1, ticker)
+                garch_vol = _garch.get('garch_vol', 0) or 0
+            except Exception as _e:
+                garch_vol = 0
+
             # Вердикт
             verdict = get_unified_scanner_verdict(
                 df_d1, df_4h, df_1h,
                 d1_trend_up=trend_up, d1_trend_down=trend_down,
-                hi2_value=hi2_value, garch_vol=0,
+                hi2_value=hi2_value, garch_vol=garch_vol,
                 hi2_agressive_buy=hi2_data.get('hhi_agressive_buy') if hi2_data else None,
                 hi2_agressive_sell=hi2_data.get('hhi_agressive_sell') if hi2_data else None,
                 hi2_buy=hi2_data.get('hhi_buy') if hi2_data else None,
@@ -822,6 +830,11 @@ def main():
                         print(f'  ⏸️ {ticker}: cooldown после STOP ({COOLDOWN_HOURS}ч)')
                         continue
                     
+                    # ===== ИСКЛЮЧЕНИЕ RI (аномалия, 23.09.2026) =====
+                    if ticker == 'RI':
+                        print(f'  ⏸️ {ticker}: исключён (аномалия, rollover)')
+                        continue
+
                     # ===== ВОЛАТИЛЬНОСТНЫЙ ФИЛЬТР (ATR% из D1) =====
                     _atr_pct_d1 = 0
                     if len(df_d1) >= 14 and entry_price > 0:
@@ -842,6 +855,17 @@ def main():
                     if _atr_pct_d1 > 0 and _atr_pct_d1 < 0.15:
                         print(f'  ⏸️ {ticker}: ATR%(D1)={_atr_pct_d1:.2f} < 0.15% — слишком спокойно')
                         continue
+
+                    # ===== SKIP 20-60 (шумная зона перекоса, 23.09.2026) =====
+                    try:
+                        _fiz_val = float(df_1h['fiz_buy_ratio'].iloc[-1]) if 'fiz_buy_ratio' in df_1h.columns and len(df_1h) > 0 else 50
+                        _yur_val = float(yur_buy_ratio_val) if yur_buy_ratio_val is not None else 50
+                        _perekos = _fiz_val - _yur_val
+                        if 20 <= _perekos <= 60:
+                            print(f'  ⏸️ {ticker}: перекос {_perekos:+.1f} в шумной зоне 20-60 — skip')
+                            continue
+                    except Exception:
+                        pass  # soft fail — не блокируем робота
 
                     if decision == 'LONG' and score >= entry_threshold:
                         open_position(ticker, 'LONG', 1.0, score, entry_price, atr)
