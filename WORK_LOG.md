@@ -1836,3 +1836,42 @@ c86b330 WORK_LOG: очистить от старых
 - [ ] **Profit Factor / Expectancy** в дашборд.
 - [ ] **`use_container_width` → `width='stretch'`** (45+ мест).
 - [ ] **A/B тест сигналов.**
+
+## 23.09.2026 (Оптимизация сервера — git gc)
+
+### Выполнено
+
+Диагностика сервера:
+- RAM: 1.8 GB свободно (47%), Swap: 115 MB (5.6%)
+- CPU: 2 ядра, load 0.10 (загрузка 5%)
+- Диск: 27 GB свободно (69%)
+
+Находка: data/tradestats/.git = 2.14 GB (2872 loose objects).
+
+GIT GC:
+- tradestats/.git: 2.14 GB -> 86 MB (-2.05 GB)
+- candles/.git: 640 MB -> 90 MB (-550 MB)
+- /root/finlab/.git: 28 MB -> 5.1 MB (-23 MB)
+- Итого: ~2.8 GB -> ~180 MB (-2.6 GB)
+
+Диск после сжатия:
+- Занято: 12 GB -> 8.9 GB (31% -> 24%)
+- Свободно: 27 GB -> 29 GB (69% -> 76%)
+- finlab/: 4.8 GB -> 2.2 GB
+- data/: 3.0 GB -> 393 MB
+
+Git gc в cron (раз в неделю, воскресенье 03:00 МСК):
+- /root/finlab
+- data/candles
+- data/tradestats
+- data/supercandles_h4
+- data/funding
+
+Cron: исправлен комментарий update_last_tradedate.
+
+### На следующий раз
+- vk_bot.py (4 места vk.method)
+- TIME_EXIT для stocks_robot.py
+- Profit Factor / Expectancy
+- use_container_width -> width='stretch'
+- A/B тест сигналов
