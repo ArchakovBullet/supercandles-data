@@ -2,6 +2,8 @@
 import os
 from pathlib import Path
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv('/root/finlab/.env')
 
 WORK_LOG_PATH = Path('/root/finlab/WORK_LOG.md')
 MAX_SIZE = 200 * 1024  # 200 КБ

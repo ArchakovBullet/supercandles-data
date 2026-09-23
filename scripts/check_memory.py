@@ -5,6 +5,8 @@ import shutil
 import sys
 from pathlib import Path
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv('/root/finlab/.env')
 
 # Добавляем путь для импорта
 sys.path.insert(0, '/root/finlab')
@@ -128,7 +130,7 @@ def check_memory():
 def send_vk_message(vk, peer_id, message):
     """Отправить сообщение в VK"""
     try:
-        vk.method('messages.send', {
+        vk.messages.send(**{
             'peer_id': peer_id,
             'message': message,
             'random_id': int(datetime.now().timestamp() * 1000)

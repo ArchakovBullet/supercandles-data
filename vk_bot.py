@@ -233,7 +233,7 @@ def check_trend_changes(vk):
     if changes:
         msg = "🔄 Смена тренда:\n" + "\n".join(changes)
         try:
-            vk.method('messages.send', {
+            vk.messages.send(**{
                 'peer_id': ADMIN_ID,
                 'message': msg,
                 'random_id': random.randint(1, 2**31 - 1)
@@ -252,7 +252,7 @@ def auto_stale_check(vk):
         if problems:
             msg = "⚠️ Авто-проверка свежести:\n" + "\n".join(problems)
             try:
-                vk.method('messages.send', {
+                vk.messages.send(**{
                     'peer_id': ADMIN_ID,
                     'message': msg,
                     'random_id': random.randint(1, 2**31 - 1)
@@ -297,7 +297,7 @@ def main():
 
             if connection_lost:
                 try:
-                    vk.method('messages.send', {
+                    vk.messages.send(**{
                         'peer_id': ADMIN_ID,
                         'message': "✅ Связь с сервером VK восстановлена. Бот работает.",
                         'random_id': random.randint(1, 2**31 - 1)
@@ -333,7 +333,7 @@ def main():
                         response = "Неизвестная команда. Используйте help для списка команд."
 
                     try:
-                        vk.method('messages.send', {
+                        vk.messages.send(**{
                             'peer_id': peer_id,
                             'message': response[:4096],
                             'random_id': random.randint(1, 2**31 - 1)

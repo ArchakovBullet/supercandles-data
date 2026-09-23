@@ -1875,3 +1875,40 @@ Cron: исправлен комментарий update_last_tradedate.
 - Profit Factor / Expectancy
 - use_container_width -> width='stretch'
 - A/B тест сигналов
+
+## 23.09.2026 (VK-фиксы + MemoryMax)
+
+### Выполнено
+
+Найдены сломанные VK-скрипты (ошибка: VkApiMethod.__call__() takes 1 positional argument but 3 were given):
+- scripts/check_memory.py: vk.method -> vk.messages.send + load_dotenv.
+- vk_bot.py: 4 места vk.method -> vk.messages.send.
+- scripts/check_worklog_size.py: добавлен load_dotenv.
+- scripts/check_pair_signals.py: добавлен load_dotenv.
+
+Причина: vk_api (новые версии) требует vk.messages.send(**{...}), не vk.method(...).
+Плюс: в cron-скриптах ОТСУТСТВОВАЛ load_dotenv -> VK_TOKEN пустой -> ошибка [15] Access denied.
+
+Проверка (все скрипты, шлющие VK):
+- check_memory.py: load_dotenv=2, VK работает.
+- check_contract_changes.py: HTTP, работает.
+- check_worklog_size.py: теперь load_dotenv=2.
+- check_collector_logs.py: load_dotenv=2.
+- check_pair_signals.py: теперь load_dotenv=2.
+- weekly_pairs_optimization.py: load_dotenv=2.
+- check_data_freshness.py: load_dotenv=2.
+- vk_bot.py: load_dotenv=2, 4 места исправлены.
+
+Streamlit MemoryMax=1000M:
+- /etc/systemd/system/finlab-dashboard.service: добавлены MemoryMax=1000M, MemoryHigh=800M.
+- Скопирован в scripts/systemd/ для git.
+- PID 76159, Memory 83.7M (high 800M, max 1000M).
+
+Тест check_memory.py: "Уведомление отправлено в VK" - работает.
+Тест check_worklog_size.py: "89.5 КБ (макс 200 КБ) - в норме".
+
+### На следующий раз
+- TIME_EXIT для stocks_robot.py (48ч).
+- Profit Factor / Expectancy в дашборд.
+- use_container_width -> width='stretch' (45+ мест).
+- A/B тест сигналов.

@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from datetime import datetime
 import warnings
+from dotenv import load_dotenv
+load_dotenv('/root/finlab/.env')
 warnings.filterwarnings('ignore')
 
 # Добавляем пути

@@ -9,6 +9,8 @@ WorkingDirectory=/root/finlab/finlab_dashboard
 ExecStart=/root/finlab/venv/bin/streamlit run app_v2.py --server.port 8501 --server.address 0.0.0.0
 Restart=always
 RestartSec=10
+MemoryMax=1000M
+MemoryHigh=800M
 StandardOutput=append:/root/finlab/logs/streamlit.log
 StandardError=append:/root/finlab/logs/streamlit.log
 
