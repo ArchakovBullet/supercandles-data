@@ -1,6 +1,20 @@
 # FinLabPy — Паспорт для AI-ассистента
 
 **Актуально на:** 22.09.2026
+## ВАЖНО: Кэш GitHub raw — инструкция для AI
+
+raw.githubusercontent.com КЭШИРУЕТСЯ до 5-10 минут.
+Если ты читаешь WORK_LOG — используй один из способов:
+
+Способ 1: URL с timestamp — добавь ?t=<unixtime> в конец URL.
+Способ 2: GitHub API — api.github.com/repos/ArchakovBullet/supercandles-data/contents/WORK_LOG.md?ref=master
+
+Проверка актуальности: первая строка WORK_LOG.md — VERSION-маркер.
+Если VERSION старше 24 часов — читаешь из кэша.
+
+Автообновление VERSION: python3 /root/finlab/scripts/update_worklog_version.py
+
+---
 
 ## 0. Идеология проекта: подход Джима Саймонса
 
