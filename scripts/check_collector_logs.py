@@ -32,6 +32,11 @@ IGNORE_PATTERNS = [
     r'keyring_pass\.cfg',
     r'РћС€РёР±РєР° РїСЂРё СЃРѕС…СЂР°РЅРµРЅРёРё С‚РѕРєРµРЅР°',
     r'РћС€РёР±РєР° РїСЂРё Р·Р°РіСЂСѓР·РєРµ С‚РѕРєРµРЅР°',
+    r'ConnectionResetError',        # сканеры / обрывы клиента
+    r'Connection reset by peer',    # то же, текст ошибки
+    r'Bad request version',         # TLS на HTTP-порт
+    r'Bad request syntax',          # бинарный мусор
+    r'Unsupported method.*CONNECT', # прокси-сканеры
 ]
 
 def load_state():
