@@ -14,6 +14,14 @@ raw.githubusercontent.com КЭШИРУЕТСЯ до 5-10 минут.
 
 Автообновление VERSION: python3 /root/finlab/scripts/update_worklog_version.py
 
+### Альтернативные URL (без CDN-кэша, наш сервер)
+http://159.194.219.117:8888/WORK_LOG.md
+http://159.194.219.117:8888/README.md
+
+Systemd: finlab-http.service (Restart=always).
+
+
+
 ---
 
 ## 0. Идеология проекта: подход Джима Саймонса
