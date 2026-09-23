@@ -560,12 +560,13 @@ def main():
             continue
 
         try:
-            # Данные
-            df_d1 = pd.read_parquet(DATA_ROOT / 'candles' / f'{ticker}_D1.parquet')
+            # Данные (с проверкой существования файлов)
+            df_d1_file = DATA_ROOT / 'candles' / f'{ticker}_D1.parquet'
             df_h1_file = DATA_ROOT / 'candles' / f'{ticker}_H1.parquet'
             df_m10_file = DATA_ROOT / 'candles' / f'{ticker}_M10.parquet'
-            if not df_h1_file.exists() or not df_m10_file.exists():
+            if not df_d1_file.exists() or not df_h1_file.exists() or not df_m10_file.exists():
                 continue
+            df_d1 = pd.read_parquet(df_d1_file)
             df_h1 = pd.read_parquet(df_h1_file)
             df_m10 = pd.read_parquet(df_m10_file)
 

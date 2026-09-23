@@ -1,0 +1,16 @@
+[Unit]
+Description=FinLab Dashboard (Streamlit)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/finlab/finlab_dashboard
+ExecStart=/root/finlab/venv/bin/streamlit run app_v2.py --server.port 8501 --server.address 0.0.0.0
+Restart=always
+RestartSec=10
+StandardOutput=append:/root/finlab/logs/streamlit.log
+StandardError=append:/root/finlab/logs/streamlit.log
+
+[Install]
+WantedBy=multi-user.target
