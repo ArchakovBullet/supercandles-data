@@ -20,6 +20,23 @@ http://159.194.219.117:8888/README.md
 
 Systemd: finlab-http.service (Restart=always).
 
+### Самый надёжный канал для AI — raw с commit hash
+
+**Проблема:** raw без commit hash кэшируется CDN.
+
+**Решение:** raw С commit hash — уникальный URL, кэш пустой.
+
+**URL:**
+https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/<COMMIT_HASH>/WORK_LOG.md
+
+**Где взять COMMIT_HASH:**
+https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/COMMIT_HASH.txt
+
+**Автогенерация шаблона:**
+scripts/update_new_chat_template.sh
+
+
+
 
 
 ---
