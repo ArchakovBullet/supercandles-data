@@ -105,6 +105,27 @@ def get_pair_label(pair_name: str) -> str:
     else:
         return '🟩 Стат. арбитраж'
 
+def _calc_wr(df, pnl_col='pnl', entry_col='entry_price', vol_col='volume', eps=0.001, eps_abs=0.5):
+    """Win Rate с исключением BREAKEVEN.
+
+    Для акций/фьючерсов: eps = 0.1% от entry (относительный).
+    Для парного (нет entry_price): eps_abs = 0.5₽ (абсолютный).
+    """
+    if len(df) == 0:
+        return 0.0
+    df = df.copy()
+    if entry_col in df.columns and vol_col in df.columns:
+        # Относительный eps (акции, фьючерсы)
+        df['pnl_pct'] = df[pnl_col] / (df[entry_col] * df[vol_col].clip(lower=0.0001))
+        wins = len(df[df['pnl_pct'] > eps])
+        losses = len(df[df['pnl_pct'] < -eps])
+    else:
+        # Абсолютный eps (парный)
+        wins = len(df[df[pnl_col] > eps_abs])
+        losses = len(df[df[pnl_col] < -eps_abs])
+    return wins / (wins + losses) * 100 if (wins + losses) > 0 else 0.0
+
+
 # ========== КОНФИГ ==========
 DATA_ROOT = Path("/root/finlab/data")
 LOGS_ROOT = Path("/root/finlab/logs")
@@ -4140,7 +4161,7 @@ elif page == "📊 Торговые роботы":
             _open_pairs = pd.read_sql_query('SELECT * FROM positions WHERE status="OPEN"', _conn)
             _conn.close()
             _pair_pnl = _closed_pairs['pnl'].sum()
-            _pair_wr = len(_closed_pairs[_closed_pairs['pnl'] > 0]) / len(_closed_pairs) * 100 if len(_closed_pairs) > 0 else 0
+            _pair_wr = _calc_wr(_closed_pairs)
             _robots_stats['📊 Парная торговля'] = {
                 'open': len(_open_pairs),
                 'pnl': _pair_pnl,
@@ -4156,7 +4177,7 @@ elif page == "📊 Торговые роботы":
             _open_fut = pd.read_sql_query('SELECT * FROM futures_positions WHERE status="OPEN"', _conn)
             _conn.close()
             _fut_pnl = _closed_fut['pnl'].sum()
-            _fut_wr = len(_closed_fut[_closed_fut['pnl'] > 0]) / len(_closed_fut) * 100 if len(_closed_fut) > 0 else 0
+            _fut_wr = _calc_wr(_closed_fut)
             _robots_stats['📉 Робот фьючерсов'] = {
                 'open': len(_open_fut),
                 'pnl': _fut_pnl,
@@ -4172,7 +4193,7 @@ elif page == "📊 Торговые роботы":
             _open_stk = pd.read_sql_query('SELECT * FROM stock_positions WHERE status="OPEN"', _conn)
             _conn.close()
             _stk_pnl = _closed_stk['pnl'].sum() if len(_closed_stk) > 0 else 0
-            _stk_wr = len(_closed_stk[_closed_stk['pnl'] > 0]) / len(_closed_stk) * 100 if len(_closed_stk) > 0 else 0
+            _stk_wr = _calc_wr(_closed_stk)
             _robots_stats['📈 Робот акций'] = {
                 'open': len(_open_stk),
                 'pnl': _stk_pnl,
