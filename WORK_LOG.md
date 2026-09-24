@@ -1,4 +1,4 @@
-<!-- VERSION: 2026-09-24 20:22 MSK | COMMIT: bf803da | LINES: 2135 -->
+<!-- VERSION: 2026-09-24 21:13 MSK | COMMIT: e3a7d0c | LINES: 2177 -->
 
 ## 15.09.2026 (ночная сессия — большая)
 
@@ -2132,4 +2132,46 @@ URL (всегда актуально):
 - [ ] Запустить бэктест.
 - [ ] Создать futures_robot_baseline.py + systemd.
 - [ ] Мониторить swap через сутки.
+
+
+## 24.09.2026 (baseline-робот запущен)
+
+### Проблема с ab_test_skip.py
+
+Скрипт выдал 0 сделок. Причина: не повторяет логику futures_robot.py.
+- Передаёт garch_vol=0 (в проде — реальный).
+- Не передаёт yur/disb/hi2.
+- Merge FutOI упрощённый.
+- Итог: сканер возвращает WAIT.
+
+Решение: вместо бэктеста — параллельный baseline-робот (реальная логика, без skip).
+
+### Baseline-робот
+
+- Файл: robots/futures_robot_baseline.py (копия futures_robot.py).
+- Отличие: skip 20-60 отключён (логирует, но не блокирует).
+- БД: robots/futures_robot_baseline.db.
+- Systemd: finlab-futures-baseline.service (active).
+- VK: пометка [BASELINE].
+- PID 239663, Memory 245 MB.
+
+### Текущие роботы (4)
+
+| Сервис | Что |
+|---|---|
+| finlab-robot | Пары |
+| finlab-futures-robot | Фьючерсы (skip 20-60) |
+| finlab-futures-baseline | Фьючерсы (BASELINE, без skip) |
+| finlab-stocks-robot | Акции |
+
+### Сравнение через неделю
+
+- Baseline vs skip: PnL, WR, avg.
+- Решение: оставить / сузить / откатить skip.
+
+### На следующий раз
+
+- [ ] Мониторинг baseline (первые сделки).
+- [ ] Сравнение через 3-7 дней.
+- [ ] Swap: мониторить.
 
