@@ -69,3 +69,7 @@ robots/tf_fresh_state.json
 robots/stocks_robot.db
 robots/contract_last_tradedate.json
 public/
+
+# Baseline robot DB (untracked)
+robots/futures_robot_baseline.db
+robots/*_baseline.db
