@@ -1,4 +1,4 @@
-<!-- VERSION: 2026-09-23 22:24 MSK | COMMIT: cefd4ab | LINES: 2094 -->
+<!-- VERSION: 2026-09-24 20:22 MSK | COMMIT: bf803da | LINES: 2135 -->
 
 ## 15.09.2026 (ночная сессия — большая)
 
@@ -2091,4 +2091,45 @@ URL (всегда актуально):
 
 **Порт 8888 оставлен открытым для IP пользователя.**
 Альтернатива (bind 127.0.0.1) — не применяется (нужен доступ с домашнего ПК).
+
+
+## 24.09.2026 (swap + crontab fix + начало бэктеста)
+
+### Выполнено
+
+**Swap увеличен с 2 GB до 4 GB:**
+- Создан /swapfile2 (2 GB) через fallocate.
+- chmod 600, mkswap, swapon.
+- Добавлен в /etc/fstab (выживет после перезагрузки).
+- vm.swappiness: 60 → 10 (sysctl.conf).
+- Проверка: free -h → Swap 4.0Gi, used 1.1Gi, free 2.9Gi.
+
+**Crontab — исправлена склеенная строка:**
+- Было: две команды в одной строке (systemctl restart ... .service0 0 * * *).
+- Стало: разделены на две.
+  - 0 5 * * * systemctl restart finlab-robot finlab-futures-robot finlab-stocks-robot
+  - 0 0 * * * cleanup_logs.py --days 7
+
+**Причина swap:** RAM 3.8 GB исчерпана (Streamlit 525 MB + futures 432 MB + stocks 221 MB + pairs 159 MB + collectors ~200 MB + VSCode ~280 MB = ~1.8 GB). Swap 1.1 GB — вытеснение.
+
+**Решение:** swap 4 GB + swappiness=10 + автоперезапуск роботов в 05:00.
+
+### Найдено (анализ 24.09)
+
+**Skip 20-60 режет прибыльные сделки:**
+- 24.09: 60 тикеров, открылись 3 (EURRUBF, UC, RN), 48 пропущено.
+- Пропущенные дали бы: RL −5.19%, NM −2.32%, MG −2.08%, AL −1.64%, SV −1.46%, GL −1.34%, GAZPF −1.12%, GLDRUBF −1.05%, PT −1.05%, GZ −1.01% (при SHORT).
+- Оценка потенциала: ~1500-2500₽ за день.
+
+**План:**
+- A/B тест skip 20-60 (4 варианта) на данных 20-24.09.
+- Параллельный baseline-робот (без skip) на виртуальном депозите.
+
+### На следующий раз
+
+- [ ] Прочитать ab_test_scanner.py.
+- [ ] Дописать под 4 варианта (baseline, skip 20-60, skip 30-50, штраф).
+- [ ] Запустить бэктест.
+- [ ] Создать futures_robot_baseline.py + systemd.
+- [ ] Мониторить swap через сутки.
 
