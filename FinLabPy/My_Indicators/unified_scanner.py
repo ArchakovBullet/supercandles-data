@@ -55,7 +55,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
                                  disb=None,
                                  yur_buy_ratio=None, yur_dir=None, yur_median=None, yur_std=None,
                                  ofi=None, cum_delta=None,
-                                 is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None, volume_spike=False, rvi_val=None):
+                                 is_distribution=False, is_accumulation=False, hpi_signal=None, hpi_divergence=False, zweig_signal=None, volume_spike=False, rvi_val=None, swaprate=None):
     """
     Объединённый вердикт по трём таймфреймам + рыночные факторы.
     
@@ -93,7 +93,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             'weighted_val': 0,
             'trend': '—',
             'signals': {'1D': {'signal': '—', 'score': 0, 'details': {}}, '4H': {'signal': '—', 'score': 0, 'details': {}}, '1H': {'signal': '—', 'score': 0, 'details': {}}},
-            'factors': {'tf_score': 0, 'tf_weighted': 0, 'hi2_penalty': 0, 'hi2_note': 'Нет данных', 'garch_penalty': 0, 'garch_note': 'Нет данных', 'trend_mod': 0, 'trend_note': '—', 'distr_mod': 0, 'distr_note': '—', 'hpi_mod': 0, 'hpi_note': '—', 'zweig_mod': 0, 'zweig_note': '—', 'volume_mod': 0, 'volume_note': '—', 'yur_mod': 0, 'yur_note': '—', 'crisis_mode': False, 'rvi_val': None, 'total_mod': 0},
+            'factors': {'tf_score': 0, 'tf_weighted': 0, 'hi2_penalty': 0, 'hi2_note': 'Нет данных', 'garch_penalty': 0, 'garch_note': 'Нет данных', 'trend_mod': 0, 'trend_note': '—', 'distr_mod': 0, 'distr_note': '—', 'hpi_mod': 0, 'hpi_note': '—', 'zweig_mod': 0, 'zweig_note': '—', 'volume_mod': 0, 'volume_note': '—', 'funding_mod': 0, 'funding_note': '—', 'yur_mod': 0, 'yur_note': '—', 'crisis_mode': False, 'rvi_val': None, 'total_mod': 0},
         }
 
     # === 1. Сигналы по ТФ (БАЗА — 60%) ===
@@ -218,6 +218,19 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
 
 
     # === 3. GARCH — штраф за волатильность (10%) ===
+    # === 3b. Funding rate — модификатор ===
+    funding_mod = 0
+    funding_note = ""
+    if swaprate is not None:
+        if swaprate > 2.0:
+            funding_mod = -5
+            funding_note = f"📉 swaprate={swaprate:.2f}% — перегрев лонгов (-5)"
+        elif swaprate < -2.0:
+            funding_mod = +5
+            funding_note = f"📈 swaprate={swaprate:.2f}% — перегрев шортов (+5)"
+        else:
+            funding_note = f"✅ swaprate={swaprate:.2f}% — норма"
+
     garch_penalty = 0
     garch_note = ""
     if garch_vol > 35:
@@ -333,7 +346,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
     # При GARCH>35% или Zweig BLOCKED — игнорируем zweig_mod
     if garch_vol > 35 or (zweig_signal is not None and zweig_signal == 'BLOCKED'):
         zweig_mod = -100  # Полная блокировка
-    total_mod = hi2_penalty + hi2_mod + disb_mod + yur_mod + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod
+    total_mod = hi2_penalty + hi2_mod + disb_mod + yur_mod + garch_penalty + trend_mod + distr_mod + hpi_mod + zweig_mod + volume_mod + funding_mod
     final_score = tf_score + total_mod
     if garch_vol > 35 or (zweig_signal is not None and zweig_signal == 'BLOCKED'):
         final_score = 0
@@ -412,6 +425,7 @@ def get_unified_scanner_verdict(df_d1, df_4h, df_1h,
             'hpi_mod': hpi_mod, 'hpi_note': hpi_note,
             'zweig_mod': zweig_mod, 'zweig_note': zweig_note,
             'volume_mod': volume_mod, 'volume_note': volume_note,
+            'funding_mod': funding_mod, 'funding_note': funding_note,
             'crisis_mode': crisis_mode,
             'rvi_val': rvi_val,
             'total_mod': total_mod,

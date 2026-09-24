@@ -711,6 +711,37 @@ def main():
                 elif last_price < sma20 * 0.98:
                     trend_down = True
             
+            # HPI (Herrick Payoff Index)
+            hpi_signal = None
+            hpi_divergence = False
+            try:
+                _hpi = calculate_hpi(df_d1)
+                if _hpi:
+                    hpi_signal = _hpi.get('hpi_signal')
+                    hpi_divergence = _hpi.get('divergence', False)
+            except Exception as _e:
+                pass
+
+            # VolumeAnomalyDetector
+            volume_spike = False
+            try:
+                _va = VolumeAnomalyDetector(window=20, threshold=2.5)
+                _spikes = _va.detect_spikes(df_1h['volume'])
+                if len(_spikes['spikes']) > 0:
+                    volume_spike = bool(_spikes['spikes'].tail(6).any())
+            except Exception as _e:
+                pass
+
+            # Funding rate
+            swaprate = None
+            try:
+                _fund = pd.read_parquet(DATA_ROOT / 'funding' / 'funding.parquet')
+                _fund_t = _fund[_fund['ticker'] == ticker]
+                if len(_fund_t) > 0:
+                    swaprate = float(_fund_t['swaprate'].iloc[-1])
+            except Exception as _e:
+                pass
+
             # Читаем HI2 для тикера (11 метрик)
             hi2_data = get_hi2_for_ticker(ticker)
             # Читаем TradeStats disb
@@ -756,8 +787,8 @@ def main():
                 yur_buy_ratio=yur_buy_ratio_val, yur_dir=yur_dir, yur_median=yur_median, yur_std=yur_std,
                 ofi=None, cum_delta=None,
                 is_distribution=False, is_accumulation=False,
-                hpi_signal=None, hpi_divergence=False,
-                zweig_signal=None, volume_spike=False, rvi_val=None
+                hpi_signal=hpi_signal, hpi_divergence=hpi_divergence,
+                zweig_signal=None, volume_spike=volume_spike, rvi_val=None
             )
             
             decision = verdict.get('decision', 'WAIT')
