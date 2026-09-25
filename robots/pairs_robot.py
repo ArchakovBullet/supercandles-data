@@ -293,8 +293,8 @@ def is_tf_fresh(tf):
             fresh_count += 1
 
     if total_count == 0:
-        print(f'  ⚠️ is_tf_fresh({tf}): нет пар с _{tf}')
-        return False
+        print(f'  ✅ is_tf_fresh({tf}): нет активных пар — не блокируем')
+        return True
 
     result = fresh_count >= total_count / 2
     print(f'  📊 is_tf_fresh({tf}): {fresh_count}/{total_count} свежих → {result}')
