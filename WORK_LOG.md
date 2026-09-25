@@ -1,4 +1,4 @@
-<!-- VERSION: 2026-09-25 19:42 MSK | COMMIT: 8f14bb2 | LINES: 2511 -->
+<!-- VERSION: 2026-09-25 20:43 MSK | COMMIT: d44b5b1 | LINES: 2621 -->
 
 ## 15.09.2026 (ночная сессия — большая)
 
@@ -2509,3 +2509,113 @@ Continue AI проанализировал futures_robot.py и нашёл 8 за
 - Магические числа 1.001/0.999 — вынести в константы (косметика).
 - days_left < 0 — защита (не критично).
 
+
+## 25.09.2026 (вечерняя сессия — смена парадигмы: от сделок к рыночным данным)
+
+### 🎯 ГЛАВНОЕ РЕШЕНИЕ
+
+**Смена подхода.** Прекращаем анализировать сделки робота (123 сделки — следствие плохого сигнала).
+Переходим к анализу РЫНОЧНЫХ ДАННЫХ: где был дисбаланс → что стало с ценой.
+
+**Причина:** текущий сигнал — баллы + штрафы (score 60/80). Тренд доминирует (RN score=95 → STOP −744₽).
+Данные о давлении (FutOI, HI2, disb) — на периферии (±2-3 из 100). `fiz_buy_ratio` вообще не используется.
+Выход по обратному сигналу почти не срабатывает (SIGNAL — единицы).
+
+### ✅ РАЗВЕДКА ДАННЫХ (результаты)
+
+**🔑 FutOI 1h УЖЕ РАБОТАЕТ!**
+- `data/futoi_1h/futoi_1h.parquet` — 49751 строк, 63 тикера
+- Поля: `hour, fiz_long, fiz_short, yur_long, yur_short, ticker, fiz_total, yur_total, fiz_buy_ratio, yur_buy_ratio, fiz_ratio_delta, yur_ratio_delta`
+- **Период: 28.04 — 25.09 (5 месяцев)**
+- Merge FutOI «не работает» — миф, агрегатор работает.
+
+**HI2 daily:**
+- `data/hi2_daily.parquet` — 7000 строк, 216 тикеров, 14 колонок (11 метрик)
+- **Период: 12.08 — 24.09 (1.5 мес)**
+- Метрики: `hhi_agressive, hhi_agressive_buy/sell, hhi_buy/sell, hhi_netflow_buy/sell, hhi_passive, hhi_passive_buy/sell, hhi_volume`
+
+**TradeStats:**
+- `data/tradestats/{TICKER}_tradestats.parquet` — 33 колонки
+- Ключевые: `disb, trades_b/s, val_b/s, vol_b/s, pr_close, pr_vwap`
+- **Период: 15.04 — 25.09 (5.5 месяцев)**
+
+**Цены:**
+- `data/candles/{TICKER}_{TF}.parquet` (TF = D1, H1, H4, M10) — 1055 файлов
+- Схема: `open, close, high, low, value, volume, begin, end`
+
+**RVI:**
+- `data/sector_indices/RVI_D1.parquet` — 306 строк, last=25.09, close=**32.07** (норма)
+
+### 📊 СТАТИСТИКА ПО ВЕЧНЫМ ФЬЮЧЕРСАМ
+
+**Выбраны для теста:** GAZPF, SBERF, GLDRUBF, USDRUBF, CNYRUBF, EURRUBF
+
+**GAZPF (пример):**
+- `yur_buy_ratio`: mean=9.67%, std=4.44, min=2.78, max=24.69
+- `fiz_buy_ratio`: mean=89.55%, std=4.50, min=74.85, max=96.00
+- **Юрлица почти не покупают, физлица покупают почти всё!** (классика)
+
+**TradeStats GAZPF:**
+- Всего: 24377 записей
+- `disb > 0.5`: **7133** раз
+- `disb < -0.5`: **6989** раз
+- нейтрально ([-0.1, 0.1]): только **2158** раз
+- **Дисбаланс — частое явление, есть что анализировать**
+
+**Периоды данных по вечным:**
+- FutOI: 2037 записей/тикер (5 мес)
+- HI2: 40 дней/тикер (1.5 мес)
+- TradeStats: ~23000 записей/тикер (5.5 мес)
+
+### 📉 СДЕЛКИ РОБОТА (для контекста, НЕ для анализа)
+
+**В БД futures_robot.db:**
+- Всего: 123 сделки (с 08.09.2026)
+- По вечным: 25 сделок (CNYRUBF=4, EURRUBF=2, GAZPF=4, GLDRUBF=6, SBERF=4, USDRUBF=5)
+- PnL вечных: −30.19₽ (практически ноль)
+
+**Проблемные сделки за 25.09:**
+- RN STOP −744₽ (entry_score=95, ATR=232.5, стоп 3.2×ATR, RNZ6, expiry 17.12)
+- Остальные — мелкие плюсы (BREAKEVEN, EXPIRY)
+
+**Итог:** сделок мало, потому что сигнал слабый. Анализировать их — бессмысленно.
+
+### 📝 НАЙДЕННЫЕ ЗАГЛУШКИ В unified_scanner
+
+- `rvi_val=None` (futures_robot.py:806) — данные RVI есть, но не передаются
+- `zweig_signal=None` — заглушка
+- `ofi=None`, `cum_delta=None` — заглушки
+- `is_distribution=False`, `is_accumulation=False` — отключены
+- `fiz_buy_ratio` — **вообще не используется** (только `yur_buy_ratio`)
+
+### 🔧 СОСТОЯНИЕ СЕРВИСОВ
+
+- `finlab-futures-robot.service` — active (PID, старт 19:42)
+- `finlab-futures-baseline.service` — active (PID 346649, старт 19:42)
+- `finlab-robot.service` (пары) — active
+- `finlab-stocks-robot.service` — active
+- `finlab-dashboard.service` — active
+- `finlab-http.service` — active
+- **6 сервисов работают**
+
+### 🎯 НА СЛЕДУЮЩИЙ РАЗ
+
+- [ ] **Написать `scripts/analyze_imbalance.py`** — главная задача
+  - Загружает FutOI 1h + HI2 + TradeStats + цены (H1/D1)
+  - Для каждого часа — составной индикатор дисбаланса
+  - Считает forward return (1h, 4h, 1d, 3d)
+  - Сводит в таблицу: `дата | тикер | дисбаланс | fwd_return_1h | 4h | 1d | 3d`
+- [ ] **Проверить гипотезу:** дисбаланс → движение цены
+- [ ] **Если подтвердится** — проектировать новый сигнал
+- [ ] **Патч RVI** в `futures_robot.py` (передать `rvi_val` из parquet)
+- [ ] **Не трогать baseline** до 26.09 10:00 МСК
+- [ ] **A/B baseline vs skip** — 26.09 10:00-11:00 МСК
+
+### ⚠️ ВАЖНЫЕ ЗАМЕТКИ
+
+- **FutOI 1h работает** — merge FutOI в роботе НЕ работает (это разные вещи!)
+- **fiz_buy_ratio не используется** — упущенная возможность
+- **Дисбаланс — частое явление** (disb > 0.5 в 29% случаев)
+- **Юрлица vs физлица** — классический дисбаланс (GAZPF: 9.67% vs 89.55%)
+- **Сделок мало** — плохой сигнал приводит к редким входам
+- **Baseline** — под systemd `finlab-futures-baseline.service` (PID 346649, старт 19:42)
