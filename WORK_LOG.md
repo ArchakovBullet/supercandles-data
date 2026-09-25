@@ -1,4 +1,4 @@
-<!-- VERSION: 2026-09-25 18:07 MSK | COMMIT: be8b489 | LINES: 2363 -->
+<!-- VERSION: 2026-09-25 18:34 MSK | COMMIT: e57ccb1 | LINES: 2391 -->
 
 ## 15.09.2026 (ночная сессия — большая)
 
@@ -2360,4 +2360,32 @@ URL (всегда актуально):
 - [ ] Фикс cron aggregator.
 - [ ] RVI, tf_weighted.
 - [ ] A/B/C/D/E.
+
+
+## 25.09.2026 (фикс is_tf_fresh для пар)
+
+### Проблема
+
+**`is_tf_fresh(H4)` возвращал False** → робот не открывал новые пары.
+
+**Причины:**
+1. `_get_last_candle_dt` использовал `.iloc[-1]` — если файл не отсортирован, дата старая.
+2. `is_tf_fresh` проверял **все** пары, включая **enabled=False** (12 H4-пар).
+
+### Фикс
+
+**`_get_last_candle_dt`:**
+- `.iloc[-1]` → `.max()` + `sort_values`.
+- Для tradedate+block — `sort_values(['tradedate', 'block'])`.
+
+**`is_tf_fresh`:**
+- Пропускать пары с `enabled=False`.
+
+**Результат:** is_tf_fresh(H4) → True.
+
+### На следующий раз
+
+- [ ] Проверить, что пары открываются.
+- [ ] Фьючерсный робот — цикл.
+- [ ] RVI, tf_weighted.
 

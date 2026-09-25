@@ -172,22 +172,23 @@ def is_moex_trading_day():
     return True
 
 def _get_last_candle_dt(df):
-    """Универсально получить datetime последней свечи."""
+    """Универсально получить datetime последней свечи (max, а не iloc[-1])."""
     if len(df) == 0:
         return None
 
     # 1. begin (datetime)
     if 'begin' in df.columns:
         try:
-            return pd.to_datetime(df['begin'].iloc[-1])
+            return pd.to_datetime(df['begin']).max()
         except Exception:
             pass
 
     # 2. tradedate + block (SuperCandles H4)
     if 'tradedate' in df.columns and 'block' in df.columns:
         try:
-            last_date = str(df['tradedate'].iloc[-1])
-            last_block = str(df['block'].iloc[-1])
+            df_sorted = df.sort_values(['tradedate', 'block'])
+            last_date = str(df_sorted['tradedate'].iloc[-1])
+            last_block = str(df_sorted['block'].iloc[-1])
             return pd.to_datetime(f'{last_date} {last_block}')
         except Exception:
             pass
@@ -195,8 +196,9 @@ def _get_last_candle_dt(df):
     # 3. tradedate + tradetime (FutOI)
     if 'tradedate' in df.columns and 'tradetime' in df.columns:
         try:
-            last_date = str(df['tradedate'].iloc[-1])
-            last_time = str(df['tradetime'].iloc[-1])
+            df_sorted = df.sort_values(['tradedate', 'tradetime'])
+            last_date = str(df_sorted['tradedate'].iloc[-1])
+            last_time = str(df_sorted['tradetime'].iloc[-1])
             return pd.to_datetime(f'{last_date} {last_time}')
         except Exception:
             pass
@@ -246,6 +248,9 @@ def is_tf_fresh(tf):
     for pair_name in pairs_config.get('pairs', {}):
         if not pair_name.endswith(f'_{tf}'):
             continue
+        cfg_pair = pairs_config['pairs'][pair_name]
+        if not cfg_pair.get('enabled', False):
+            continue  # не проверять отключённые
         base_pair = pair_name.replace(f'_{tf}', '')
         if '-' not in base_pair:
             continue
