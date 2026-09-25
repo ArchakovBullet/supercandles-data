@@ -1,4 +1,4 @@
-<!-- VERSION: 2026-09-25 18:41 MSK | COMMIT: dd6e3e3 | LINES: 2416 -->
+<!-- VERSION: 2026-09-25 18:49 MSK | COMMIT: 6409b43 | LINES: 2446 -->
 
 ## 15.09.2026 (ночная сессия — большая)
 
@@ -2414,3 +2414,33 @@ URL (всегда актуально):
 - [ ] Проверить фьючерсный робот (baseline).
 - [ ] RVI, tf_weighted.
 - [ ] Прибраться в pairs_config.json (12 H4-пар отключены).
+
+## 25.09.2026 (baseline — первые данные)
+
+### Что открыто
+
+**Baseline (без skip):**
+- 14 открытых, 1 закрытая (RB STOP −28.8₽).
+- Тикеры: GZ, NM, GL, KC, Eu, MY, PD, ED, EURRUBF, GD, GAZPF, GLDRUBF, SBERF, CNYRUBF.
+
+**Skip (основной):**
+- 12 открытых, 5 закрытых (−698.97₽ за 25.09).
+- Тикеры: MC, RN, YD, HS, TN, TT, EURRUBF, VB, SN, KC, PD, MY.
+
+### Пересечение
+
+- **Оба:** EURRUBF, KC, PD, MY.
+- **Только baseline:** GZ, NM, GL, Eu, ED, GD, GAZPF, GLDRUBF, SBERF, CNYRUBF (10).
+- **Только skip:** MC, RN, YD, HS, TN, TT, VB, SN (8).
+
+### Проблема
+
+- Baseline упёрся в лимит MAX_POSITIONS=15.
+- Skip-условие сработало 23 раза, но не блокировало (baseline).
+
+### План
+
+- Дать baseline 3-7 дней.
+- Сравнить PnL по пересечению (EUR, KC, PD, MY).
+- Возможно, поднять MAX_POSITIONS до 25 для baseline.
+
