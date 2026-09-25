@@ -488,6 +488,9 @@ def check_stops_only():
         
         if not entry_atr or entry_atr <= 0:
             continue
+        if not entry_price or entry_price <= 0:
+            print(f'  ⚠️ {ticker}: entry_price={entry_price} — skip')
+            continue
         
         # Загружаем M10
         m10_file = DATA_ROOT / 'candles' / f'{ticker}_M10.parquet'
@@ -499,8 +502,15 @@ def check_stops_only():
             if len(df) == 0:
                 continue
             last = df.iloc[-1]
-            low = float(last['low']) if not isinstance(last['low'], bytes) else 0
-            high = float(last['high']) if not isinstance(last['high'], bytes) else 0
+            try:
+                low = float(last['low'])
+                high = float(last['high'])
+            except (ValueError, TypeError):
+                print(f'  ⚠️ {ticker}: bad low/high — skip')
+                continue
+            if low <= 0 or high <= 0:
+                print(f'  ⚠️ {ticker}: low={low}, high={high} — skip')
+                continue
             
             # === Стоп 3.2×ATR + безубыток (15.09.2026) ===
             # Загружаем текущий stop_price из БД
