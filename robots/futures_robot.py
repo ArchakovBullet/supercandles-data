@@ -140,7 +140,7 @@ def get_be_move(ticker):
 
 
 # Cooldown после STOP по тикеру (часы) — защита от whipsaw
-COOLDOWN_HOURS = 4
+COOLDOWN_HOURS = 8
 
 # ========== ПРОВЕРКА СВЕЖЕСТИ ==========
 FRESHNESS_THRESHOLDS = {
@@ -302,7 +302,12 @@ def init_db():
             exit_score REAL,
             exit_price REAL,
             pnl REAL DEFAULT 0,
-            exit_reason TEXT  -- SIGNAL / STOP / SCORE_EXIT
+            exit_reason TEXT,  -- SIGNAL / STOP / SCORE_EXIT
+            stop_price REAL,
+            expiry_date TEXT,
+            pnl_points REAL,
+            point_value REAL,
+            contract_code TEXT
         )
     ''')
     conn.commit()
