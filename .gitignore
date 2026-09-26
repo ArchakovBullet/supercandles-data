@@ -73,3 +73,4 @@ public/
 # Baseline robot DB (untracked)
 robots/futures_robot_baseline.db
 robots/*_baseline.db
+backup_crontab_*.txt
