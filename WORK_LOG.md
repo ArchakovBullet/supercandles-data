@@ -3573,3 +3573,71 @@
 ### Git
 
 - `89e2d87` (dashboard), `3fe54f8` (v1 PAUSE).
+
+---
+
+## 2026-11-05 (локально, Beget недоступен) — разведка кода + план P0
+
+**Контекст:** сервер 159.194.219.117 недоступен с 02.11 (VPS уничтожен, бэкапы на проверке). Работаем локально в `E:\Python\supercandles-data`, коммит `4ba441d`. Данных (parquet) нет — только код.
+
+**Что нашли (разведка):**
+- Дашборд `finlab_dashboard/app_v2.py` — **есть**. `_robots_stats` (стр. 4225) в «Обзоре» читает **только БД** (open/pnl/wr) — **без** `systemctl is-active` / `last_check` / `paused`. При этом отдельные вкладки роботов (v2, v3, v4, algopack, stocks, futures, index_v1) **уже умеют** systemctl/paused/robot_state.json (стр. 4404–6382). Проблема из WORK_LOG («v1 выключен 3 недели, дашборд 🟢») — подтверждена.
+- `robots/pairs_robot.py` — фикс `3fe54f8` **есть** (стр. 962–975: `time.sleep(60)` + `process_command()` каждую минуту в неторговый день). Реальный тест — после Beget.
+- `robots/index_robot_v1.py` — **есть** (13 KB) + бэкапы. Условие «не проверять z в неторговый день» (п.7) — **не проверено**, надо смотреть.
+- `scripts/ai_daily_report.py` — есть; `get_robots_status()` **не существует** → п.2 = **новый код** (не патч).
+- `scripts/bybit_funding_collector.py` — есть (шаблон для OI). `bybit_oi_collector.py` — **нет**. `check_robots_status.py` — **нет**.
+- `scripts/crontab` — это **папка**, не файл (PermissionDenied был ложной тревогой).
+- `README.md` — правило 15 **есть** (пятница: freshness + audit_collectors), но **без** «статус роботов» — дополнить.
+- `data/` — только `bybit/` и `sector_indices/`, parquet MOEX/futures нет.
+
+**План P0 (сейчас, без данных):**
+1. п.1 — Обзор дашборда: добавить `is_active` / `last_check` / `paused` + 🟢/🔴/🟡 (вынести хелпер, переиспользовать логику вкладок).
+2. п.3 — новый `scripts/check_robots_status.py` (каждый час) + строка в crontab → `logs/robots_status_cron.log`.
+3. п.2 — `get_robots_status()` в AI-отчёт, вставить в `user_content`.
+4. п.4 — README правило 15 дополнить «+ статус роботов».
+5. п.5 — `scripts/bybit_oi_collector.py` (open-interest, 1h, limit 200, BTC/ETH/SOL → `data/bybit/oi_{symbol}.parquet`).
+6. п.8 — фикс v1 **проверен в коде** (стр. 962–975), реальный тест — после Beget.
+7. п.7 — `index_robot_v1.py`: не проверять z в неторговый день (патч).
+
+**P1 (после Beget):** п.6 — тест Donchian/ATR + фильтр OI (walk-forward H1).
+
+**Гигиена:** `*_check.md` удалены из корня; в WORK_LOG — через `cat >>` (Add-Content UTF8), commit + push origin + diary.
+
+---
+
+## 2026-11-05 (вечер, локально, Beget недоступен) — разведка Bybit/OI, СТОП
+
+**Контекст:** сервер 159.194.219.117 недоступен с 02.11 (VPS уничтожен, бэкапы на проверке). Работаем локально, коммит `4ba441d`. Данных MOEX/futures (parquet) нет. **Работа остановлена до следующего чата.**
+
+**Что сделано (разведка F1–F3, только чтение):**
+- **Bybit H4 (пары BTC/ETH, BTC/SOL, ETH/SOL)** — WF 31.10: PnL < 0, WR ~0.5, edge нет. **ЗАКРЫТО.**
+- **Funding** (`bybit_funding_collector.py`) — 200 записей (BTC/ETH/SOL), Aug 26 → Oct 31 (2 мес). Интегрирован в WF, покрывает 2 фолда из 42, PnL не изменился. **Funding не спасает. ЗАКРЫТО.**
+- **Donchian-55 (BTC H1, 2 года)** — 31.10 ночь-5: нестабильно, публичный PF 1.59 не воспроизводится (у нас 1.23 с хвостом, без — <1). **Не внедряем.**
+- **ATR Expansion (BTC H1, 2 года)** — 31.10 ночь-6: PnL −2.03%, 44% фолдов WR 0%, PF 1.04. **Не работает.**
+- **OI (Open Interest)** — **не тронут**: `bybit_oi_collector.py` нет, `data/bybit/oi_*.parquet` нет. В WORK_LOG OI упоминается только в записи 05.11 (план P0). Идеи п.33/34 — pending.
+- **Локально в `data/bybit/`:** `BTCUSDT_H1.parquet` (743 KB, 2 года), `funding_{BTC,ETH,SOL}USDT.parquet`. **H4 parquet локально нет** (был на сервере, в git не попал). **OI — нет.**
+
+**Что НЕ делали (остановились до G1–G3):**
+- G1 — `scripts/bybit_oi_collector.py` — **не создан**.
+- G2 — пробный запуск OI-сборщика — **не запускался**.
+- G3 — baseline Donchian/ATR на локальном H1 — **не запускался**.
+- п.1–4 (дашборд/AI-отчёт/cron/README) — **отложены до Beget** (решение напарника).
+- п.7 (`index_robot_v1.py` — не проверять z в неторговый день) — **не трогали**.
+
+**Проверено в коде (без запуска):**
+- `robots/pairs_robot.py` — фикс `3fe54f8` **есть** (стр. 962–975: `time.sleep(60)` + `process_command()` каждую минуту в неторговый день). v1 перед сбоем Beget **был запущен** (уточнение напарника) — «v1 выключен 3 недели» из старого WORK_LOG относится к октябрю, не к текущему состоянию.
+- `finlab_dashboard/app_v2.py` — `_robots_stats` (стр. 4225) в «Обзоре» читает **только БД**; отдельные вкладки роботов (стр. 4404–6382) **уже умеют** systemctl/paused/robot_state.json. Проблема «Обзор без статуса» — **архитектурная**, не «v1 мёртв».
+
+**Расхождения / заметки:**
+- **`git remote -v` — только `origin`.** Правило 4 («push в 2 remote: origin + diary») локально **не выполнимо**. `finlab-diary/` — подпапка, не remote. Зафиксировать; уточнить после Beget.
+- `scripts/crontab` — **папка**, внутри `crontab_20260927.txt` (8467 байт). Для п.3 (cron check_robots_status) — править этот файл (после Beget).
+- `*_check.md` (README/WORK_LOG/IDEAS) — удалены из корня, не коммитились.
+
+**Следующий шаг (после возобновления):**
+1. G1 — создать `scripts/bybit_oi_collector.py` (`/v5/market/open-interest`, `intervalTime=1h`, `limit=200`, пагинация по `endTime`, BTC/ETH/SOL → `data/bybit/oi_{symbol}.parquet`), `py_compile`.
+2. G2 — пробный запуск локально (публичный endpoint, ключи не нужны) — увидеть **реальную глубину** истории OI (8 дней / 30 / 90 / больше).
+3. G3 — baseline Donchian/ATR на локальном `BTCUSDT_H1.parquet` **без OI** — зафиксировать PnL/WR/PF/Sharpe.
+4. По G2/G3 — решить: писать `btc_donchian_oi_wf.py` / `btc_atr_oi_wf.py` (фильтр «OI растёт» vs без) **локально**, если OI глубокий; иначе — ждать Beget (cron-накопление OI), тест позже.
+5. п.1–4 — после Beget. п.7 — после G-блока.
+
+**Git:** commit `WORK_LOG` (эта запись) + push origin master. Код **не менялся** в этой сессии (только разведка + WORK_LOG).
