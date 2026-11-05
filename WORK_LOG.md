@@ -3641,3 +3641,42 @@
 5. п.1–4 — после Beget. п.7 — после G-блока.
 
 **Git:** commit `WORK_LOG` (эта запись) + push origin master. Код **не менялся** в этой сессии (только разведка + WORK_LOG).
+
+---
+
+## 2026-11-05 (поздний вечер, локально) — OI-сборщик отработал, baseline упёрся в H4, СТОП до Beget
+
+**Контекст:** сервер 159.194.219.117 недоступен с 02.11 (VPS уничтожен, бэкапы на проверке). Работали локально, коммит `129e2b8` на старте сессии. **Решение напарника: локально код больше не трогаем, ждём Beget. Работа остановлена.**
+
+**Что сделано в этой сессии (локально):**
+- **G1 — `scripts/bybit_oi_collector.py` создан.** Endpoint `/v5/market/open-interest`, `category=linear`, `intervalTime=1h`, `limit=200`, пагинация по `endTime`, `max_pages=200`. `ROOT` — от расположения скрипта (работает и локально, и на сервере). `py_compile OK`.
+- **G2 — OI собран локально.** `data/bybit/oi_{BTC,ETH,SOL}USDT.parquet` — **по 40 000 строк**, `first: 2022-04-14 02:00`, `last: 2026-11-05 17:00` (**4.5 года OI**). Упёрлись в `max_pages=200` (200×200=40000) — реальной истории может быть больше, но 4.5 года хватает на WF. Проверки: одна страница = 8.3 дня (`oldest 2026-10-28 → newest 2026-11-05`); `endTime` двигает назад корректно (вторая страница: 2026-10-21 → 2026-10-29); год назад (`endTime=05.11.2025`) — `len=200`, `oldest 2025-10-28`, `newest 2025-11-06` → **Bybit отдаёт OI глубоко**.
+- **H1 — `ROOT` починен** в `scripts/btc_donchian_wf.py:18` и `scripts/btc_atr_expansion_wf.py:18`: было `ROOT = '/root/finlab'`, стало `ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))`. `py_compile OK`. Замена — через Python `text.replace` (правило 5), не `sed`.
+- **H2 — baseline НЕ перезапущен.** Оба скрипта после H1 упали на **H4**: `FileNotFoundError: data\bybit\BTCUSDT_H4.parquet`. H4 локально **нет** (был на сервере, в git не попал). **H4 не собирали** — решение напарника: локально не трогать, ждать Beget.
+- **Старые baseline-CSV (31.10) разобраны** — лежат в `logs/`:
+  - `btc_donchian_wf_2026-10-31_2335.csv` — 18 фолдов, колонки `fold,n,pnl,wr,pf,sharpe,maxdd,avg_hold`. Fold 1: `n=8, pnl=-249.40, wr=0.125, pf=0.956, sharpe=-1.18`. Fold 2: `pnl=+1425.35, wr=0.2, pf=1.63, sharpe=12.96`. Есть большие плюсы/минусы (fold 10: `pnl=+19327`, fold 3: `pnl=-1603`) — волатильно.
+  - `btc_donchian_wf_2026-10-31_2334.csv` — **пустой** (все нули) — сломанный прогон, игнорируем.
+  - `btc_atr_expansion_wf_2026-10-31_2339.csv` — 18 фолдов, колонки `fold,n,pnl_pct,wr,pf,sharpe,maxdd,avg_hold`. Fold 1: `pnl_pct=+3.34%, wr=0.286, pf=1.93`. Fold 18: `pnl_pct=-5.06%, wr=0.0`.
+
+**Что НЕ делали (остановились):**
+- **H4 локально не собирали** — `bybit_collector.py` не запускали (решение: ждать Beget).
+- **Baseline локально не перезапускали** — нет H4.
+- **G4 (OI-фильтр в WF) не начинали** — `btc_donchian_oi_wf.py` / `btc_atr_oi_wf.py` не созданы.
+- **п.1–4** (дашборд/AI-отчёт/cron/README) — отложены до Beget.
+- **п.7** (`index_robot_v1.py` — не проверять z в неторговый день) — не трогали.
+
+**Расхождения / заметки:**
+- `git remote -v` — только `origin`. Правило 4 («push в 2 remote: origin + diary») локально не выполнимо. `finlab-diary/` — подпапка, не remote. Уточнить после Beget.
+- `scripts/crontab` — папка, внутри `crontab_20260927.txt` (8467 байт). Для п.3 — править этот файл (после Beget).
+- `data/bybit/` локально теперь: `BTCUSDT_H1.parquet` (743 KB), `funding_{BTC,ETH,SOL}USDT.parquet`, **`oi_{BTC,ETH,SOL}USDT.parquet` (по ~630 KB, 40 000 строк)**. **H4 — нет.**
+- `bybit_collector.py` / `bybit_h1_collector.py` — возможно, тоже с хардкодом `/root/finlab` (не проверяли, не запускали). При сборке H4 на Beget — учесть.
+
+**Следующий шаг (после починки Beget):**
+1. **H4** — собрать `BTCUSDT_H4.parquet` (и ETH/SOL) на сервере (`bybit_collector.py`, interval=240) или агрегировать из H1 (`aggregate_h1_to_h4.py`).
+2. **Baseline** — перезапустить `btc_donchian_wf.py` / `btc_atr_expansion_wf.py`, сверить с CSV 31.10 (fold 1: `-249.40` для Donchian, `+3.34%` для ATR). Должны совпасть — тогда baseline валиден.
+3. **G4** — `btc_donchian_oi_wf.py` / `btc_atr_oi_wf.py`: мерж OI (`oi_{symbol}.parquet`) с H1 по `ts`/`begin`, условие «OI растёт» (`oi > oi.shift(N)`, N=24/48/168), сравнить с baseline по фолдам (Sharpe/PnL/WR/PF).
+4. **п.1–4** — дашборд «Обзор» (is_active/last_check/paused + 🟢/🔴/🟡), `get_robots_status()` в AI-отчёт, `scripts/check_robots_status.py` + crontab, README правило 15.
+5. **п.7** — `index_robot_v1.py`: не проверять z в неторговый день.
+6. **п.8** — v1 фикс `3fe54f8` в коде есть, реальный тест PAUSE — после Beget.
+
+**Git:** commit этой записи + push origin master. Код в этой сессии менялся только в двух файлах (`btc_donchian_wf.py`, `btc_atr_expansion_wf.py` — ROOT fix), они **не закоммичены** отдельно — войдут вместе с WORK_LOG или отдельным коммитом (решение ниже).

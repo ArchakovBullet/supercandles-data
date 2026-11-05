@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-ROOT = "/root/finlab"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(ROOT, "logs")
 H1_PATH = os.path.join(ROOT, "data", "bybit", "BTCUSDT_H1.parquet")
 H4_PATH = os.path.join(ROOT, "data", "bybit", "BTCUSDT_H4.parquet")
