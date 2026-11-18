@@ -1,8 +1,8 @@
 # FinLabPy — Паспорт для AI-ассистента
 
-**Актуально на:** 12.10.2026
-**Commit:** `0ee2df1`
-**Сервер:** 159.194.219.117, `/root/finlab`
+**Актуально на:** 18.11.2026
+**Commit:** `5fc12bc`
+**Сервер:** 91.132.188.99, `/root/finlab`
 **Python:** `/root/finlab/venv/bin/python`
 
 ---
@@ -23,13 +23,13 @@
 2. **WORK_LOG.md** — что происходит сейчас (роботы, тесты, задачи).
 
 **Ссылки (raw с commit hash — без кэша):**
-- README: `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/0ee2df1/README.md`
-- WORK_LOG: `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/0ee2df1/WORK_LOG.md`
-- MIGRATION_SUMMARY: `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/0ee2df1/MIGRATION_SUMMARY.md`
+- README: `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/5fc12bc/README.md`
+- WORK_LOG: `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/5fc12bc/WORK_LOG.md`
+- MIGRATION_SUMMARY: `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/5fc12bc/MIGRATION_SUMMARY.md`
 
 **Альтернативные URL (наш сервер, без CDN-кэша):**
-- http://159.194.219.117:8888/README.md
-- http://159.194.219.117:8888/WORK_LOG.md
+- http://91.132.188.99:8888/README.md
+- http://91.132.188.99:8888/WORK_LOG.md
 
 **Где взять COMMIT_HASH:** `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/master/COMMIT_HASH.txt`
 
@@ -57,12 +57,12 @@
 
 ## 1. Доступы
 
-- **Сервер:** root@159.194.219.117 (Ubuntu 24.04, Python 3.12).
+- **Сервер:** root@91.132.188.99 (Ubuntu 24.04, Python 3.12).
 - **Рабочая директория:** `/root/finlab`.
-- **VS Code Server:** http://159.194.219.117:8080
-- **Дашборд (Streamlit):** http://159.194.219.117:8501
-- **HTTP-сервер (WORK_LOG, README):** http://159.194.219.117:8888
-- **Токены:** `/root/finlab/.env`
+- **VS Code:** Локальный VS Code + Remote-SSH (без веб-сервера)
+- **Дашборд (Streamlit):** http://91.132.188.99:8501
+- **HTTP-сервер (WORK_LOG, README):** http://91.132.188.99:8888
+- **Токены:** `/root/finlab/keyring_pass.cfg`
 
 ---
 
@@ -93,7 +93,7 @@
 
 ### Инфраструктура
 
-- `finlab-http.service` — HTTP-сервер (порт 8888, раздача WORK_LOG/README).
+- `finlab-files.service` — HTTP-сервер (serve_utf8.py, порт 8888).
 - Cron — сборщики данных (TradeStats, FutOI, MegaAlerts, HI2, SuperCandles, Candles, Funding, RVI, Sector indices).
 
 ---
@@ -168,8 +168,8 @@
 
 - **GitHub (supercandles-data):** https://github.com/ArchakovBullet/supercandles-data
 - **GitHub (finlab-diary):** https://github.com/ArchakovBullet/finlab-diary
-- **WORK_LOG (raw):** `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/0ee2df1/WORK_LOG.md`
-- **MIGRATION_SUMMARY (raw):** `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/0ee2df1/MIGRATION_SUMMARY.md`
+- **WORK_LOG (raw):** `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/5fc12bc/WORK_LOG.md`
+- **MIGRATION_SUMMARY (raw):** `https://raw.githubusercontent.com/ArchakovBullet/supercandles-data/5fc12bc/MIGRATION_SUMMARY.md`
 
 ---
 
